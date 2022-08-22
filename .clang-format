@@ -1,0 +1,7 @@
+BasedOnStyle:  Google
+
+DerivePointerAlignment: false
+QualifierAlignment: Right
+ReferenceAlignment: Pointer
+SpaceAroundPointerQualifiers: Default
+PointerAlignment: Left

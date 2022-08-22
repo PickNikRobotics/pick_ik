@@ -1,0 +1,4 @@
+<library path="gd_ik_plugin">
+    <class name="gd_ik/GDIKPlugin" type="gd_ik::GDIKPlugin" base_class_type="kinematics::KinematicsBase">
+    </class>
+</library>
