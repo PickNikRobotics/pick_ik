@@ -42,14 +42,14 @@ struct IkGradientDecent {
 
 // void step(IkGradientDecent& self);
 
-std::vector<double> active_variable_positions(
+auto active_variable_positions(
     std::vector<size_t> const& active_variable_indices,
-    std::vector<double> const& variables);
+    std::vector<double> const& variables) -> std::vector<double>;
 
-double fitness(
-    std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
-    std::vector<size_t> const& tip_link_indices,
-    std::vector<size_t> const& active_variable_indices,
-    std::vector<Goal> const& goals, std::vector<double> const& variables);
+auto fitness(std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
+             std::vector<size_t> const& tip_link_indices,
+             std::vector<size_t> const& active_variable_indices,
+             std::vector<Goal> const& goals,
+             std::vector<double> const& variables) -> double;
 
 }  // namespace gd_ik

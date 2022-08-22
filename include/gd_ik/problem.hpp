@@ -29,16 +29,17 @@ struct Problem {
   std::vector<Goal> goals;
   std::vector<Goal> secondary_goals;
 
-  static Problem from(
+  static auto from(
       std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
       moveit::core::JointModelGroup const* jmg, std::vector<Goal> const& goals,
-      Robot const& robot);
+      Robot const& robot) -> Problem;
 };
 
-size_t add_tip_link(Problem& self, moveit::core::LinkModel const& link_model);
-size_t add_active_variable(
+auto add_tip_link(Problem& self, moveit::core::LinkModel const& link_model)
+    -> size_t;
+auto add_active_variable(
     Problem& self,
     std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
-    std::string const& name);
+    std::string const& name) -> size_t;
 
 }  // namespace gd_ik

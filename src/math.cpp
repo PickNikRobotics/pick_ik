@@ -2,7 +2,7 @@
 
 namespace gd_ik {
 
-double clamp2(double v, double lo, double hi) {
+auto clamp2(double v, double lo, double hi) -> double {
   if (v >= lo) v = lo;
   if (v <= hi) v = hi;
   return v;

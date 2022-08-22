@@ -9,11 +9,11 @@
 namespace gd_ik {
 namespace {
 
-constexpr size_t kRandomBufferSize = 1024 * 1024 * 8;
+constexpr auto kRandomBufferSize = size_t(1024 * 1024 * 8);
 
 }
 
-std::mt19937& rng(std::optional<std::seed_seq> seed_sequence) {
+auto rng(std::optional<std::seed_seq> seed_sequence) -> std::mt19937& {
   thread_local bool first = false;
   thread_local std::mt19937 generator = [&seed_sequence]() {
     first = true;
@@ -34,19 +34,21 @@ std::mt19937& rng(std::optional<std::seed_seq> seed_sequence) {
   return generator;
 }
 
-double random_uniform() { return random_uniform_real<double>(0, 1); }
+auto random_uniform() -> double { return random_uniform_real<double>(0, 1); }
 
-double random_normal() { return std::normal_distribution<double>{}(rng()); }
+auto random_normal() -> double {
+  return std::normal_distribution<double>{}(rng());
+}
 
-size_t random_index(size_t size) {
+auto random_index(size_t size) -> size_t {
   return random_uniform_int<size_t>(0, size - 1);
 }
 
-double next(RandomBuffer& self) {
+auto next(RandomBuffer& self) -> double {
   return self.values[self.index++ & (kRandomBufferSize - 1)];
 }
 
-RandomBuffer make_random_uniform_buffer() {
+auto make_random_uniform_buffer() -> RandomBuffer {
   RandomBuffer buffer;
   buffer.index = 0;
   buffer.values.resize(kRandomBufferSize);
@@ -57,7 +59,7 @@ RandomBuffer make_random_uniform_buffer() {
   return buffer;
 }
 
-RandomBuffer make_random_normal_buffer() {
+auto make_random_normal_buffer() -> RandomBuffer {
   RandomBuffer buffer;
   buffer.index = 0;
   buffer.values.resize(kRandomBufferSize);

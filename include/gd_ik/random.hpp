@@ -9,30 +9,31 @@ namespace gd_ik {
 // You can only seed once per-thread, if you try to call this with a
 // seed_sequence after the first time it has been called on that thread
 // it will throw.
-std::mt19937& rng(std::optional<std::seed_seq> seed_sequence = std::nullopt);
+auto rng(std::optional<std::seed_seq> seed_sequence = std::nullopt)
+    -> std::mt19937&;
 
 template <typename T>
-T random_uniform_real(T const lower, T const upper) {
+auto random_uniform_real(T const lower, T const upper) -> T {
   return std::uniform_real_distribution<T>{lower, upper}(rng());
 }
 
 template <typename T>
-T random_uniform_int(T const lower, T const upper) {
+auto random_uniform_int(T const lower, T const upper) -> T {
   return std::uniform_int_distribution<T>{lower, upper}(rng());
 }
 
-double random_uniform();
-double random_normal();
-size_t random_index(size_t size);
+auto random_uniform() -> double;
+auto random_normal() -> double;
+auto random_index(size_t size) -> size_t;
 
 struct RandomBuffer {
   std::vector<double> values;
   size_t index = 0;
 };
 
-double next(RandomBuffer& self);
+auto next(RandomBuffer& self) -> double;
 
-RandomBuffer make_random_uniform_buffer();
-RandomBuffer make_random_normal_buffer();
+auto make_random_uniform_buffer() -> RandomBuffer;
+auto make_random_normal_buffer() -> RandomBuffer;
 
 }  // namespace gd_ik

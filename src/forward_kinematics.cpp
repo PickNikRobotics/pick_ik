@@ -13,8 +13,9 @@
 
 namespace gd_ik {
 
-std::vector<tf2::Vector3> make_joint_axes(
-    std::shared_ptr<moveit::core::RobotModel const> const& model) {
+auto make_joint_axes(
+    std::shared_ptr<moveit::core::RobotModel const> const& model)
+    -> std::vector<tf2::Vector3> {
   auto joint_axes = std::vector<tf2::Vector3>{};
   joint_axes.resize(model->getJointModelCount());
   for (size_t i = 0; i < joint_axes.size(); ++i) {
@@ -33,8 +34,9 @@ std::vector<tf2::Vector3> make_joint_axes(
   return joint_axes;
 }
 
-std::vector<Frame> make_link_frames(
-    std::shared_ptr<moveit::core::RobotModel const> const& model) {
+auto make_link_frames(
+    std::shared_ptr<moveit::core::RobotModel const> const& model)
+    -> std::vector<Frame> {
   std::vector<Frame> link_frames;
   std::transform(model->getLinkModels().cbegin(), model->getLinkModels().cend(),
                  link_frames.begin(), [](auto* link_model) {
@@ -43,9 +45,9 @@ std::vector<Frame> make_link_frames(
   return link_frames;
 }
 
-Frame get_frame(moveit::core::JointModel const& joint_model,
-                std::vector<double> const& variables,
-                std::vector<tf2::Vector3> const& joint_axes) {
+auto get_frame(moveit::core::JointModel const& joint_model,
+               std::vector<double> const& variables,
+               std::vector<tf2::Vector3> const& joint_axes) -> Frame {
   auto const type = joint_model.getType();
   size_t const index = joint_model.getJointIndex();
 
@@ -88,14 +90,14 @@ Frame get_frame(moveit::core::JointModel const& joint_model,
   return Frame::from(joint_transform);
 }
 
-Frame get_frame(moveit::core::LinkModel const& link_model,
-                std::vector<Frame> const& link_frames) {
+auto get_frame(moveit::core::LinkModel const& link_model,
+               std::vector<Frame> const& link_frames) -> Frame {
   return link_frames.at(link_model.getLinkIndex());
 }
 
-bool has_joint_moved(moveit::core::JointModel const& joint_model,
+auto has_joint_moved(moveit::core::JointModel const& joint_model,
                      std::vector<double> const& cached_variables,
-                     std::vector<double> const& variables) {
+                     std::vector<double> const& variables) -> bool {
   size_t const i0 = joint_model.getFirstVariableIndex();
   size_t const cnt = joint_model.getVariableCount();
   if (cnt == 0) return true;
@@ -108,10 +110,10 @@ bool has_joint_moved(moveit::core::JointModel const& joint_model,
   return false;
 }
 
-Frame get_frame(CachedJointFrames& cache,
-                moveit::core::JointModel const& joint_model,
-                std::vector<double> const& variables,
-                std::vector<tf2::Vector3> const& joint_axes) {
+auto get_frame(CachedJointFrames& cache,
+               moveit::core::JointModel const& joint_model,
+               std::vector<double> const& variables,
+               std::vector<tf2::Vector3> const& joint_axes) -> Frame {
   size_t const index = joint_model.getJointIndex();
 
   if (!has_joint_moved(joint_model, cache.variables, variables)) {

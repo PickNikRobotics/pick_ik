@@ -10,10 +10,10 @@
 
 namespace gd_ik {
 
-std::vector<Frame> fk_moveit(
+auto fk_moveit(
     std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
     std::vector<size_t> const& tip_link_indices,
-    std::vector<double> const& variables) {
+    std::vector<double> const& variables) -> std::vector<Frame> {
   auto robot_state = moveit::core::RobotState{robot_model};
 
   // force a mimic update

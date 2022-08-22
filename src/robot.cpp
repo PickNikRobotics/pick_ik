@@ -7,8 +7,8 @@
 
 namespace gd_ik {
 
-Robot Robot::from(
-    std::shared_ptr<moveit::core::RobotModel const> const& model) {
+auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model)
+    -> Robot {
   auto robot = Robot{};
 
   for (auto const& name : model->getVariableNames()) {
@@ -50,34 +50,45 @@ Robot Robot::from(
   return robot;
 }
 
-double get_span(Robot const& self, size_t i) {
+auto get_span(Robot const& self, size_t i) -> double {
   return self.variables.at(i).span;
 }
-double get_clip_min(Robot const& self, size_t i) {
+
+auto get_clip_min(Robot const& self, size_t i) -> double {
   return self.variables.at(i).clip_min;
 }
-double get_clip_max(Robot const& self, size_t i) {
+
+auto get_clip_max(Robot const& self, size_t i) -> double {
   return self.variables.at(i).clip_max;
 }
-double get_min(Robot const& self, size_t i) { return self.variables.at(i).min; }
-double get_max(Robot const& self, size_t i) { return self.variables.at(i).max; }
 
-bool is_revolute(Robot const& self, size_t variable_index) {
+auto get_min(Robot const& self, size_t i) -> double {
+  return self.variables.at(i).min;
+}
+
+auto get_max(Robot const& self, size_t i) -> double {
+  return self.variables.at(i).max;
+}
+
+auto is_revolute(Robot const& self, size_t variable_index) -> bool {
   return self.variable_joint_types.at(variable_index) ==
          moveit::core::JointModel::REVOLUTE;
 }
-bool is_prismatic(Robot const& self, size_t variable_index) {
+
+auto is_prismatic(Robot const& self, size_t variable_index) -> bool {
   return self.variable_joint_types.at(variable_index) ==
          moveit::core::JointModel::PRISMATIC;
 }
-double get_max_velocity(Robot const& self, size_t i) {
+
+auto get_max_velocity(Robot const& self, size_t i) -> double {
   return self.variables.at(i).max_velocity;
 }
-double get_max_velocity_rcp(Robot const& self, size_t i) {
+
+auto get_max_velocity_rcp(Robot const& self, size_t i) -> double {
   return self.variables.at(i).max_velocity_rcp;
 }
 
-double clip(Robot const& self, double p, size_t i) {
+auto clip(Robot const& self, double p, size_t i) -> double {
   auto const& info = self.variables.at(i);
   return clamp2(p, info.clip_min, info.clip_max);
 }

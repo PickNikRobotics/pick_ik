@@ -11,7 +11,7 @@
 
 namespace gd_ik {
 
-Frame Frame::from(const KDL::Frame& kdl) {
+auto Frame::from(const KDL::Frame& kdl) -> Frame {
   Frame frame;
   frame.pos = tf2::Vector3(kdl.p.x(), kdl.p.y(), kdl.p.z());
   double qx, qy, qz, qw;
@@ -20,14 +20,14 @@ Frame Frame::from(const KDL::Frame& kdl) {
   return frame;
 }
 
-Frame Frame::from(geometry_msgs::msg::Pose const& msg) {
+auto Frame::from(geometry_msgs::msg::Pose const& msg) -> Frame {
   Frame frame;
   frame.pos = tf2::Vector3(msg.position.x, msg.position.y, msg.position.z);
   tf2::fromMsg(msg.orientation, frame.rot);
   return frame;
 }
 
-Frame Frame::from(Eigen::Isometry3d const& f) {
+auto Frame::from(Eigen::Isometry3d const& f) -> Frame {
   Frame frame;
   frame.pos = tf2::Vector3(f.translation().x(), f.translation().y(),
                            f.translation().z());
@@ -36,20 +36,20 @@ Frame Frame::from(Eigen::Isometry3d const& f) {
   return frame;
 }
 
-Frame Frame::identity() {
+auto Frame::identity() -> Frame {
   return Frame{
       tf2::Vector3(0, 0, 0),
       tf2::Quaternion(0, 0, 0, 1),
   };
 }
 
-std::string to_string(Frame const& self) {
+auto to_string(Frame const& self) -> std::string {
   return fmt::format("(pos: [{}, {}, {}], rot: [{}, {}, {}, {}])", self.pos.x(),
                      self.pos.y(), self.pos.z(), self.rot.x(), self.rot.y(),
                      self.rot.z(), self.rot.w());
 }
 
-KDL::Frame to_KDL(Frame const& self) {
+auto to_KDL(Frame const& self) -> KDL::Frame {
   KDL::Frame kdl_frame;
   kdl_frame.p.x(self.pos.x());
   kdl_frame.p.y(self.pos.y());
@@ -59,7 +59,7 @@ KDL::Frame to_KDL(Frame const& self) {
   return kdl_frame;
 }
 
-tf2::Vector3 multiply(tf2::Quaternion const& q, tf2::Vector3 const& v) {
+auto multiply(tf2::Quaternion const& q, tf2::Vector3 const& v) -> tf2::Vector3 {
   double const v_x = v.x();
   double const v_y = v.y();
   double const v_z = v.z();
@@ -97,7 +97,8 @@ tf2::Vector3 multiply(tf2::Quaternion const& q, tf2::Vector3 const& v) {
   return ret;
 }
 
-tf2::Quaternion multiply(tf2::Quaternion const& p, tf2::Quaternion const& q) {
+auto multiply(tf2::Quaternion const& p, tf2::Quaternion const& q)
+    -> tf2::Quaternion {
   double const p_x = p.x();
   double const p_y = p.y();
   double const p_z = p.z();
@@ -121,14 +122,14 @@ tf2::Quaternion multiply(tf2::Quaternion const& p, tf2::Quaternion const& q) {
   return ret;
 }
 
-Frame concat(Frame const& a, Frame const& b) {
+auto concat(Frame const& a, Frame const& b) -> Frame {
   return Frame{
       a.pos + multiply(a.rot, b.pos),
       multiply(a.rot, b.rot),
   };
 }
 
-Frame concat(Frame const& a, Frame const& b, Frame const& c) {
+auto concat(Frame const& a, Frame const& b, Frame const& c) -> Frame {
   return concat(concat(a, b), c);
 }
 
@@ -141,24 +142,24 @@ tf2::Quaternion invert(tf2::Quaternion const& q) {
   return ret;
 }
 
-Frame invert(Frame const& self) {
+auto invert(Frame const& self) -> Frame {
   auto rot = invert(self.rot);
   auto pos = multiply(rot, -self.pos);
   return Frame{pos, rot};
 }
 
-Frame change(Frame const& a, Frame const& b, Frame const& c) {
+auto change(Frame const& a, Frame const& b, Frame const& c) -> Frame {
   return concat(a, invert(b), c);
 }
 
-Frame operator*(Frame const& a, Frame const& b) { return concat(a, b); }
+auto operator*(Frame const& a, Frame const& b) -> Frame { return concat(a, b); }
 
-Frame& operator*=(Frame& self, Frame const& b) {
+auto operator*=(Frame& self, Frame const& b) -> Frame& {
   self = self * b;
   return self;
 }
 
-tf2::Quaternion normalize(tf2::Quaternion const& q) {
+auto normalize(tf2::Quaternion const& q) -> tf2::Quaternion {
   tf2::Quaternion ret;
   double f = (3.0 - q.length2()) * 0.5;
   ret.setX(q.x() * f);
@@ -168,7 +169,7 @@ tf2::Quaternion normalize(tf2::Quaternion const& q) {
   return ret;
 }
 
-KDL::Twist frame_twist(Frame const& a, Frame const& b) {
+auto frame_twist(Frame const& a, Frame const& b) -> KDL::Twist {
   auto const frame = invert(a) * b;
   KDL::Twist twist;
   twist.vel.x(frame.pos.x());

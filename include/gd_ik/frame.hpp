@@ -21,18 +21,19 @@ struct Frame {
   static Frame identity();
 };
 
-std::string to_string(Frame const& self);
-KDL::Frame to_KDL(Frame const& self);
-tf2::Vector3 multiply(tf2::Quaternion const& q, tf2::Vector3 const& v);
-tf2::Quaternion multiply(tf2::Quaternion const& p, tf2::Quaternion const& q);
-Frame concat(Frame const& a, Frame const& b);
-Frame concat(Frame const& a, Frame const& b, Frame const& c);
-tf2::Quaternion invert(tf2::Quaternion const& q);
-Frame invert(Frame const& self);
-Frame change(Frame const& a, Frame const& b, Frame const& c);
-Frame operator*(Frame const& a, Frame const& b);
-Frame& operator*=(Frame& self, Frame const& b);
-tf2::Quaternion normalize(tf2::Quaternion const& q);
-KDL::Twist frame_twist(Frame const& a, Frame const& b);
+auto to_string(Frame const& self) -> std::string;
+auto to_KDL(Frame const& self) -> KDL::Frame;
+auto multiply(tf2::Quaternion const& q, tf2::Vector3 const& v) -> tf2::Vector3;
+auto multiply(tf2::Quaternion const& p, tf2::Quaternion const& q)
+    -> tf2::Quaternion;
+auto concat(Frame const& a, Frame const& b) -> Frame;
+auto concat(Frame const& a, Frame const& b, Frame const& c) -> Frame;
+auto invert(tf2::Quaternion const& q) -> tf2::Quaternion;
+auto invert(Frame const& self) -> Frame;
+auto change(Frame const& a, Frame const& b, Frame const& c) -> Frame;
+auto operator*(Frame const& a, Frame const& b) -> Frame;
+auto operator*=(Frame& self, Frame const& b) -> Frame&;
+auto normalize(tf2::Quaternion const& q) -> tf2::Quaternion;
+auto frame_twist(Frame const& a, Frame const& b) -> KDL::Twist;
 
 }  // namespace gd_ik

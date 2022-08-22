@@ -9,7 +9,8 @@
 
 namespace gd_ik {
 
-size_t add_tip_link(Problem& self, moveit::core::LinkModel const& link_model) {
+auto add_tip_link(Problem& self, moveit::core::LinkModel const& link_model)
+    -> size_t {
   if (self.link_tip_indices[link_model.getLinkIndex()] < 0) {
     self.link_tip_indices[link_model.getLinkIndex()] =
         self.tip_link_indices.size();
@@ -18,10 +19,11 @@ size_t add_tip_link(Problem& self, moveit::core::LinkModel const& link_model) {
   return self.link_tip_indices[link_model.getLinkIndex()];
 }
 
-size_t add_active_variable(
+auto add_active_variable(
     Problem& self,
     std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
-    moveit::core::JointModelGroup const* jmg, std::string const& name) {
+    moveit::core::JointModelGroup const* jmg, std::string const& name)
+    -> size_t {
   for (size_t i = 0; i < self.active_variable_indices.size(); ++i) {
     auto index = self.active_variable_indices.at(i);
     if (name == robot_model->getVariableNames().at(index)) {
@@ -39,10 +41,10 @@ size_t add_active_variable(
   throw std::invalid_argument(fmt::format("joint not found: {}", name));
 }
 
-Problem Problem::from(
+auto Problem::from(
     std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
     moveit::core::JointModelGroup const* jmg, std::vector<Goal> const& goals,
-    Robot const& robot) {
+    Robot const& robot) -> Problem {
   Problem self;
 
   // Initialize vectors

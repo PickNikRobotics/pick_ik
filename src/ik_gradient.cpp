@@ -9,9 +9,9 @@
 
 namespace gd_ik {
 
-std::vector<double> active_variable_positions(
+auto active_variable_positions(
     std::vector<size_t> const& active_variable_indices,
-    std::vector<double> const& variables) {
+    std::vector<double> const& variables) -> std::vector<double> {
   std::vector<double> active_positions;
   std::transform(active_variable_indices.cbegin(),
                  active_variable_indices.cend(), active_positions.begin(),
@@ -19,11 +19,11 @@ std::vector<double> active_variable_positions(
   return active_positions;
 }
 
-double fitness(
-    std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
-    std::vector<size_t> const& tip_link_indices,
-    std::vector<size_t> const& active_variable_indices,
-    std::vector<Goal> const& goals, std::vector<double> const& variables) {
+auto fitness(std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
+             std::vector<size_t> const& tip_link_indices,
+             std::vector<size_t> const& active_variable_indices,
+             std::vector<Goal> const& goals,
+             std::vector<double> const& variables) -> double {
   auto tip_frames = fk_moveit(robot_model, tip_link_indices, variables);
   auto active_positions =
       active_variable_positions(active_variable_indices, variables);
