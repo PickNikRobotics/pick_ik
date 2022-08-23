@@ -35,4 +35,8 @@ auto get_max_velocity(Robot const& self, size_t i) -> double;
 auto get_max_velocity_rcp(Robot const& self, size_t i) -> double;
 auto clip(Robot const& self, double p, size_t i) -> double;
 
+auto get_link_indexes(
+    std::shared_ptr<moveit::core::RobotModel const> const& model,
+    std::vector<std::string> const& names) -> std::vector<size_t>;
+
 }  // namespace gd_ik

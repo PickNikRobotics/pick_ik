@@ -1,12 +1,16 @@
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/robot_model/joint_model_group.h>
+#include <moveit/robot_state/robot_state.h>
 
 #include <pluginlib/class_list_macros.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <string>
 #include <vector>
 
+#include "gd_ik/frame.hpp"
+#include "gd_ik/goal.hpp"
 #include "gd_ik/robot.hpp"
+#include "gd_ik_parameters.hpp"
 
 namespace gd_ik {
 namespace {
@@ -26,6 +30,9 @@ class GDIKPlugin : public kinematics::KinematicsBase {
   // std::vector<Frame> tipFrames_;
 
   rclcpp::Node::SharedPtr node_;
+  std::shared_ptr<ParamListener> parameter_listener_;
+  Params params_;
+  std::vector<size_t> tip_link_indexes_;
 
  public:
   bool searchPositionIK(
@@ -48,6 +55,9 @@ class GDIKPlugin : public kinematics::KinematicsBase {
                   std::vector<std::string> const& tip_frames,
                   double search_discretization) override {
     node_ = node;
+    parameter_listener_ = std::make_shared<ParamListener>(
+        node, std::string("robot_description_kinematics.").append(group_name));
+    params_ = parameter_listener_->get_params();
 
     // Initialize internal state of base class KinematicsBase
     // Creates these internal state variables:
@@ -79,12 +89,19 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     }
 
     // If jmg has tip frames, set tip_frames_ to jmg tip frames
+    // consider removing these lines as they might be unnecessary
+    // as tip_frames_ is set by the call to storeValues above
     auto jmg_tips = std::vector<std::string>{};
     jmg_->getEndEffectorTips(jmg_tips);
     if (!jmg_tips.empty()) tip_frames_ = jmg_tips;
+    ///////////////////////////////////////////////////////////
 
     // link_names are the same as tip frames
+    // TODO: why do we need to set this
     link_names_ = tip_frames_;
+
+    // Calculate the indexes of the tip links
+    tip_link_indexes_ = get_link_indexes(robot_model_, tip_frames_);
 
     // Create our internal Robot object from the robot model
     robot_ = Robot::from(robot_model_);
@@ -175,7 +192,31 @@ class GDIKPlugin : public kinematics::KinematicsBase {
       kinematics::KinematicsQueryOptions const& options =
           kinematics::KinematicsQueryOptions(),
       moveit::core::RobotState const* context_state = NULL) const {
-    // TODO implement
+    // If we didn't receive a robot state we have to make one
+    std::unique_ptr<moveit::core::RobotState> temp_state;
+    if (!context_state) {
+      temp_state = std::make_unique<moveit::core::RobotState>(robot_model_);
+      temp_state->setToDefaultValues();
+      context_state = temp_state.get();
+    }
+
+    // Calculate the tip frames transformed into the base frame
+    auto goal_frames = std::vector<Frame>{};
+    std::transform(ik_poses.cbegin(), ik_poses.cend(), goal_frames.begin(),
+                   [&](auto const& pose) {
+                     Eigen::Isometry3d p, r;
+                     tf2::fromMsg(pose, p);
+                     r = context_state->getGlobalLinkTransform(getBaseFrame());
+                     return Frame::from(r * p);
+                   });
+
+    std::vector<CostFn> cost_functions;
+    for (size_t i = 0; i < goal_frames.size(); ++i) {
+      auto const& goal = goal_frames[i];
+      cost_functions.push_back(
+          make_pose_cost_fn(goal, i, params_.rotation_scale));
+    }
+
     return false;
   }
 };

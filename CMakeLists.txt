@@ -10,6 +10,7 @@ find_package(ament_cmake_ros REQUIRED)
 
 find_package(Eigen3 REQUIRED)
 find_package(fmt REQUIRED)
+find_package(generate_parameter_library REQUIRED)
 find_package(moveit_core REQUIRED)
 find_package(moveit_ros_planning REQUIRED)
 find_package(pluginlib REQUIRED)
@@ -18,6 +19,11 @@ find_package(tf2 REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_kdl REQUIRED)
+
+generate_parameter_library(
+  gd_ik_parameters
+  src/gd_ik_parameters.yaml
+)
 
 add_library(gd_ik_plugin SHARED
   src/fk_moveit.cpp
@@ -48,6 +54,7 @@ ament_target_dependencies(gd_ik_plugin
 )
 target_link_libraries(gd_ik_plugin
   fmt::fmt
+  gd_ik_parameters
 )
 
 pluginlib_export_plugin_description_file(
@@ -64,7 +71,7 @@ install(
   DESTINATION include
 )
 install(
-  TARGETS gd_ik_plugin
+  TARGETS gd_ik_plugin gd_ik_parameters
   EXPORT export_gd_ik
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

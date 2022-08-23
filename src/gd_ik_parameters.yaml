@@ -1,0 +1,30 @@
+gd_ik:
+  rotation_scale: {
+    type: double,
+    default_value: 0.5,
+    description: "The rotation scale for the pose cost function. Set to 0.0 to solve for only position",
+  }
+  center_joints_weight: {
+    type: double,
+    default_value: 0.0,
+    description: "Weight for centering cost function, >0.0 enables const function",
+    validation: {
+      lower_bounds<>: [0.0],
+    },
+  }
+  avoid_joint_limits_weight: {
+    type: double,
+    default_value: 0.0,
+    description: "Weight for avoiding joint limits cost function, >0.0 enables const function",
+    validation: {
+      lower_bounds<>: [0.0],
+    },
+  }
+  minimal_displacement_weight: {
+    type: double,
+    default_value: 0.0,
+    description: "Weight for minimal displacement cost function, >0.0 enables const function",
+    validation: {
+      lower_bounds<>: [0.0],
+    },
+  }

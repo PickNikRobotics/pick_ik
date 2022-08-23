@@ -30,16 +30,19 @@ struct GoalContext {
 };
 
 // Goal Function type
-using GoalEvalFn =
+using CostFn =
     std::function<double(std::vector<Frame> const& tip_frames,
                          std::vector<double> const& active_positions)>;
 
 struct Goal {
-  GoalEvalFn eval;
+  CostFn eval;
   double weight;
   size_t tip_index;
   Frame frame;
   std::vector<std::string> link_names;
 };
+
+auto make_pose_cost_fn(Frame goal, size_t goal_link_index,
+                       double rotation_scale) -> CostFn;
 
 }  // namespace gd_ik

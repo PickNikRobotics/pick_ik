@@ -4,41 +4,60 @@
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_model/robot_model.h>
 
+#include <set>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace gd_ik {
 
 auto add_tip_link(Problem& self, moveit::core::LinkModel const& link_model)
     -> size_t {
-  if (self.link_tip_indices[link_model.getLinkIndex()] < 0) {
-    self.link_tip_indices[link_model.getLinkIndex()] =
-        self.tip_link_indices.size();
-    self.tip_link_indices.push_back(link_model.getLinkIndex());
+  if (self.link_tip_indexes[link_model.getLinkIndex()] < 0) {
+    self.link_tip_indexes[link_model.getLinkIndex()] =
+        self.tip_link_indexes.size();
+    self.tip_link_indexes.push_back(link_model.getLinkIndex());
   }
-  return self.link_tip_indices[link_model.getLinkIndex()];
+  return self.link_tip_indexes[link_model.getLinkIndex()];
 }
 
-auto add_active_variable(
-    Problem& self,
+auto get_active_variable_indexes(
     std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
-    moveit::core::JointModelGroup const* jmg, std::string const& name)
-    -> size_t {
-  for (size_t i = 0; i < self.active_variable_indices.size(); ++i) {
-    auto index = self.active_variable_indices.at(i);
-    if (name == robot_model->getVariableNames().at(index)) {
-      return i;
-    }
-  }
-  for (auto const& joint_name : jmg->getVariableNames()) {
-    if (name == joint_name) {
-      self.active_variable_indices.push_back(
-          robot_model->getVariableIndex(joint_name));
-      return self.active_variable_indices.size() - 1;
+    moveit::core::JointModelGroup const* jmg,
+    std::vector<size_t> const& tip_link_indexes) -> std::vector<size_t> {
+  // Walk the tree of links starting at each tip towards the parent
+  // The parent joint of each of these links are the ones we are using
+  auto joint_usage = std::vector<int>{};
+  joint_usage.resize(robot_model->getJointModelCount(), 0);
+  for (auto tip_index : tip_link_indexes) {
+    for (auto const* link_model = robot_model->getLinkModels().at(tip_index);
+         link_model != nullptr; link_model = link_model->getParentLinkModel()) {
+      auto const* joint_model = link_model->getParentJointModel();
+      auto const joint_index = joint_model->getJointIndex();
+      joint_usage[joint_index] = 1;
     }
   }
 
-  throw std::invalid_argument(fmt::format("joint not found: {}", name));
+  // For each of the active joints in the joint model group
+  // If those are in the ones we are using and the joint is not a mimic
+  // Then get all the variable names from the joint moodel
+  auto active_variable_names = std::set<std::string>{};
+  for (auto const* joint_model : jmg->getActiveJointModels()) {
+    if (joint_usage[joint_model->getJointIndex()] && !joint_model->getMimic()) {
+      for (auto& name : joint_model->getVariableNames()) {
+        active_variable_names.insert(name);
+      }
+    }
+  }
+
+  // For each active variable name, add the indexes from that variable to the
+  // active variables
+  auto active_variable_indexes = std::vector<size_t>{};
+  for (auto const& name : active_variable_names) {
+    active_variable_indexes.push_back(robot_model->getVariableIndex(name));
+  }
+
+  return active_variable_indexes;
 }
 
 auto Problem::from(
@@ -48,8 +67,7 @@ auto Problem::from(
   Problem self;
 
   // Initialize vectors
-  self.link_tip_indices.resize(robot_model->getLinkModelCount(), -1);
-  self.joint_usage.resize(robot_model->getJointModelCount(), 0);
+  self.link_tip_indexes.resize(robot_model->getLinkModelCount(), -1);
 
   self.goals = goals;
   for (auto const& goal : self.goals) {
@@ -62,34 +80,20 @@ auto Problem::from(
     }
   }
 
-  // update active variables from active subtree
-  for (auto tip_index : self.tip_link_indices) {
-    for (auto* link_model = robot_model->getLinkModels()[tip_index]; link_model;
-         link_model = link_model->getParentLinkModel()) {
-      self.joint_usage[link_model->getParentJointModel()->getJointIndex()] = 1;
-    }
-  }
-
-  for (auto const* joint_model : jmg->getActiveJointModels()) {
-    if (self.joint_usage[joint_model->getJointIndex()] &&
-        !joint_model->getMimic()) {
-      for (auto& n : joint_model->getVariableNames()) {
-        add_active_variable(self, robot_model, jmg, n);
-      }
-    }
-  }
+  self.active_variable_indexes =
+      get_active_variable_indexes(robot_model, jmg, self.tip_link_indexes);
 
   // init weights for minimal displacement goals
-  self.minimal_displacement_factors.resize(self.active_variable_indices.size());
-  if (double s = std::accumulate(self.active_variable_indices.cbegin(),
-                                 self.active_variable_indices.cend(), 0.0,
+  self.minimal_displacement_factors.resize(self.active_variable_indexes.size());
+  if (double s = std::accumulate(self.active_variable_indexes.cbegin(),
+                                 self.active_variable_indexes.cend(), 0.0,
                                  [&robot](auto sum, auto ivar) {
                                    return sum +
                                           get_max_velocity_rcp(robot, ivar);
                                  });
       s > 0) {
-    std::transform(self.active_variable_indices.cbegin(),
-                   self.active_variable_indices.cend(),
+    std::transform(self.active_variable_indexes.cbegin(),
+                   self.active_variable_indexes.cend(),
                    self.minimal_displacement_factors.begin(),
                    [&robot, s](auto ivar) {
                      return get_max_velocity_rcp(robot, ivar) / s;
@@ -97,7 +101,7 @@ auto Problem::from(
   } else {
     std::fill(self.minimal_displacement_factors.begin(),
               self.minimal_displacement_factors.end(),
-              1.0 / self.active_variable_indices.size());
+              1.0 / self.active_variable_indexes.size());
   }
 
   return self;

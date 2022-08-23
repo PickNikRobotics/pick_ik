@@ -1,5 +1,7 @@
 #include "gd_ik/robot.hpp"
 
+#include <fmt/core.h>
+
 #include <cfloat>
 #include <cmath>
 
@@ -91,6 +93,22 @@ auto get_max_velocity_rcp(Robot const& self, size_t i) -> double {
 auto clip(Robot const& self, double p, size_t i) -> double {
   auto const& info = self.variables.at(i);
   return clamp2(p, info.clip_min, info.clip_max);
+}
+
+auto get_link_indexes(
+    std::shared_ptr<moveit::core::RobotModel const> const& model,
+    std::vector<std::string> const& names) -> std::vector<size_t> {
+  std::vector<size_t> indexes;
+  std::transform(
+      names.cbegin(), names.cend(), indexes.begin(),
+      [&model](auto const& name) {
+        auto const* link_model = model->getLinkModel(name);
+        if (!link_model) {
+          throw std::invalid_argument(fmt::format("link not found: {}", name));
+        }
+        return link_model->getLinkIndex();
+      });
+  return indexes;
 }
 
 }  // namespace gd_ik
