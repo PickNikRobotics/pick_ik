@@ -10,16 +10,6 @@
 
 namespace gd_ik {
 
-auto add_tip_link(Problem& self, moveit::core::LinkModel const& link_model)
-    -> size_t {
-  if (self.link_tip_indexes[link_model.getLinkIndex()] < 0) {
-    self.link_tip_indexes[link_model.getLinkIndex()] =
-        self.tip_link_indexes.size();
-    self.tip_link_indexes.push_back(link_model.getLinkIndex());
-  }
-  return self.link_tip_indexes[link_model.getLinkIndex()];
-}
-
 auto get_active_variable_indexes(
     std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
     moveit::core::JointModelGroup const* jmg,
@@ -64,20 +54,6 @@ auto Problem::from(
     moveit::core::JointModelGroup const* jmg, std::vector<Goal> const& goals,
     Robot const& robot) -> Problem {
   Problem self;
-
-  // Initialize vectors
-  self.link_tip_indexes.resize(robot_model->getLinkModelCount(), -1);
-
-  self.goals = goals;
-  for (auto const& goal : self.goals) {
-    for (auto const& name : goal.link_names) {
-      auto const* link_model = robot_model->getLinkModel(name);
-      if (!link_model) {
-        throw std::invalid_argument(fmt::format("link not found: {}", name));
-      }
-      add_tip_link(self, *link_model);
-    }
-  }
 
   self.active_variable_indexes =
       get_active_variable_indexes(robot_model, jmg, self.tip_link_indexes);

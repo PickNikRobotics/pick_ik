@@ -13,7 +13,6 @@
 namespace gd_ik {
 
 struct Problem {
-  std::vector<ssize_t> link_tip_indexes;
   std::vector<size_t> active_variable_indexes;
 
   std::vector<double> minimal_displacement_factors;
@@ -41,8 +40,6 @@ auto get_active_variable_indexes(
     moveit::core::JointModelGroup const* jmg,
     std::vector<size_t> const& tip_link_indexes) -> std::vector<size_t>;
 
-auto add_tip_link(Problem& self, moveit::core::LinkModel const& link_model)
-    -> size_t;
 auto add_active_variable(
     Problem& self,
     std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
