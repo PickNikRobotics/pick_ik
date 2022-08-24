@@ -45,4 +45,8 @@ struct Goal {
 auto make_pose_cost_fn(Frame goal, size_t goal_link_index,
                        double rotation_scale) -> CostFn;
 
+auto make_center_joints_cost_fn(
+    Robot robot, std::vector<size_t> active_variable_indexes,
+    std::vector<double> minimal_displacement_factors) -> CostFn;
+
 }  // namespace gd_ik

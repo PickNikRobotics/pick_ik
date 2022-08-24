@@ -25,7 +25,6 @@ generate_parameter_library(
   gd_ik_parameters
   src/gd_ik_parameters.yaml
 )
-
 add_library(gd_ik_plugin SHARED
   src/fk_moveit.cpp
   src/forward_kinematics.cpp
