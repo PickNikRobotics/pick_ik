@@ -11,6 +11,16 @@
 
 namespace gd_ik {
 
+auto fitness(std::vector<Goal> const& goals,
+             std::vector<Frame> const& tip_frames,
+             std::vector<double> const& active_positions) -> double {
+  return std::accumulate(
+      goals.cbegin(), goals.cend(), 0.0, [&](double sum, auto const& goal) {
+        return sum + goal.eval(tip_frames, active_positions) *
+                         std::pow(goal.weight, 2);
+      });
+}
+
 auto make_pose_cost_fn(Frame goal, size_t goal_link_index,
                        double rotation_scale) -> CostFn {
   return [=](std::vector<Frame> const& tip_frames,

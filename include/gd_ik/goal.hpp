@@ -38,10 +38,12 @@ using CostFn =
 struct Goal {
   CostFn eval;
   double weight;
-  size_t tip_index;
-  Frame frame;
   std::vector<std::string> link_names;
 };
+
+auto fitness(std::vector<Goal> const& goals,
+             std::vector<Frame> const& tip_frames,
+             std::vector<double> const& active_positions) -> double;
 
 auto make_pose_cost_fn(Frame goal, size_t goal_link_index,
                        double rotation_scale) -> CostFn;
