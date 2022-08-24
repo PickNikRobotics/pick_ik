@@ -49,6 +49,30 @@ auto get_active_variable_indexes(
   return active_variable_indexes;
 }
 
+auto get_minimal_displacement_factors(
+    std::vector<size_t> const& active_variable_indexes, Robot const& robot)
+    -> std::vector<double> {
+  auto minimal_displacement_factors = std::vector<double>{};
+  minimal_displacement_factors.resize(active_variable_indexes.size());
+  if (double s = std::accumulate(
+          active_variable_indexes.cbegin(), active_variable_indexes.cend(), 0.0,
+          [&robot](auto sum, auto ivar) {
+            return sum + get_max_velocity_rcp(robot, ivar);
+          });
+      s > 0) {
+    std::transform(
+        active_variable_indexes.cbegin(), active_variable_indexes.cend(),
+        minimal_displacement_factors.begin(), [&robot, s](auto ivar) {
+          return get_max_velocity_rcp(robot, ivar) / s;
+        });
+  } else {
+    std::fill(minimal_displacement_factors.begin(),
+              minimal_displacement_factors.end(),
+              1.0 / active_variable_indexes.size());
+  }
+  return minimal_displacement_factors;
+}
+
 auto Problem::from(
     std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
     moveit::core::JointModelGroup const* jmg, std::vector<Goal> const& goals,
@@ -57,27 +81,8 @@ auto Problem::from(
 
   self.active_variable_indexes =
       get_active_variable_indexes(robot_model, jmg, self.tip_link_indexes);
-
-  // init weights for minimal displacement goals
-  self.minimal_displacement_factors.resize(self.active_variable_indexes.size());
-  if (double s = std::accumulate(self.active_variable_indexes.cbegin(),
-                                 self.active_variable_indexes.cend(), 0.0,
-                                 [&robot](auto sum, auto ivar) {
-                                   return sum +
-                                          get_max_velocity_rcp(robot, ivar);
-                                 });
-      s > 0) {
-    std::transform(self.active_variable_indexes.cbegin(),
-                   self.active_variable_indexes.cend(),
-                   self.minimal_displacement_factors.begin(),
-                   [&robot, s](auto ivar) {
-                     return get_max_velocity_rcp(robot, ivar) / s;
-                   });
-  } else {
-    std::fill(self.minimal_displacement_factors.begin(),
-              self.minimal_displacement_factors.end(),
-              1.0 / self.active_variable_indexes.size());
-  }
+  self.minimal_displacement_factors =
+      get_minimal_displacement_factors(self.active_variable_indexes, robot);
 
   return self;
 }

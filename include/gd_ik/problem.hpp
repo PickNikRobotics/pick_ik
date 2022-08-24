@@ -40,6 +40,10 @@ auto get_active_variable_indexes(
     moveit::core::JointModelGroup const* jmg,
     std::vector<size_t> const& tip_link_indexes) -> std::vector<size_t>;
 
+auto get_minimal_displacement_factors(
+    std::vector<size_t> const& active_variable_indexes, Robot const& robot)
+    -> std::vector<double>;
+
 auto add_active_variable(
     Problem& self,
     std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
