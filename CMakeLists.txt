@@ -15,6 +15,7 @@ find_package(moveit_core REQUIRED)
 find_package(moveit_ros_planning REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rsl REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
@@ -47,6 +48,7 @@ ament_target_dependencies(gd_ik_plugin
   moveit_ros_planning
   pluginlib
   rclcpp
+  rsl
   tf2
   tf2_eigen
   tf2_geometry_msgs

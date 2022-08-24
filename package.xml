@@ -17,6 +17,7 @@
   <depend>moveit_ros_planning</depend>
   <depend>pluginlib</depend>
   <depend>rclcpp</depend>
+  <depend>rsl</depend>
   <depend>tf2</depend>
   <depend>tf2_eigen</depend>
   <depend>tf2_geometry_msgs</depend>
