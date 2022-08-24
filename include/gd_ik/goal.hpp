@@ -49,4 +49,12 @@ auto make_center_joints_cost_fn(
     Robot robot, std::vector<size_t> active_variable_indexes,
     std::vector<double> minimal_displacement_factors) -> CostFn;
 
+auto make_avoid_joint_limits_cost_fn(
+    Robot robot, std::vector<size_t> active_variable_indexes,
+    std::vector<double> minimal_displacement_factors) -> CostFn;
+
+auto make_minimal_displacement_cost_fn(
+    std::vector<double> initial_guess,
+    std::vector<double> minimal_displacement_factors) -> CostFn;
+
 }  // namespace gd_ik
