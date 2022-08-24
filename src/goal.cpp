@@ -1,5 +1,10 @@
 #include "gd_ik/goal.hpp"
 
+#include <moveit/kinematics_base/kinematics_base.h>
+#include <moveit/robot_model/joint_model_group.h>
+#include <moveit/robot_model/robot_model.h>
+#include <moveit/robot_state/robot_state.h>
+
 #include <cmath>
 #include <vector>
 
@@ -88,6 +93,20 @@ auto make_minimal_displacement_cost_fn(
       sum += std::pow((position - guess) * weight, 2);
     }
     return sum;
+  };
+}
+
+auto make_ik_cost_fn(geometry_msgs::msg::Pose pose,
+                     kinematics::KinematicsBase::IKCostFn cost_fn,
+                     std::shared_ptr<moveit::core::RobotModel> robot_model,
+                     moveit::core::JointModelGroup* jmg,
+                     std::vector<double> initial_guess) -> CostFn {
+  return [=](std::vector<Frame> const&,
+             std::vector<double> const& active_positions) -> double {
+    auto robot_state = moveit::core::RobotState(robot_model);
+    robot_state.setJointGroupPositions(jmg, active_positions);
+    robot_state.update();
+    return cost_fn(pose, robot_state, jmg, initial_guess);
   };
 }
 

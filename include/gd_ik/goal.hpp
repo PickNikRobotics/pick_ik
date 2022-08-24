@@ -1,6 +1,8 @@
 #pragma once
 
+#include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/robot_model/joint_model_group.h>
+#include <moveit/robot_model/robot_model.h>
 
 #include <functional>
 #include <string>
@@ -56,5 +58,11 @@ auto make_avoid_joint_limits_cost_fn(
 auto make_minimal_displacement_cost_fn(
     std::vector<double> initial_guess,
     std::vector<double> minimal_displacement_factors) -> CostFn;
+
+auto make_ik_cost_fn(geometry_msgs::msg::Pose pose,
+                     kinematics::KinematicsBase::IKCostFn cost_fn,
+                     std::shared_ptr<moveit::core::RobotModel> robot_model,
+                     moveit::core::JointModelGroup* jmg,
+                     std::vector<double> initial_guess) -> CostFn;
 
 }  // namespace gd_ik
