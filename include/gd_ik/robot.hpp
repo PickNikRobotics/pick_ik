@@ -2,7 +2,6 @@
 
 #include <moveit/robot_model/joint_model.h>
 #include <moveit/robot_model/robot_model.h>
-
 #include <vector>
 
 namespace gd_ik {

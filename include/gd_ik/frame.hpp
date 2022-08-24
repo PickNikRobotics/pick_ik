@@ -1,12 +1,12 @@
 #pragma once
 
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2/LinearMath/Vector3.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2_kdl/tf2_kdl.hpp>
 
 #include <Eigen/Dense>
 #include <string>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-#include <tf2_kdl/tf2_kdl.hpp>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Vector3.h>
 #include <vector>
 
 namespace gd_ik {

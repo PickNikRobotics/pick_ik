@@ -1,9 +1,8 @@
-#include "gd_ik/problem.hpp"
+#include <gd_ik/problem.hpp>
 
 #include <fmt/format.h>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_model/robot_model.h>
-
 #include <set>
 #include <stdexcept>
 #include <string>

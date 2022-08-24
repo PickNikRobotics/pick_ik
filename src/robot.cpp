@@ -1,11 +1,9 @@
-#include "gd_ik/robot.hpp"
-
-#include <fmt/core.h>
+#include <gd_ik/math.hpp>
+#include <gd_ik/robot.hpp>
 
 #include <cfloat>
 #include <cmath>
-
-#include "gd_ik/math.hpp"
+#include <fmt/core.h>
 
 namespace gd_ik {
 

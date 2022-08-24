@@ -1,15 +1,14 @@
 #pragma once
 
-#include <moveit/robot_model/joint_model_group.h>
-#include <moveit/robot_model/robot_model.h>
+#include <gd_ik/frame.hpp>
+#include <gd_ik/goal.hpp>
+#include <gd_ik/robot.hpp>
 
 #include <chrono>
 #include <memory>
+#include <moveit/robot_model/joint_model_group.h>
+#include <moveit/robot_model/robot_model.h>
 #include <vector>
-
-#include "gd_ik/frame.hpp"
-#include "gd_ik/goal.hpp"
-#include "gd_ik/robot.hpp"
 
 namespace gd_ik {
 

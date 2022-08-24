@@ -1,15 +1,13 @@
-#include "gd_ik/goal.hpp"
+#include <gd_ik/frame.hpp>
+#include <gd_ik/goal.hpp>
+#include <gd_ik/robot.hpp>
 
+#include <cmath>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
-
-#include <cmath>
 #include <vector>
-
-#include "gd_ik/frame.hpp"
-#include "gd_ik/robot.hpp"
 
 namespace gd_ik {
 

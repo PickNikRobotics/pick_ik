@@ -5,3 +5,12 @@ QualifierAlignment: Right
 ReferenceAlignment: Pointer
 SpaceAroundPointerQualifiers: Default
 PointerAlignment: Left
+
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Priority: 1
+    Regex: '^<gd_ik\/'
+  - Priority: 2
+    Regex: '^<(.+).hpp>$'
+  - Priority: 3
+    Regex: '^<(.+)>$'
