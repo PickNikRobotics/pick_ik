@@ -19,6 +19,11 @@ gd_ik:
     default_value: 1.0,
     description: "Scalar value for comparing to result of cost functions. Ik is considered solved when all pos/rot/twist thresholds are satisfied and all cost functions return a value lower than this value."
   }
+  rotation_scale: {
+    type: double,
+    default_value: 0.5,
+    description: "The rotation scale for the pose cost function. Set to 0.0 to solve for only position",
+  }
   center_joints_weight: {
     type: double,
     default_value: 0.0,

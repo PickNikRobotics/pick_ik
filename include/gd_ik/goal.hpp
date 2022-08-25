@@ -23,6 +23,13 @@ auto make_frame_tests(std::vector<Frame> goal_frames, double position_threshold,
                       double rotation_threshold, double twist_threshold)
     -> std::vector<FrameTestFn>;
 
+using PoseCostFn = std::function<double(std::vector<Frame> const& tip_frames)>;
+auto make_pose_cost_fn(Frame goal, size_t goal_link_index,
+                       double rotation_scale) -> PoseCostFn;
+
+auto make_pose_cost_functions(std::vector<Frame> goal_frames,
+                              double rotation_scale) -> std::vector<PoseCostFn>;
+
 // Goal Function type
 using CostFn =
     std::function<double(std::vector<double> const& active_positions)>;
@@ -58,5 +65,12 @@ using SolutionTestFn =
 auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
                               std::vector<Goal> goals, double cost_threshold)
     -> SolutionTestFn;
+
+using FitnessFn =
+    std::function<double(std::vector<Frame> const& tip_frames,
+                         std::vector<double> const& active_positions)>;
+
+auto make_fitness_fn(std::vector<PoseCostFn> pose_cost_functions,
+                     std::vector<Goal> goals) -> FitnessFn;
 
 }  // namespace gd_ik

@@ -50,6 +50,28 @@ auto make_frame_tests(std::vector<Frame> goal_frames, double position_threshold,
   return tests;
 }
 
+auto make_pose_cost_fn(Frame goal, size_t goal_link_index,
+                       double rotation_scale) -> PoseCostFn {
+  return [=](std::vector<Frame> const& tip_frames) -> double {
+    auto const& frame = tip_frames[goal_link_index];
+    return frame.pos.distance2(goal.pos) +
+           fmin((frame.rot - goal.rot).length2(),
+                (frame.rot + goal.rot).length2()) *
+               (rotation_scale * rotation_scale);
+  };
+}
+
+auto make_pose_cost_functions(std::vector<Frame> goal_frames,
+                              double rotation_scale)
+    -> std::vector<PoseCostFn> {
+  auto cost_functions = std::vector<PoseCostFn>{};
+  for (size_t i = 0; i < goal_frames.size(); ++i) {
+    cost_functions.push_back(
+        make_pose_cost_fn(goal_frames[i], i, rotation_scale));
+  }
+  return cost_functions;
+}
+
 auto make_center_joints_cost_fn(
     Robot robot, std::vector<size_t> active_variable_indexes,
     std::vector<double> minimal_displacement_factors) -> CostFn {
@@ -151,6 +173,21 @@ auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
     }
 
     return true;
+  };
+}
+
+auto make_fitness_fn(std::vector<PoseCostFn> pose_cost_functions,
+                     std::vector<Goal> goals) -> FitnessFn {
+  return [=](std::vector<Frame> const& tip_frames,
+             std::vector<double> const& active_positions) {
+    return std::accumulate(
+        goals.cbegin(), goals.cend(),
+        std::accumulate(
+            pose_cost_functions.cbegin(), pose_cost_functions.cend(), 0.0,
+            [&](auto sum, auto const& fn) { return sum + fn(tip_frames); }),
+        [&](auto sum, auto const& goal) {
+          return sum + goal.eval(active_positions) * std::pow(goal.weight, 2);
+        });
   };
 }
 

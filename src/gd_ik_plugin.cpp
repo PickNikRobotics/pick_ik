@@ -123,6 +123,9 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     auto const active_initial_guess =
         select(initial_guess, active_variable_indexes_);
 
+    auto const pose_cost_functions =
+        make_pose_cost_functions(goal_frames, params_.rotation_scale);
+
     // Create goals
     auto goals = std::vector<Goal>{};
     if (params_.center_joints_weight > 0.0) {
@@ -153,6 +156,17 @@ class GDIKPlugin : public kinematics::KinematicsBase {
 
     auto const solution_test =
         make_is_solution_test_fn(frame_tests, goals, params_.cost_threshold);
+    auto const fitness_fn = make_fitness_fn(pose_cost_functions, goals);
+
+    // initialize gradient decent
+    // solution = initial_guess
+    //
+
+    auto const timeout_point = std::chrono::system_clock::now() +
+                               std::chrono::duration<double>(timeout);
+    while (std::chrono::system_clock::now() < timeout_point) {
+      // solve?
+    }
 
     return false;
   }
