@@ -33,7 +33,6 @@ add_library(gd_ik_plugin SHARED
   src/goal.cpp
   src/ik_gradient.cpp
   src/math.cpp
-  src/problem.cpp
   src/random.cpp
   src/robot.cpp
 )

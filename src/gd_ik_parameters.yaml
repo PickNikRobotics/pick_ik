@@ -1,8 +1,23 @@
 gd_ik:
-  rotation_scale: {
+  position_threshold: {
     type: double,
-    default_value: 0.5,
-    description: "The rotation scale for the pose cost function. Set to 0.0 to solve for only position",
+    default_value: 0.05,
+    description: "Position threshold for solving IK, meters",
+  }
+  rotation_threshold: {
+    type: double,
+    default_value: 0.05,
+    description: "Rotation threshold for solving IK, radians",
+  }
+  twist_threshold: {
+    type: double,
+    default_value: 0.05,
+    description: "Twist threshold for solving IK, epsilon",
+  }
+  cost_threshold: {
+    type: double,
+    default_value: 1.0,
+    description: "Scalar value for comparing to result of cost functions. Ik is considered solved when all pos/rot/twist thresholds are satisfied and all cost functions return a value lower than this value."
   }
   center_joints_weight: {
     type: double,

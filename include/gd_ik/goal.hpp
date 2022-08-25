@@ -15,9 +15,13 @@ namespace gd_ik {
 // Test if a frame satisfies a goal
 using FrameTestFn = std::function<bool(Frame const& tip_frame)>;
 
-auto make_frame_test(Frame goal_frame, double position_threashold,
-                     double rotation_threashold, double twist_threshold)
+auto make_frame_tests(Frame goal_frame, double position_threshold,
+                      double rotation_threshold, double twist_threshold)
     -> FrameTestFn;
+
+auto make_frame_tests(std::vector<Frame> goal_frames, double position_threshold,
+                      double rotation_threshold, double twist_threshold)
+    -> std::vector<FrameTestFn>;
 
 // Goal Function type
 using CostFn =
@@ -28,10 +32,6 @@ struct Goal {
   double weight;
   std::vector<std::string> link_names;
 };
-
-auto fitness(std::vector<Goal> const& goals,
-             std::vector<Frame> const& tip_frames,
-             std::vector<double> const& active_positions) -> double;
 
 auto make_center_joints_cost_fn(
     Robot robot, std::vector<size_t> active_variable_indexes,
@@ -45,10 +45,19 @@ auto make_minimal_displacement_cost_fn(
     std::vector<double> initial_guess,
     std::vector<double> minimal_displacement_factors) -> CostFn;
 
-auto make_ik_cost_fn(geometry_msgs::msg::Pose pose,
-                     kinematics::KinematicsBase::IKCostFn cost_fn,
-                     std::shared_ptr<moveit::core::RobotModel> robot_model,
-                     moveit::core::JointModelGroup* jmg,
-                     std::vector<double> initial_guess) -> CostFn;
+auto make_ik_cost_fn(
+    geometry_msgs::msg::Pose pose, kinematics::KinematicsBase::IKCostFn cost_fn,
+    std::shared_ptr<moveit::core::RobotModel const> robot_model,
+    moveit::core::JointModelGroup const* jmg, std::vector<double> initial_guess)
+    -> CostFn;
+
+// Create a solution test function from frame tests and goals
+using SolutionTestFn =
+    std::function<bool(std::vector<Frame> const& tip_frames,
+                       std::vector<double> const& active_positions)>;
+
+auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
+                              std::vector<Goal> goals, double cost_threshold)
+    -> SolutionTestFn;
 
 }  // namespace gd_ik

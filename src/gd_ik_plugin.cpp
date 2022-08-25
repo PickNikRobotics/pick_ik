@@ -1,3 +1,4 @@
+#include <gd_ik/algorithm.hpp>
 #include <gd_ik/frame.hpp>
 #include <gd_ik/goal.hpp>
 #include <gd_ik/robot.hpp>
@@ -33,9 +34,11 @@ class GDIKPlugin : public kinematics::KinematicsBase {
   std::shared_ptr<ParamListener> parameter_listener_;
   Params params_;
   std::vector<size_t> tip_link_indexes_;
+  std::vector<size_t> active_variable_indexes_;
+  std::vector<double> minimal_displacement_factors_;
 
  public:
-  bool searchPositionIK(
+  virtual bool searchPositionIK(
       std::vector<geometry_msgs::msg::Pose> const& ik_poses,
       std::vector<double> const& ik_seed_state, double timeout,
       std::vector<double> const& consistency_limits,
@@ -43,8 +46,55 @@ class GDIKPlugin : public kinematics::KinematicsBase {
       IKCostFn cost_function, moveit_msgs::msg::MoveItErrorCodes& error_code,
       kinematics::KinematicsQueryOptions const& options =
           kinematics::KinematicsQueryOptions(),
-      moveit::core::RobotState const* context_state = nullptr) const override {
-    // TODO implement
+      moveit::core::RobotState const* context_state = nullptr) const {
+    // If we didn't receive a robot state we have to make one
+    std::unique_ptr<moveit::core::RobotState> temp_state;
+    if (!context_state) {
+      temp_state = std::make_unique<moveit::core::RobotState>(robot_model_);
+      temp_state->setToDefaultValues();
+      context_state = temp_state.get();
+    }
+
+    auto const goal_frames =
+        transform_poses_to_frames(*context_state, ik_poses, getBaseFrame());
+    auto const frame_tests =
+        make_frame_tests(goal_frames, params_.position_threshold,
+                         params_.rotation_threshold, params_.twist_threshold);
+    auto const initial_guess = get_variables(*context_state);
+    auto const active_initial_guess =
+        select(initial_guess, active_variable_indexes_);
+
+    // Create goals
+    auto goals = std::vector<Goal>{};
+    if (params_.center_joints_weight > 0.0) {
+      goals.push_back(
+          Goal{make_center_joints_cost_fn(robot_, active_variable_indexes_,
+                                          minimal_displacement_factors_),
+               params_.center_joints_weight});
+    }
+    if (params_.avoid_joint_limits_weight > 0.0) {
+      goals.push_back(
+          Goal{make_avoid_joint_limits_cost_fn(robot_, active_variable_indexes_,
+                                               minimal_displacement_factors_),
+               params_.avoid_joint_limits_weight});
+    }
+    if (params_.minimal_displacement_weight > 0.0) {
+      goals.push_back(
+          Goal{make_minimal_displacement_cost_fn(active_initial_guess,
+                                                 minimal_displacement_factors_),
+               params_.minimal_displacement_weight});
+    }
+    if (cost_function) {
+      for (auto const& pose : ik_poses) {
+        goals.push_back(Goal{make_ik_cost_fn(pose, cost_function, robot_model_,
+                                             jmg_, initial_guess),
+                             1.0});
+      }
+    }
+
+    auto const solution_test =
+        make_is_solution_test_fn(frame_tests, goals, params_.cost_threshold);
+
     return false;
   }
 
@@ -100,11 +150,15 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     // TODO: why do we need to set this
     link_names_ = tip_frames_;
 
-    // Calculate the indexes of the tip links
-    tip_link_indexes_ = get_link_indexes(robot_model_, tip_frames_);
-
     // Create our internal Robot object from the robot model
     robot_ = Robot::from(robot_model_);
+
+    // Calculate internal state used in IK
+    tip_link_indexes_ = get_link_indexes(robot_model_, tip_frames_);
+    active_variable_indexes_ =
+        get_active_variable_indexes(robot_model_, jmg_, tip_link_indexes_);
+    minimal_displacement_factors_ =
+        get_minimal_displacement_factors(active_variable_indexes_, robot_);
 
     return false;
   }
@@ -192,25 +246,9 @@ class GDIKPlugin : public kinematics::KinematicsBase {
       kinematics::KinematicsQueryOptions const& options =
           kinematics::KinematicsQueryOptions(),
       moveit::core::RobotState const* context_state = NULL) const {
-    // If we didn't receive a robot state we have to make one
-    std::unique_ptr<moveit::core::RobotState> temp_state;
-    if (!context_state) {
-      temp_state = std::make_unique<moveit::core::RobotState>(robot_model_);
-      temp_state->setToDefaultValues();
-      context_state = temp_state.get();
-    }
-
-    // Calculate the tip frames transformed into the base frame
-    auto goal_frames = std::vector<Frame>{};
-    std::transform(ik_poses.cbegin(), ik_poses.cend(), goal_frames.begin(),
-                   [&](auto const& pose) {
-                     Eigen::Isometry3d p, r;
-                     tf2::fromMsg(pose, p);
-                     r = context_state->getGlobalLinkTransform(getBaseFrame());
-                     return Frame::from(r * p);
-                   });
-
-    return false;
+    return searchPositionIK(ik_poses, ik_seed_state, timeout,
+                            consistency_limits, solution, solution_callback,
+                            IKCostFn(), error_code, options, context_state);
   }
 };
 

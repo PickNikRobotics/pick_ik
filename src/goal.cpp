@@ -2,6 +2,7 @@
 #include <gd_ik/goal.hpp>
 #include <gd_ik/robot.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/robot_model/joint_model_group.h>
@@ -12,16 +13,16 @@
 
 namespace gd_ik {
 
-auto make_frame_test(Frame goal_frame, double position_threashold,
-                     double rotation_threashold, double twist_threshold)
+auto make_frame_test_fn(Frame goal_frame, double position_threshold,
+                        double rotation_threshold, double twist_threshold)
     -> FrameTestFn {
   return [=](Frame const& tip_frame) -> bool {
-    if (position_threashold != DBL_MAX || rotation_threashold != DBL_MAX) {
+    if (position_threshold != DBL_MAX || rotation_threshold != DBL_MAX) {
       double p_dist = (tip_frame.pos - goal_frame.pos).length();
       double r_dist = tip_frame.rot.angleShortestPath(goal_frame.rot);
       r_dist = r_dist * 180 / M_PI;
-      if (!(p_dist <= position_threashold)) return false;
-      if (!(r_dist <= rotation_threashold)) return false;
+      if (!(p_dist <= position_threshold)) return false;
+      if (!(r_dist <= rotation_threshold)) return false;
     }
     if (twist_threshold != DBL_MAX) {
       auto goal_kdl = to_KDL(goal_frame);
@@ -36,12 +37,17 @@ auto make_frame_test(Frame goal_frame, double position_threashold,
   };
 }
 
-auto fitness(std::vector<Goal> const& goals,
-             std::vector<double> const& active_positions) -> double {
-  return std::accumulate(
-      goals.cbegin(), goals.cend(), 0.0, [&](double sum, auto const& goal) {
-        return sum + goal.eval(active_positions) * std::pow(goal.weight, 2);
-      });
+auto make_frame_tests(std::vector<Frame> goal_frames, double position_threshold,
+                      double rotation_threshold, double twist_threshold)
+    -> std::vector<FrameTestFn> {
+  auto tests = std::vector<FrameTestFn>{};
+  std::transform(goal_frames.cbegin(), goal_frames.cend(), tests.begin(),
+                 [&](auto const& frame) {
+                   return make_frame_test_fn(frame, position_threshold,
+                                             rotation_threshold,
+                                             twist_threshold);
+                 });
+  return tests;
 }
 
 auto make_center_joints_cost_fn(
@@ -112,16 +118,39 @@ auto make_minimal_displacement_cost_fn(
   };
 }
 
-auto make_ik_cost_fn(geometry_msgs::msg::Pose pose,
-                     kinematics::KinematicsBase::IKCostFn cost_fn,
-                     std::shared_ptr<moveit::core::RobotModel> robot_model,
-                     moveit::core::JointModelGroup* jmg,
-                     std::vector<double> initial_guess) -> CostFn {
+auto make_ik_cost_fn(
+    geometry_msgs::msg::Pose pose, kinematics::KinematicsBase::IKCostFn cost_fn,
+    std::shared_ptr<moveit::core::RobotModel const> robot_model,
+    moveit::core::JointModelGroup const* jmg, std::vector<double> initial_guess)
+    -> CostFn {
   return [=](std::vector<double> const& active_positions) -> double {
     auto robot_state = moveit::core::RobotState(robot_model);
     robot_state.setJointGroupPositions(jmg, active_positions);
     robot_state.update();
     return cost_fn(pose, robot_state, jmg, initial_guess);
+  };
+}
+
+auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
+                              std::vector<Goal> goals, double cost_threshold)
+    -> SolutionTestFn {
+  return [=](std::vector<Frame> const& tip_frames,
+             std::vector<double> const& active_positions) {
+    assert(frame_tests.size() == tip_frames.size());
+    for (size_t i = 0; i < frame_tests.size(); ++i) {
+      if (!frame_tests[i](tip_frames[i])) {
+        return false;
+      }
+    }
+
+    for (auto const& goal : goals) {
+      auto const cost = goal.eval(active_positions) * std::pow(goal.weight, 2);
+      if (cost >= std::pow(cost_threshold, 2)) {
+        return false;
+      }
+    }
+
+    return true;
   };
 }
 
