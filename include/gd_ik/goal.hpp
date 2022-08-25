@@ -12,10 +12,16 @@
 
 namespace gd_ik {
 
+// Test if a frame satisfies a goal
+using FrameTestFn = std::function<bool(Frame const& tip_frame)>;
+
+auto make_frame_test(Frame goal_frame, double position_threashold,
+                     double rotation_threashold, double twist_threshold)
+    -> FrameTestFn;
+
 // Goal Function type
 using CostFn =
-    std::function<double(std::vector<Frame> const& tip_frames,
-                         std::vector<double> const& active_positions)>;
+    std::function<double(std::vector<double> const& active_positions)>;
 
 struct Goal {
   CostFn eval;
@@ -26,9 +32,6 @@ struct Goal {
 auto fitness(std::vector<Goal> const& goals,
              std::vector<Frame> const& tip_frames,
              std::vector<double> const& active_positions) -> double;
-
-auto make_pose_cost_fn(Frame goal, size_t goal_link_index,
-                       double rotation_scale) -> CostFn;
 
 auto make_center_joints_cost_fn(
     Robot robot, std::vector<size_t> active_variable_indexes,

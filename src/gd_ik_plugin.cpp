@@ -210,13 +210,6 @@ class GDIKPlugin : public kinematics::KinematicsBase {
                      return Frame::from(r * p);
                    });
 
-    std::vector<CostFn> cost_functions;
-    for (size_t i = 0; i < goal_frames.size(); ++i) {
-      auto const& goal = goal_frames[i];
-      cost_functions.push_back(
-          make_pose_cost_fn(goal, i, params_.rotation_scale));
-    }
-
     return false;
   }
 };

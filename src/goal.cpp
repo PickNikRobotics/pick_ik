@@ -7,37 +7,47 @@
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
+#include <optional>
 #include <vector>
 
 namespace gd_ik {
 
+auto make_frame_test(Frame goal_frame, double position_threashold,
+                     double rotation_threashold, double twist_threshold)
+    -> FrameTestFn {
+  return [=](Frame const& tip_frame) -> bool {
+    if (position_threashold != DBL_MAX || rotation_threashold != DBL_MAX) {
+      double p_dist = (tip_frame.pos - goal_frame.pos).length();
+      double r_dist = tip_frame.rot.angleShortestPath(goal_frame.rot);
+      r_dist = r_dist * 180 / M_PI;
+      if (!(p_dist <= position_threashold)) return false;
+      if (!(r_dist <= rotation_threashold)) return false;
+    }
+    if (twist_threshold != DBL_MAX) {
+      auto goal_kdl = to_KDL(goal_frame);
+      auto tip_kdl = to_KDL(tip_frame);
+      KDL::Twist kdl_diff(
+          goal_kdl.M.Inverse() * KDL::diff(goal_kdl.p, tip_kdl.p),
+          goal_kdl.M.Inverse() * KDL::diff(goal_kdl.M, tip_kdl.M));
+      if (!KDL::Equal(kdl_diff, KDL::Twist::Zero(), twist_threshold))
+        return false;
+    }
+    return true;
+  };
+}
+
 auto fitness(std::vector<Goal> const& goals,
-             std::vector<Frame> const& tip_frames,
              std::vector<double> const& active_positions) -> double {
   return std::accumulate(
       goals.cbegin(), goals.cend(), 0.0, [&](double sum, auto const& goal) {
-        return sum + goal.eval(tip_frames, active_positions) *
-                         std::pow(goal.weight, 2);
+        return sum + goal.eval(active_positions) * std::pow(goal.weight, 2);
       });
-}
-
-auto make_pose_cost_fn(Frame goal, size_t goal_link_index,
-                       double rotation_scale) -> CostFn {
-  return [=](std::vector<Frame> const& tip_frames,
-             std::vector<double> const&) -> double {
-    auto const& frame = tip_frames[goal_link_index];
-    return frame.pos.distance2(goal.pos) +
-           fmin((frame.rot - goal.rot).length2(),
-                (frame.rot + goal.rot).length2()) *
-               (rotation_scale * rotation_scale);
-  };
 }
 
 auto make_center_joints_cost_fn(
     Robot robot, std::vector<size_t> active_variable_indexes,
     std::vector<double> minimal_displacement_factors) -> CostFn {
-  return [=](std::vector<Frame> const&,
-             std::vector<double> const& active_positions) -> double {
+  return [=](std::vector<double> const& active_positions) -> double {
     double sum = 0;
     assert(active_positions.size() == active_variable_indexes.size() &&
            active_positions.size() == minimal_displacement_factors.size());
@@ -61,8 +71,7 @@ auto make_center_joints_cost_fn(
 auto make_avoid_joint_limits_cost_fn(
     Robot robot, std::vector<size_t> active_variable_indexes,
     std::vector<double> minimal_displacement_factors) -> CostFn {
-  return [=](std::vector<Frame> const&,
-             std::vector<double> const& active_positions) -> double {
+  return [=](std::vector<double> const& active_positions) -> double {
     double sum = 0;
     assert(active_positions.size() == active_variable_indexes.size() &&
            active_positions.size() == minimal_displacement_factors.size());
@@ -89,8 +98,7 @@ auto make_avoid_joint_limits_cost_fn(
 auto make_minimal_displacement_cost_fn(
     std::vector<double> initial_guess,
     std::vector<double> minimal_displacement_factors) -> CostFn {
-  return [=](std::vector<Frame> const&,
-             std::vector<double> const& active_positions) -> double {
+  return [=](std::vector<double> const& active_positions) -> double {
     double sum = 0;
     assert(active_positions.size() == initial_guess.size() &&
            active_positions.size() == minimal_displacement_factors.size());
@@ -109,8 +117,7 @@ auto make_ik_cost_fn(geometry_msgs::msg::Pose pose,
                      std::shared_ptr<moveit::core::RobotModel> robot_model,
                      moveit::core::JointModelGroup* jmg,
                      std::vector<double> initial_guess) -> CostFn {
-  return [=](std::vector<Frame> const&,
-             std::vector<double> const& active_positions) -> double {
+  return [=](std::vector<double> const& active_positions) -> double {
     auto robot_state = moveit::core::RobotState(robot_model);
     robot_state.setJointGroupPositions(jmg, active_positions);
     robot_state.update();
