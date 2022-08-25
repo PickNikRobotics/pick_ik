@@ -32,6 +32,71 @@ class GDIKPlugin : public kinematics::KinematicsBase {
   std::vector<double> minimal_displacement_factors_;
 
  public:
+  virtual bool initialize(rclcpp::Node::SharedPtr const& node,
+                          moveit::core::RobotModel const& robot_model,
+                          std::string const& group_name,
+                          std::string const& base_frame,
+                          std::vector<std::string> const& tip_frames,
+                          double search_discretization) {
+    node_ = node;
+    parameter_listener_ = std::make_shared<ParamListener>(
+        node, std::string("robot_description_kinematics.").append(group_name));
+    params_ = parameter_listener_->get_params();
+
+    // Initialize internal state of base class KinematicsBase
+    // Creates these internal state variables:
+    // robot_model_ <- shared_ptr to RobotModel
+    // robot_description_ <- empty string
+    // group_name_ <- group_name string
+    // base_frame_ <- base_frame without leading /
+    // tip_frames_ <- tip_frames without leading /
+    // redundant_joint_discretization_ <- vector initialized with
+    // search_discretization
+    storeValues(robot_model, group_name, base_frame, tip_frames,
+                search_discretization);
+
+    // Initialize internal state
+    jmg_ = robot_model_->getJointModelGroup(group_name);
+    if (!jmg_) {
+      RCLCPP_ERROR(LOGGER, "failed to get joint model group %s",
+                   group_name.c_str());
+      return false;
+    }
+
+    // Joint names come from jmg
+    for (auto* joint_model : jmg_->getJointModels()) {
+      if (joint_model->getName() != base_frame_ &&
+          joint_model->getType() != moveit::core::JointModel::UNKNOWN &&
+          joint_model->getType() != moveit::core::JointModel::FIXED) {
+        joint_names_.push_back(joint_model->getName());
+      }
+    }
+
+    // If jmg has tip frames, set tip_frames_ to jmg tip frames
+    // consider removing these lines as they might be unnecessary
+    // as tip_frames_ is set by the call to storeValues above
+    auto jmg_tips = std::vector<std::string>{};
+    jmg_->getEndEffectorTips(jmg_tips);
+    if (!jmg_tips.empty()) tip_frames_ = jmg_tips;
+    ///////////////////////////////////////////////////////////
+
+    // link_names are the same as tip frames
+    // TODO: why do we need to set this
+    link_names_ = tip_frames_;
+
+    // Create our internal Robot object from the robot model
+    robot_ = Robot::from(robot_model_);
+
+    // Calculate internal state used in IK
+    tip_link_indexes_ = get_link_indexes(robot_model_, tip_frames_);
+    active_variable_indexes_ =
+        get_active_variable_indexes(robot_model_, jmg_, tip_link_indexes_);
+    minimal_displacement_factors_ =
+        get_minimal_displacement_factors(active_variable_indexes_, robot_);
+
+    return true;
+  }
+
   virtual bool searchPositionIK(
       std::vector<geometry_msgs::msg::Pose> const& ik_poses,
       std::vector<double> const& ik_seed_state, double timeout,
@@ -92,71 +157,6 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     return false;
   }
 
-  // kinematics::KinematicsBase ////////////////////////////////////////////////
-  bool initialize(rclcpp::Node::SharedPtr const& node,
-                  moveit::core::RobotModel const& robot_model,
-                  std::string const& group_name, std::string const& base_frame,
-                  std::vector<std::string> const& tip_frames,
-                  double search_discretization) override {
-    node_ = node;
-    parameter_listener_ = std::make_shared<ParamListener>(
-        node, std::string("robot_description_kinematics.").append(group_name));
-    params_ = parameter_listener_->get_params();
-
-    // Initialize internal state of base class KinematicsBase
-    // Creates these internal state variables:
-    // robot_model_ <- shared_ptr to RobotModel
-    // robot_description_ <- empty string
-    // group_name_ <- group_name string
-    // base_frame_ <- base_frame without leading /
-    // tip_frames_ <- tip_frames without leading /
-    // redundant_joint_discretization_ <- vector initialized with
-    // search_discretization
-    storeValues(robot_model, group_name, base_frame, tip_frames,
-                search_discretization);
-
-    // Initialize internal state
-    jmg_ = robot_model_->getJointModelGroup(group_name);
-    if (!jmg_) {
-      RCLCPP_ERROR(LOGGER, "failed to get joint model group %s",
-                   group_name.c_str());
-      return false;
-    }
-
-    // Joint names come from jmg
-    for (auto* joint_model : jmg_->getJointModels()) {
-      if (joint_model->getName() != base_frame_ &&
-          joint_model->getType() != moveit::core::JointModel::UNKNOWN &&
-          joint_model->getType() != moveit::core::JointModel::FIXED) {
-        joint_names_.push_back(joint_model->getName());
-      }
-    }
-
-    // If jmg has tip frames, set tip_frames_ to jmg tip frames
-    // consider removing these lines as they might be unnecessary
-    // as tip_frames_ is set by the call to storeValues above
-    auto jmg_tips = std::vector<std::string>{};
-    jmg_->getEndEffectorTips(jmg_tips);
-    if (!jmg_tips.empty()) tip_frames_ = jmg_tips;
-    ///////////////////////////////////////////////////////////
-
-    // link_names are the same as tip frames
-    // TODO: why do we need to set this
-    link_names_ = tip_frames_;
-
-    // Create our internal Robot object from the robot model
-    robot_ = Robot::from(robot_model_);
-
-    // Calculate internal state used in IK
-    tip_link_indexes_ = get_link_indexes(robot_model_, tip_frames_);
-    active_variable_indexes_ =
-        get_active_variable_indexes(robot_model_, jmg_, tip_link_indexes_);
-    minimal_displacement_factors_ =
-        get_minimal_displacement_factors(active_variable_indexes_, robot_);
-
-    return false;
-  }
-
   virtual std::vector<std::string> const& getJointNames() const {
     return joint_names_;
   }
@@ -165,19 +165,16 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     return link_names_;
   }
 
-  virtual bool getPositionFK(
-      std::vector<std::string> const& link_names,
-      std::vector<double> const& joint_angles,
-      std::vector<geometry_msgs::msg::Pose>& poses) const {
+  virtual bool getPositionFK(std::vector<std::string> const&,
+                             std::vector<double> const&,
+                             std::vector<geometry_msgs::msg::Pose>&) const {
     return false;
   }
 
-  virtual bool getPositionIK(geometry_msgs::msg::Pose const& ik_pose,
-                             std::vector<double> const& ik_seed_state,
-                             std::vector<double>& solution,
-                             moveit_msgs::msg::MoveItErrorCodes& error_code,
-                             kinematics::KinematicsQueryOptions const& options =
-                                 kinematics::KinematicsQueryOptions()) const {
+  virtual bool getPositionIK(geometry_msgs::msg::Pose const&,
+                             std::vector<double> const&, std::vector<double>&,
+                             moveit_msgs::msg::MoveItErrorCodes&,
+                             kinematics::KinematicsQueryOptions const&) const {
     return false;
   }
 

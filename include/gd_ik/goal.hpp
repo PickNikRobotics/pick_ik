@@ -30,7 +30,6 @@ using CostFn =
 struct Goal {
   CostFn eval;
   double weight;
-  std::vector<std::string> link_names;
 };
 
 auto make_center_joints_cost_fn(
