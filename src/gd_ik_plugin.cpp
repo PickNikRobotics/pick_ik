@@ -19,20 +19,14 @@ auto const LOGGER = rclcpp::get_logger("gd_ik");
 }
 
 class GDIKPlugin : public kinematics::KinematicsBase {
-  moveit::core::JointModelGroup const* jmg_;
-  std::vector<std::string> joint_names_;
-  std::vector<std::string> link_names_;
-  Robot robot_;
-
-  // std::unique_ptr<IKParallel> ik;
-  // std::vector<double> state_;
-  // std::vector<double> temp_;
-  // std::unique_ptr<moveit::core::RobotState> temp_state_;
-  // std::vector<Frame> tipFrames_;
-
   rclcpp::Node::SharedPtr node_;
   std::shared_ptr<ParamListener> parameter_listener_;
   Params params_;
+  moveit::core::JointModelGroup const* jmg_;
+
+  std::vector<std::string> joint_names_;
+  std::vector<std::string> link_names_;
+  Robot robot_;
   std::vector<size_t> tip_link_indexes_;
   std::vector<size_t> active_variable_indexes_;
   std::vector<double> minimal_displacement_factors_;
