@@ -11,7 +11,7 @@ namespace gd_ik {
 
 auto fk_moveit(
     std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
-    std::vector<size_t> const& tip_link_indices,
+    std::vector<size_t> const& tip_link_indexes,
     std::vector<double> const& variables) -> std::vector<Frame> {
   auto robot_state = moveit::core::RobotState{robot_model};
 
@@ -26,7 +26,7 @@ auto fk_moveit(
 
   std::vector<Frame> tip_frames;
   std::transform(
-      tip_link_indices.cbegin(), tip_link_indices.cend(), tip_frames.begin(),
+      tip_link_indexes.cbegin(), tip_link_indexes.cend(), tip_frames.begin(),
       [&](auto index) {
         auto const* link_model = robot_model->getLinkModel(index);
         return Frame::from(robot_state.getGlobalLinkTransform(link_model));

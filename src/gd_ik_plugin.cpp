@@ -1,6 +1,8 @@
 #include <gd_ik/algorithm.hpp>
+#include <gd_ik/fk_moveit.hpp>
 #include <gd_ik/frame.hpp>
 #include <gd_ik/goal.hpp>
+#include <gd_ik/ik_gradient.hpp>
 #include <gd_ik/robot.hpp>
 
 #include <gd_ik_parameters.hpp>
@@ -100,9 +102,9 @@ class GDIKPlugin : public kinematics::KinematicsBase {
   virtual bool searchPositionIK(
       std::vector<geometry_msgs::msg::Pose> const& ik_poses,
       std::vector<double> const& ik_seed_state, double timeout,
-      std::vector<double> const& consistency_limits,
-      std::vector<double>& solution, IKCallbackFn const& solution_callback,
-      IKCostFn cost_function, moveit_msgs::msg::MoveItErrorCodes& error_code,
+      std::vector<double> const&, std::vector<double>& solution,
+      IKCallbackFn const& solution_callback, IKCostFn cost_function,
+      moveit_msgs::msg::MoveItErrorCodes& error_code,
       kinematics::KinematicsQueryOptions const& options =
           kinematics::KinematicsQueryOptions(),
       moveit::core::RobotState const* context_state = nullptr) const {
@@ -119,9 +121,8 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     auto const frame_tests =
         make_frame_tests(goal_frames, params_.position_threshold,
                          params_.rotation_threshold, params_.twist_threshold);
-    auto const initial_guess = get_variables(*context_state);
     auto const active_initial_guess =
-        select(initial_guess, active_variable_indexes_);
+        select_indexes(ik_seed_state, active_variable_indexes_);
 
     auto const pose_cost_functions =
         make_pose_cost_functions(goal_frames, params_.rotation_scale);
@@ -149,26 +150,43 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     if (cost_function) {
       for (auto const& pose : ik_poses) {
         goals.push_back(Goal{make_ik_cost_fn(pose, cost_function, robot_model_,
-                                             jmg_, initial_guess),
+                                             jmg_, ik_seed_state),
                              1.0});
       }
     }
 
-    auto const solution_test =
-        make_is_solution_test_fn(frame_tests, goals, params_.cost_threshold);
-    auto const fitness_fn = make_fitness_fn(pose_cost_functions, goals);
+    auto const solution_fn = make_is_solution_test_fn(
+        frame_tests, goals, params_.cost_threshold, robot_model_,
+        tip_link_indexes_, active_variable_indexes_);
+    auto const fitness_fn =
+        make_fitness_fn(pose_cost_functions, goals, robot_model_,
+                        tip_link_indexes_, active_variable_indexes_);
 
-    // initialize gradient decent
-    // solution = initial_guess
-    //
+    auto const maybe_solution =
+        ik_search(ik_seed_state, robot_, active_variable_indexes_, fitness_fn,
+                  solution_fn, timeout);
 
-    auto const timeout_point = std::chrono::system_clock::now() +
-                               std::chrono::duration<double>(timeout);
-    while (std::chrono::system_clock::now() < timeout_point) {
-      // solve?
+    if (!maybe_solution.has_value() && !options.return_approximate_solution) {
+      error_code.val = error_code.NO_IK_SOLUTION;
+      return false;
     }
 
-    return false;
+    // wrap angles
+    solution = maybe_solution.value();
+    robot_model_->enforcePositionBounds(solution.data());
+
+    // callback?
+    if (solution_callback) {
+      // run callback
+      solution_callback(ik_poses.front(), solution, error_code);
+
+      // return success if callback has accepted the solution
+      return error_code.val == error_code.SUCCESS;
+    }
+
+    // return success
+    error_code.val = error_code.SUCCESS;
+    return true;
   }
 
   virtual std::vector<std::string> const& getJointNames() const {

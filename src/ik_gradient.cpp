@@ -1,38 +1,116 @@
-#include <gd_ik/fk_moveit.hpp>
+#include <gd_ik/algorithm.hpp>
 #include <gd_ik/frame.hpp>
 #include <gd_ik/goal.hpp>
 #include <gd_ik/ik_gradient.hpp>
+#include <gd_ik/robot.hpp>
 
 #include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <optional>
 #include <vector>
 
 namespace gd_ik {
 
-auto active_variable_positions(
-    std::vector<size_t> const& active_variable_indices,
-    std::vector<double> const& variables) -> std::vector<double> {
-  std::vector<double> active_positions;
-  std::transform(active_variable_indices.cbegin(),
-                 active_variable_indices.cend(), active_positions.begin(),
-                 [&variables](auto index) { return variables.at(index); });
-  return active_positions;
+auto step(GradientIk& self, Robot const& robot,
+          std::vector<size_t> const& active_variable_indexes,
+          FitnessFn const& fitness_fn) -> bool {
+  auto gradient = std::vector<double>(self.local.size(), 0.0);
+  auto temp = self.local;
+  double const jd = 0.0001;
+
+  // compute gradient direction
+  std::transform(active_variable_indexes.cbegin(),
+                 active_variable_indexes.cend(), gradient.begin(),
+                 [&](auto ivar) {
+                   temp[ivar] = self.local[ivar] - jd;
+                   double const p1 = fitness_fn(temp);
+
+                   temp[ivar] = self.local[ivar] + jd;
+                   double const p3 = fitness_fn(temp);
+
+                   temp[ivar] = self.local[ivar];
+
+                   return p3 - p1;
+                 });
+
+  // normalize gradient direction
+  auto sum = std::accumulate(
+      gradient.cbegin(), gradient.cend(), 0.0001,
+      [](auto sum, auto value) { return sum + std::fabs(value); });
+  double const f = 1.0 / sum * jd;
+  std::transform(gradient.cbegin(), gradient.cend(), gradient.begin(),
+                 [&](auto value) { return value * f; });
+
+  // initialize line search
+  temp = self.local;
+
+  std::transform(active_variable_indexes.cbegin(),
+                 active_variable_indexes.cend(), temp.begin(),
+                 [&](auto ivar) { return self.local[ivar] - gradient[ivar]; });
+  double const p1 = fitness_fn(temp);
+
+  std::transform(active_variable_indexes.cbegin(),
+                 active_variable_indexes.cend(), temp.begin(),
+                 [&](auto ivar) { return self.local[ivar] + gradient[ivar]; });
+  double const p3 = fitness_fn(temp);
+
+  double const p2 = (p1 + p3) * 0.5;
+
+  // linear step size estimation
+  double const cost_diff = (p3 - p1) * 0.5;
+  double joint_diff = p2 / cost_diff;
+
+  // if the cost_diff was not 0
+  if (std::isfinite(joint_diff)) {
+    // apply optimization step
+    // (move along gradient direction by estimated step size)
+    std::transform(
+        active_variable_indexes.cbegin(), active_variable_indexes.cend(),
+        temp.begin(), [&](auto ivar) {
+          return clip(robot, self.local[ivar] - gradient[ivar] * joint_diff,
+                      ivar);
+        });
+  }
+
+  auto const local_fitness = fitness_fn(self.local);
+  auto const temp_fitness = fitness_fn(temp);
+
+  // has solution improved?
+  if (temp_fitness < local_fitness) {
+    // solution improved -> accept solution
+    self.local = temp;
+  }
+
+  // update best solution
+  if (local_fitness < self.fitness) {
+    self.best = self.local;
+    self.fitness = local_fitness;
+    return true;
+  }
+  return false;
 }
 
-auto fitness(std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
-             std::vector<size_t> const& tip_link_indices,
-             std::vector<size_t> const& active_variable_indices,
-             std::vector<Goal> const& goals,
-             std::vector<double> const& variables) -> double {
-  // auto tip_frames = fk_moveit(robot_model, tip_link_indices, variables);
-  auto active_positions =
-      active_variable_positions(active_variable_indices, variables);
+auto ik_search(std::vector<double> const& ik_seed_state, Robot const& robot,
+               std::vector<size_t> const& active_variable_indexes,
+               FitnessFn const& fitness_fn, SolutionTestFn const& solution_fn,
+               double timeout) -> std::optional<std::vector<double>> {
+  auto ik = GradientIk{ik_seed_state, ik_seed_state, fitness_fn(ik_seed_state)};
 
-  return std::accumulate(
-      goals.cbegin(), goals.cend(), 0.0, [&](double sum, auto const& goal) {
-        auto const weight_sq = goal.weight * goal.weight;
-        auto const fitness = goal.eval(active_positions) * weight_sq;
-        return sum + fitness;
-      });
+  auto const timeout_point =
+      std::chrono::system_clock::now() + std::chrono::duration<double>(timeout);
+  while (std::chrono::system_clock::now() < timeout_point) {
+    auto const found_better_solution =
+        step(ik, robot, active_variable_indexes, fitness_fn);
+
+    if (found_better_solution) {
+      if (solution_fn(ik.best)) {
+        return ik.best;
+      }
+    }
+  }
+
+  return std::nullopt;
 }
 
 }  // namespace gd_ik

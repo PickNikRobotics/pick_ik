@@ -1,3 +1,5 @@
+#include <gd_ik/algorithm.hpp>
+#include <gd_ik/fk_moveit.hpp>
 #include <gd_ik/frame.hpp>
 #include <gd_ik/goal.hpp>
 #include <gd_ik/robot.hpp>
@@ -153,11 +155,15 @@ auto make_ik_cost_fn(
   };
 }
 
-auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
-                              std::vector<Goal> goals, double cost_threshold)
-    -> SolutionTestFn {
-  return [=](std::vector<Frame> const& tip_frames,
-             std::vector<double> const& active_positions) {
+auto make_is_solution_test_fn(
+    std::vector<FrameTestFn> frame_tests, std::vector<Goal> goals,
+    double cost_threshold,
+    std::shared_ptr<moveit::core::RobotModel const> robot_model,
+    std::vector<size_t> tip_link_indexes,
+    std::vector<size_t> active_variable_indexes) -> SolutionTestFn {
+  return [=](std::vector<double> const& variables) {
+    auto tip_frames = fk_moveit(robot_model, tip_link_indexes, variables);
+    auto active_positions = select_indexes(variables, active_variable_indexes);
     assert(frame_tests.size() == tip_frames.size());
     for (size_t i = 0; i < frame_tests.size(); ++i) {
       if (!frame_tests[i](tip_frames[i])) {
@@ -176,10 +182,14 @@ auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
   };
 }
 
-auto make_fitness_fn(std::vector<PoseCostFn> pose_cost_functions,
-                     std::vector<Goal> goals) -> FitnessFn {
-  return [=](std::vector<Frame> const& tip_frames,
-             std::vector<double> const& active_positions) {
+auto make_fitness_fn(
+    std::vector<PoseCostFn> pose_cost_functions, std::vector<Goal> goals,
+    std::shared_ptr<moveit::core::RobotModel const> robot_model,
+    std::vector<size_t> tip_link_indexes,
+    std::vector<size_t> active_variable_indexes) -> FitnessFn {
+  return [=](std::vector<double> const& variables) {
+    auto tip_frames = fk_moveit(robot_model, tip_link_indexes, variables);
+    auto active_positions = select_indexes(variables, active_variable_indexes);
     return std::accumulate(
         goals.cbegin(), goals.cend(),
         std::accumulate(

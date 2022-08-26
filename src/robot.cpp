@@ -99,7 +99,7 @@ auto clip(Robot const& self, double p, size_t i) -> double {
 auto get_link_indexes(
     std::shared_ptr<moveit::core::RobotModel const> const& model,
     std::vector<std::string> const& names) -> std::vector<size_t> {
-  std::vector<size_t> indexes;
+  std::vector<size_t> indexes(names.size(), 0);
   std::transform(
       names.cbegin(), names.cend(), indexes.begin(),
       [&model](auto const& name) {

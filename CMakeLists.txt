@@ -81,5 +81,17 @@ install(
 ament_export_include_directories(include)
 ament_export_libraries(gd_ik_plugin)
 ament_export_targets(export_gd_ik)
+ament_export_dependencies(
+  Eigen3
+  moveit_core
+  moveit_ros_planning
+  pluginlib
+  rclcpp
+  rsl
+  tf2
+  tf2_eigen
+  tf2_geometry_msgs
+  tf2_kdl
+)
 
 ament_package()
