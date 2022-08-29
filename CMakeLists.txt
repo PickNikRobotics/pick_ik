@@ -15,7 +15,6 @@ find_package(moveit_core REQUIRED)
 find_package(moveit_ros_planning REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rsl REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
@@ -33,7 +32,6 @@ add_library(gd_ik_plugin SHARED
   src/goal.cpp
   src/ik_gradient.cpp
   src/math.cpp
-  src/random.cpp
   src/robot.cpp
 )
 target_compile_features(gd_ik_plugin PUBLIC c_std_99 cxx_std_17)
@@ -46,7 +44,6 @@ ament_target_dependencies(gd_ik_plugin
   moveit_ros_planning
   pluginlib
   rclcpp
-  rsl
   tf2
   tf2_eigen
   tf2_geometry_msgs
@@ -87,7 +84,6 @@ ament_export_dependencies(
   moveit_ros_planning
   pluginlib
   rclcpp
-  rsl
   tf2
   tf2_eigen
   tf2_geometry_msgs
