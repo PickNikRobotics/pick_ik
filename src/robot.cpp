@@ -192,7 +192,7 @@ auto transform_poses_to_frames(
     std::vector<geometry_msgs::msg::Pose> const& poses,
     std::string const& base_frame_name) -> std::vector<Frame> {
   auto frames = std::vector<Frame>{};
-  std::transform(poses.cbegin(), poses.cend(), frames.begin(),
+  std::transform(poses.cbegin(), poses.cend(), std::back_inserter(frames),
                  [&](auto const& pose) {
                    Eigen::Isometry3d p, r;
                    tf2::fromMsg(pose, p);

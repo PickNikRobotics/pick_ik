@@ -43,8 +43,8 @@ auto make_frame_tests(std::vector<Frame> goal_frames, double position_threshold,
                       double rotation_threshold, double twist_threshold)
     -> std::vector<FrameTestFn> {
   auto tests = std::vector<FrameTestFn>{};
-  std::transform(goal_frames.cbegin(), goal_frames.cend(), tests.begin(),
-                 [&](auto const& frame) {
+  std::transform(goal_frames.cbegin(), goal_frames.cend(),
+                 std::back_inserter(tests), [&](auto const& frame) {
                    return make_frame_test_fn(frame, position_threshold,
                                              rotation_threshold,
                                              twist_threshold);

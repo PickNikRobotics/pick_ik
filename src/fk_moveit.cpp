@@ -26,8 +26,8 @@ auto fk_moveit(
 
   std::vector<Frame> tip_frames;
   std::transform(
-      tip_link_indexes.cbegin(), tip_link_indexes.cend(), tip_frames.begin(),
-      [&](auto index) {
+      tip_link_indexes.cbegin(), tip_link_indexes.cend(),
+      std::back_inserter(tip_frames), [&](auto index) {
         auto const* link_model = robot_model->getLinkModel(index);
         return Frame::from(robot_state.getGlobalLinkTransform(link_model));
       });

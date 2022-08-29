@@ -45,6 +45,7 @@ auto step(GradientIk& self, Robot const& robot,
   // initialize line search
   temp = self.local;
 
+  assert(active_variable_indexes.size() == temp.size());
   std::transform(active_variable_indexes.cbegin(),
                  active_variable_indexes.cend(), temp.begin(),
                  [&](auto ivar) { return self.local[ivar] - gradient[ivar]; });

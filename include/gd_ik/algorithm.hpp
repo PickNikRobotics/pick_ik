@@ -9,7 +9,7 @@ template <typename T>
 auto select_indexes(std::vector<T> const& values,
                     std::vector<size_t> const& indexes) {
   std::vector<T> res;
-  std::transform(indexes.cbegin(), indexes.cend(), res.begin(),
+  std::transform(indexes.cbegin(), indexes.cend(), std::back_inserter(res),
                  [&values](auto index) { return values.at(index); });
   return res;
 }
