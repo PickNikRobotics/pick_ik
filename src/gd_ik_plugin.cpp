@@ -116,13 +116,15 @@ class GDIKPlugin : public kinematics::KinematicsBase {
       context_state = temp_state.get();
     }
 
+    auto const initial_guess = set_indexes(
+        get_variables(*context_state), ik_seed_state, active_variable_indexes_);
+
     auto const goal_frames =
         transform_poses_to_frames(*context_state, ik_poses, getBaseFrame());
     auto const frame_tests =
         make_frame_tests(goal_frames, params_.position_threshold,
                          params_.rotation_threshold, params_.twist_threshold);
-    auto const active_initial_guess =
-        select_indexes(ik_seed_state, active_variable_indexes_);
+    auto const active_initial_guess = ik_seed_state;
 
     auto const pose_cost_functions =
         make_pose_cost_functions(goal_frames, params_.rotation_scale);
@@ -142,15 +144,14 @@ class GDIKPlugin : public kinematics::KinematicsBase {
                params_.avoid_joint_limits_weight});
     }
     if (params_.minimal_displacement_weight > 0.0) {
-      goals.push_back(
-          Goal{make_minimal_displacement_cost_fn(active_initial_guess,
-                                                 minimal_displacement_factors_),
-               params_.minimal_displacement_weight});
+      goals.push_back(Goal{make_minimal_displacement_cost_fn(
+                               ik_seed_state, minimal_displacement_factors_),
+                           params_.minimal_displacement_weight});
     }
     if (cost_function) {
       for (auto const& pose : ik_poses) {
         goals.push_back(Goal{make_ik_cost_fn(pose, cost_function, robot_model_,
-                                             jmg_, ik_seed_state),
+                                             jmg_, initial_guess),
                              1.0});
       }
     }
@@ -163,7 +164,7 @@ class GDIKPlugin : public kinematics::KinematicsBase {
                         tip_link_indexes_, active_variable_indexes_);
 
     auto const maybe_solution =
-        ik_search(ik_seed_state, robot_, active_variable_indexes_, fitness_fn,
+        ik_search(initial_guess, robot_, active_variable_indexes_, fitness_fn,
                   solution_fn, timeout);
 
     if (!maybe_solution.has_value() && !options.return_approximate_solution) {

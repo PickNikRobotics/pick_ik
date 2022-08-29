@@ -4,6 +4,8 @@
 #include <gd_ik/ik_gradient.hpp>
 #include <gd_ik/robot.hpp>
 
+#include <rclcpp/rclcpp.hpp>
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -11,6 +13,9 @@
 #include <vector>
 
 namespace gd_ik {
+namespace {
+auto const LOGGER = rclcpp::get_logger("gd_ik");
+}
 
 auto step(GradientIk& self, Robot const& robot,
           std::vector<size_t> const& active_variable_indexes,
@@ -45,15 +50,16 @@ auto step(GradientIk& self, Robot const& robot,
   // initialize line search
   temp = self.local;
 
-  assert(active_variable_indexes.size() == temp.size());
-  std::transform(active_variable_indexes.cbegin(),
-                 active_variable_indexes.cend(), temp.begin(),
-                 [&](auto ivar) { return self.local[ivar] - gradient[ivar]; });
+  for (size_t i = 0; i < active_variable_indexes.size(); ++i) {
+    auto const ivar = active_variable_indexes[i];
+    temp.at(ivar) = self.local.at(ivar) - gradient.at(ivar);
+  }
   double const p1 = fitness_fn(temp);
 
-  std::transform(active_variable_indexes.cbegin(),
-                 active_variable_indexes.cend(), temp.begin(),
-                 [&](auto ivar) { return self.local[ivar] + gradient[ivar]; });
+  for (size_t i = 0; i < active_variable_indexes.size(); ++i) {
+    auto const ivar = active_variable_indexes[i];
+    temp.at(ivar) = self.local[ivar] + gradient[ivar];
+  }
   double const p3 = fitness_fn(temp);
 
   double const p2 = (p1 + p3) * 0.5;
@@ -110,6 +116,8 @@ auto ik_search(std::vector<double> const& ik_seed_state, Robot const& robot,
       }
     }
   }
+
+  RCLCPP_ERROR(LOGGER, "Timeout: %f", timeout);
 
   return std::nullopt;
 }
