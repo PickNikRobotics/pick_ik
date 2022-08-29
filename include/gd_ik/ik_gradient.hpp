@@ -23,7 +23,7 @@ auto step(GradientIk& self, Robot const& robot,
           std::vector<size_t> const& active_variable_indexes,
           FitnessFn const& fitness_fn) -> bool;
 
-auto ik_search(std::vector<double> const& ik_seed_state, Robot const& robot,
+auto ik_search(std::vector<double> const& initial_guess, Robot const& robot,
                std::vector<size_t> const& active_variable_indexes,
                FitnessFn const& fitness_fn, SolutionTestFn const& solution_fn,
                double timeout) -> std::optional<std::vector<double>>;

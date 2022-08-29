@@ -4,8 +4,6 @@
 #include <gd_ik/ik_gradient.hpp>
 #include <gd_ik/robot.hpp>
 
-#include <rclcpp/rclcpp.hpp>
-
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -13,9 +11,6 @@
 #include <vector>
 
 namespace gd_ik {
-namespace {
-auto const LOGGER = rclcpp::get_logger("gd_ik");
-}
 
 auto step(GradientIk& self, Robot const& robot,
           std::vector<size_t> const& active_variable_indexes,
@@ -98,11 +93,11 @@ auto step(GradientIk& self, Robot const& robot,
   return false;
 }
 
-auto ik_search(std::vector<double> const& ik_seed_state, Robot const& robot,
+auto ik_search(std::vector<double> const& initial_guess, Robot const& robot,
                std::vector<size_t> const& active_variable_indexes,
                FitnessFn const& fitness_fn, SolutionTestFn const& solution_fn,
                double timeout) -> std::optional<std::vector<double>> {
-  auto ik = GradientIk{ik_seed_state, ik_seed_state, fitness_fn(ik_seed_state)};
+  auto ik = GradientIk{initial_guess, initial_guess, DBL_MAX};
 
   auto const timeout_point =
       std::chrono::system_clock::now() + std::chrono::duration<double>(timeout);
@@ -116,8 +111,6 @@ auto ik_search(std::vector<double> const& ik_seed_state, Robot const& robot,
       }
     }
   }
-
-  RCLCPP_ERROR(LOGGER, "Timeout: %f", timeout);
 
   return std::nullopt;
 }
