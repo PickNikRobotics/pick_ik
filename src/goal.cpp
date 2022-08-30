@@ -19,22 +19,22 @@ auto make_frame_test_fn(Frame goal_frame, double position_threshold,
                         double rotation_threshold, double twist_threshold)
     -> FrameTestFn {
   return [=](Frame const& tip_frame) -> bool {
-    if (position_threshold != DBL_MAX || rotation_threshold != DBL_MAX) {
-      double p_dist = (tip_frame.pos - goal_frame.pos).length();
-      double r_dist = tip_frame.rot.angleShortestPath(goal_frame.rot);
-      r_dist = r_dist * 180 / M_PI;
-      if (!(p_dist <= position_threshold)) return false;
-      if (!(r_dist <= rotation_threshold)) return false;
-    }
-    if (twist_threshold != DBL_MAX) {
-      auto goal_kdl = to_KDL(goal_frame);
-      auto tip_kdl = to_KDL(tip_frame);
-      KDL::Twist kdl_diff(
-          goal_kdl.M.Inverse() * KDL::diff(goal_kdl.p, tip_kdl.p),
-          goal_kdl.M.Inverse() * KDL::diff(goal_kdl.M, tip_kdl.M));
-      if (!KDL::Equal(kdl_diff, KDL::Twist::Zero(), twist_threshold))
-        return false;
-    }
+    // if (position_threshold != DBL_MAX || rotation_threshold != DBL_MAX) {
+    //   double p_dist = (tip_frame.pos - goal_frame.pos).length();
+    //   double r_dist = tip_frame.rot.angleShortestPath(goal_frame.rot);
+    //   r_dist = r_dist * 180 / M_PI;
+    //   if (!(p_dist <= position_threshold)) return false;
+    //   if (!(r_dist <= rotation_threshold)) return false;
+    // }
+    // if (twist_threshold != DBL_MAX) {
+    //   auto goal_kdl = to_KDL(goal_frame);
+    //   auto tip_kdl = to_KDL(tip_frame);
+    //   KDL::Twist kdl_diff(
+    //       goal_kdl.M.Inverse() * KDL::diff(goal_kdl.p, tip_kdl.p),
+    //       goal_kdl.M.Inverse() * KDL::diff(goal_kdl.M, tip_kdl.M));
+    //   if (!KDL::Equal(kdl_diff, KDL::Twist::Zero(), twist_threshold))
+    //     return false;
+    // }
     return true;
   };
 }
@@ -155,15 +155,11 @@ auto make_ik_cost_fn(
   };
 }
 
-auto make_is_solution_test_fn(
-    std::vector<FrameTestFn> frame_tests, std::vector<Goal> goals,
-    double cost_threshold,
-    std::shared_ptr<moveit::core::RobotModel const> robot_model,
-    std::vector<size_t> tip_link_indexes,
-    std::vector<size_t> active_variable_indexes) -> SolutionTestFn {
-  return [=](std::vector<double> const& variables) {
-    auto tip_frames = fk_moveit(robot_model, tip_link_indexes, variables);
-    auto active_positions = select_indexes(variables, active_variable_indexes);
+auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
+                              std::vector<Goal> goals, double cost_threshold,
+                              FkFn const& fk) -> SolutionTestFn {
+  return [=](std::vector<double> const& active_positions) {
+    auto tip_frames = fk(active_positions);
     assert(frame_tests.size() == tip_frames.size());
     for (size_t i = 0; i < frame_tests.size(); ++i) {
       if (!frame_tests[i](tip_frames[i])) {
@@ -182,14 +178,10 @@ auto make_is_solution_test_fn(
   };
 }
 
-auto make_fitness_fn(
-    std::vector<PoseCostFn> pose_cost_functions, std::vector<Goal> goals,
-    std::shared_ptr<moveit::core::RobotModel const> robot_model,
-    std::vector<size_t> tip_link_indexes,
-    std::vector<size_t> active_variable_indexes) -> FitnessFn {
-  return [=](std::vector<double> const& variables) {
-    auto tip_frames = fk_moveit(robot_model, tip_link_indexes, variables);
-    auto active_positions = select_indexes(variables, active_variable_indexes);
+auto make_fitness_fn(std::vector<PoseCostFn> pose_cost_functions,
+                     std::vector<Goal> goals, FkFn const& fk) -> FitnessFn {
+  return [=](std::vector<double> const& active_positions) {
+    auto tip_frames = fk(active_positions);
     return std::accumulate(
         goals.cbegin(), goals.cend(),
         std::accumulate(

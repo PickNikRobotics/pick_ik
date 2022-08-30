@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <fmt/core.h>
+#include <fmt/ranges.h>
 #include <optional>
 #include <vector>
 
@@ -18,21 +20,22 @@ auto step(GradientIk& self, Robot const& robot,
   auto gradient = std::vector<double>(self.local.size(), 0.0);
   auto temp = self.local;
   double const jd = 0.0001;
+  auto const count = gradient.size();
+
+  assert(active_variable_indexes.size() == count);
 
   // compute gradient direction
-  std::transform(active_variable_indexes.cbegin(),
-                 active_variable_indexes.cend(), gradient.begin(),
-                 [&](auto ivar) {
-                   temp[ivar] = self.local[ivar] - jd;
-                   double const p1 = fitness_fn(temp);
+  for (size_t i = 0; i < count; ++i) {
+    temp[i] = self.local[i] - jd;
+    double const p1 = fitness_fn(temp);
 
-                   temp[ivar] = self.local[ivar] + jd;
-                   double const p3 = fitness_fn(temp);
+    temp[i] = self.local[i] + jd;
+    double const p3 = fitness_fn(temp);
 
-                   temp[ivar] = self.local[ivar];
+    temp[i] = self.local[i];
 
-                   return p3 - p1;
-                 });
+    gradient[i] = p3 - p1;
+  }
 
   // normalize gradient direction
   auto sum = std::accumulate(
@@ -45,15 +48,13 @@ auto step(GradientIk& self, Robot const& robot,
   // initialize line search
   temp = self.local;
 
-  for (size_t i = 0; i < active_variable_indexes.size(); ++i) {
-    auto const ivar = active_variable_indexes[i];
-    temp.at(ivar) = self.local.at(ivar) - gradient.at(ivar);
+  for (size_t i = 0; i < count; ++i) {
+    temp[i] = self.local[i] - gradient[i];
   }
   double const p1 = fitness_fn(temp);
 
-  for (size_t i = 0; i < active_variable_indexes.size(); ++i) {
-    auto const ivar = active_variable_indexes[i];
-    temp.at(ivar) = self.local[ivar] + gradient[ivar];
+  for (size_t i = 0; i < count; ++i) {
+    temp[i] = self.local[i] + gradient[i];
   }
   double const p3 = fitness_fn(temp);
 
@@ -67,12 +68,10 @@ auto step(GradientIk& self, Robot const& robot,
   if (std::isfinite(joint_diff)) {
     // apply optimization step
     // (move along gradient direction by estimated step size)
-    std::transform(
-        active_variable_indexes.cbegin(), active_variable_indexes.cend(),
-        temp.begin(), [&](auto ivar) {
-          return clip(robot, self.local[ivar] - gradient[ivar] * joint_diff,
-                      ivar);
-        });
+    for (size_t i = 0; i < count; ++i) {
+      temp[i] = clip(robot, self.local[i] - gradient[i] * joint_diff,
+                     active_variable_indexes[i]);
+    }
   }
 
   auto const local_fitness = fitness_fn(self.local);
@@ -98,6 +97,9 @@ auto ik_search(std::vector<double> const& initial_guess, Robot const& robot,
                FitnessFn const& fitness_fn, SolutionTestFn const& solution_fn,
                double timeout) -> std::optional<std::vector<double>> {
   auto ik = GradientIk{initial_guess, initial_guess, DBL_MAX};
+  fmt::print(stderr, "{}: {}\n", ik.fitness, fmt::join(ik.best, ", "));
+
+  timeout = 10.0;
 
   auto const timeout_point =
       std::chrono::system_clock::now() + std::chrono::duration<double>(timeout);
@@ -106,6 +108,7 @@ auto ik_search(std::vector<double> const& initial_guess, Robot const& robot,
         step(ik, robot, active_variable_indexes, fitness_fn);
 
     if (found_better_solution) {
+      fmt::print(stderr, "{}: {}\n", ik.fitness, fmt::join(ik.best, ", "));
       if (solution_fn(ik.best)) {
         return ik.best;
       }

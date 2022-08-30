@@ -9,6 +9,8 @@
 #include <pluginlib/class_list_macros.hpp>
 #include <rclcpp/rclcpp.hpp>
 
+#include <fmt/core.h>
+#include <fmt/ranges.h>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_state/robot_state.h>
@@ -91,7 +93,7 @@ class GDIKPlugin : public kinematics::KinematicsBase {
 
     // Calculate internal state used in IK
     tip_link_indexes_ = get_link_indexes(robot_model_, tip_frames_);
-    active_variable_indexes_ =
+    active_variable_indexes_ =  // jmg_->getKinematicsSolverJointBijection();
         get_active_variable_indexes(robot_model_, jmg_, tip_link_indexes_);
     minimal_displacement_factors_ =
         get_minimal_displacement_factors(active_variable_indexes_, robot_);
@@ -108,19 +110,21 @@ class GDIKPlugin : public kinematics::KinematicsBase {
       kinematics::KinematicsQueryOptions const& options =
           kinematics::KinematicsQueryOptions(),
       moveit::core::RobotState const* context_state = nullptr) const {
-    // If we didn't receive a robot state we have to make one
-    std::unique_ptr<moveit::core::RobotState> temp_state;
-    if (!context_state) {
-      temp_state = std::make_unique<moveit::core::RobotState>(robot_model_);
-      temp_state->setToDefaultValues();
-      context_state = temp_state.get();
-    }
+    (void)context_state;
 
-    auto const initial_guess = set_indexes(
-        get_variables(*context_state), ik_seed_state, active_variable_indexes_);
+    RCLCPP_ERROR(LOGGER, "GDIK GDIK GDIK GDIK GDIK GDIK\n");
+
+    auto robot_state = moveit::core::RobotState(robot_model_);
+    robot_state.setToDefaultValues();
+    robot_state.setJointGroupPositions(jmg_, ik_seed_state);
+    robot_state.update();
+    auto const* variables = robot_state.getVariablePositions();
+    auto const count = robot_state.getVariableCount();
+    auto const initial_guess =
+        std::vector<double>(variables, variables + count);
 
     auto const goal_frames =
-        transform_poses_to_frames(*context_state, ik_poses, getBaseFrame());
+        transform_poses_to_frames(robot_state, ik_poses, getBaseFrame());
     auto const frame_tests =
         make_frame_tests(goal_frames, params_.position_threshold,
                          params_.rotation_threshold, params_.twist_threshold);
@@ -151,20 +155,18 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     if (cost_function) {
       for (auto const& pose : ik_poses) {
         goals.push_back(Goal{make_ik_cost_fn(pose, cost_function, robot_model_,
-                                             jmg_, initial_guess),
+                                             jmg_, ik_seed_state),
                              1.0});
       }
     }
 
+    auto const fk = make_fk_fn(robot_model_, jmg_, tip_link_indexes_);
     auto const solution_fn = make_is_solution_test_fn(
-        frame_tests, goals, params_.cost_threshold, robot_model_,
-        tip_link_indexes_, active_variable_indexes_);
-    auto const fitness_fn =
-        make_fitness_fn(pose_cost_functions, goals, robot_model_,
-                        tip_link_indexes_, active_variable_indexes_);
+        frame_tests, goals, params_.cost_threshold, fk);
+    auto const fitness_fn = make_fitness_fn(pose_cost_functions, goals, fk);
 
     auto const maybe_solution =
-        ik_search(initial_guess, robot_, active_variable_indexes_, fitness_fn,
+        ik_search(ik_seed_state, robot_, active_variable_indexes_, fitness_fn,
                   solution_fn, timeout);
 
     if (!maybe_solution.has_value() && !options.return_approximate_solution) {
@@ -174,7 +176,12 @@ class GDIKPlugin : public kinematics::KinematicsBase {
 
     // wrap angles
     solution = maybe_solution.value();
-    robot_model_->enforcePositionBounds(solution.data());
+    jmg_->enforcePositionBounds(solution.data());
+
+    {
+      // print solution
+      fmt::print(stderr, "solution: {}\n", fmt::join(solution, ", "));
+    }
 
     // callback?
     if (solution_callback) {

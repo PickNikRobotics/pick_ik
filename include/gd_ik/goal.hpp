@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gd_ik/fk_moveit.hpp>
 #include <gd_ik/frame.hpp>
 #include <gd_ik/robot.hpp>
 
@@ -59,21 +60,16 @@ auto make_ik_cost_fn(
 
 // Create a solution test function from frame tests and goals
 using SolutionTestFn =
-    std::function<bool(std::vector<double> const& variables)>;
+    std::function<bool(std::vector<double> const& active_positions)>;
 
-auto make_is_solution_test_fn(
-    std::vector<FrameTestFn> frame_tests, std::vector<Goal> goals,
-    double cost_threshold,
-    std::shared_ptr<moveit::core::RobotModel const> robot_model,
-    std::vector<size_t> tip_link_indexes,
-    std::vector<size_t> active_variable_indexes) -> SolutionTestFn;
+auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
+                              std::vector<Goal> goals, double cost_threshold,
+                              FkFn const& fk) -> SolutionTestFn;
 
-using FitnessFn = std::function<double(std::vector<double> const& variables)>;
+using FitnessFn =
+    std::function<double(std::vector<double> const& active_positions)>;
 
-auto make_fitness_fn(
-    std::vector<PoseCostFn> pose_cost_functions, std::vector<Goal> goals,
-    std::shared_ptr<moveit::core::RobotModel const> robot_model,
-    std::vector<size_t> tip_link_indexes,
-    std::vector<size_t> active_variable_indexes) -> FitnessFn;
+auto make_fitness_fn(std::vector<PoseCostFn> pose_cost_functions,
+                     std::vector<Goal> goals, FkFn const& fk) -> FitnessFn;
 
 }  // namespace gd_ik
