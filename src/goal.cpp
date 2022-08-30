@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fmt/core.h>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_model/robot_model.h>
@@ -19,13 +20,19 @@ auto make_frame_test_fn(Frame goal_frame, double position_threshold,
                         double rotation_threshold, double twist_threshold)
     -> FrameTestFn {
   return [=](Frame const& tip_frame) -> bool {
-    // if (position_threshold != DBL_MAX || rotation_threshold != DBL_MAX) {
-    //   double p_dist = (tip_frame.pos - goal_frame.pos).length();
-    //   double r_dist = tip_frame.rot.angleShortestPath(goal_frame.rot);
-    //   r_dist = r_dist * 180 / M_PI;
-    //   if (!(p_dist <= position_threshold)) return false;
-    //   if (!(r_dist <= rotation_threshold)) return false;
-    // }
+    if (position_threshold != DBL_MAX || rotation_threshold != DBL_MAX) {
+      double p_dist = (tip_frame.pos - goal_frame.pos).length();
+      double r_dist = tip_frame.rot.angleShortestPath(goal_frame.rot);
+      r_dist = r_dist * 180 / M_PI;
+
+      fmt::print(stderr, "p_dist({}) <= position_threshold({}): {}\n", p_dist,
+                 position_threshold, (p_dist <= position_threshold));
+      fmt::print(stderr, "r_dist({}) <= rotation_threshold({}): {}\n", r_dist,
+                 rotation_threshold, (r_dist <= rotation_threshold));
+
+      if (!(p_dist <= position_threshold)) return false;
+      if (!(r_dist <= rotation_threshold)) return false;
+    }
     // if (twist_threshold != DBL_MAX) {
     //   auto goal_kdl = to_KDL(goal_frame);
     //   auto tip_kdl = to_KDL(tip_frame);
@@ -54,12 +61,18 @@ auto make_frame_tests(std::vector<Frame> goal_frames, double position_threshold,
 
 auto make_pose_cost_fn(Frame goal, size_t goal_link_index,
                        double rotation_scale) -> PoseCostFn {
+  if (rotation_scale > 0.0) {
+    return [=](std::vector<Frame> const& tip_frames) -> double {
+      auto const& frame = tip_frames[goal_link_index];
+      return frame.pos.distance2(goal.pos) +
+             fmin((frame.rot - goal.rot).length2(),
+                  (frame.rot + goal.rot).length2()) *
+                 (rotation_scale * rotation_scale);
+    };
+  }
   return [=](std::vector<Frame> const& tip_frames) -> double {
     auto const& frame = tip_frames[goal_link_index];
-    return frame.pos.distance2(goal.pos) +
-           fmin((frame.rot - goal.rot).length2(),
-                (frame.rot + goal.rot).length2()) *
-               (rotation_scale * rotation_scale);
+    return frame.pos.distance2(goal.pos);
   };
 }
 
@@ -156,8 +169,9 @@ auto make_ik_cost_fn(
 }
 
 auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
+                              std::vector<PoseCostFn> pose_cost_functions,
                               std::vector<Goal> goals, double cost_threshold,
-                              FkFn const& fk) -> SolutionTestFn {
+                              FkFn fk) -> SolutionTestFn {
   return [=](std::vector<double> const& active_positions) {
     auto tip_frames = fk(active_positions);
     assert(frame_tests.size() == tip_frames.size());
@@ -167,9 +181,17 @@ auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
       }
     }
 
+    auto const cost_threshold_sq = std::pow(cost_threshold, 2);
+
+    for (auto const& pose_cost : pose_cost_functions) {
+      if (pose_cost(tip_frames) >= cost_threshold_sq) {
+        return false;
+      }
+    }
+
     for (auto const& goal : goals) {
       auto const cost = goal.eval(active_positions) * std::pow(goal.weight, 2);
-      if (cost >= std::pow(cost_threshold, 2)) {
+      if (cost >= cost_threshold_sq) {
         return false;
       }
     }
@@ -179,17 +201,18 @@ auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
 }
 
 auto make_fitness_fn(std::vector<PoseCostFn> pose_cost_functions,
-                     std::vector<Goal> goals, FkFn const& fk) -> FitnessFn {
+                     std::vector<Goal> goals, FkFn fk) -> FitnessFn {
   return [=](std::vector<double> const& active_positions) {
     auto tip_frames = fk(active_positions);
-    return std::accumulate(
-        goals.cbegin(), goals.cend(),
-        std::accumulate(
-            pose_cost_functions.cbegin(), pose_cost_functions.cend(), 0.0,
-            [&](auto sum, auto const& fn) { return sum + fn(tip_frames); }),
-        [&](auto sum, auto const& goal) {
+    auto const pose_cost = std::accumulate(
+        pose_cost_functions.cbegin(), pose_cost_functions.cend(), 0.0,
+        [&](auto sum, auto const& fn) { return sum + fn(tip_frames); });
+    auto const goal_cost = std::accumulate(
+        goals.cbegin(), goals.cend(), 0.0, [&](auto sum, auto const& goal) {
           return sum + goal.eval(active_positions) * std::pow(goal.weight, 2);
         });
+    ;
+    return pose_cost + goal_cost;
   };
 }
 

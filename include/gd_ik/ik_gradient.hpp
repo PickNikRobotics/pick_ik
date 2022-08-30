@@ -14,6 +14,7 @@
 namespace gd_ik {
 
 struct GradientIk {
+  std::vector<double> working;
   std::vector<double> local;
   std::vector<double> best;
   double fitness;

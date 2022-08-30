@@ -25,7 +25,6 @@ auto const LOGGER = rclcpp::get_logger("gd_ik");
 class GDIKPlugin : public kinematics::KinematicsBase {
   rclcpp::Node::SharedPtr node_;
   std::shared_ptr<ParamListener> parameter_listener_;
-  Params params_;
   moveit::core::JointModelGroup const* jmg_;
 
   std::vector<std::string> joint_names_;
@@ -45,7 +44,6 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     node_ = node;
     parameter_listener_ = std::make_shared<ParamListener>(
         node, std::string("robot_description_kinematics.").append(group_name));
-    params_ = parameter_listener_->get_params();
 
     // Initialize internal state of base class KinematicsBase
     // Creates these internal state variables:
@@ -112,6 +110,9 @@ class GDIKPlugin : public kinematics::KinematicsBase {
       moveit::core::RobotState const* context_state = nullptr) const {
     (void)context_state;
 
+    // Read current ROS parameters
+    auto params = parameter_listener_->get_params();
+
     RCLCPP_ERROR(LOGGER, "GDIK GDIK GDIK GDIK GDIK GDIK\n");
 
     auto robot_state = moveit::core::RobotState(robot_model_);
@@ -126,31 +127,31 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     auto const goal_frames =
         transform_poses_to_frames(robot_state, ik_poses, getBaseFrame());
     auto const frame_tests =
-        make_frame_tests(goal_frames, params_.position_threshold,
-                         params_.rotation_threshold, params_.twist_threshold);
+        make_frame_tests(goal_frames, params.position_threshold,
+                         params.rotation_threshold, params.twist_threshold);
     auto const active_initial_guess = ik_seed_state;
 
     auto const pose_cost_functions =
-        make_pose_cost_functions(goal_frames, params_.rotation_scale);
+        make_pose_cost_functions(goal_frames, params.rotation_scale);
 
     // Create goals
     auto goals = std::vector<Goal>{};
-    if (params_.center_joints_weight > 0.0) {
+    if (params.center_joints_weight > 0.0) {
       goals.push_back(
           Goal{make_center_joints_cost_fn(robot_, active_variable_indexes_,
                                           minimal_displacement_factors_),
-               params_.center_joints_weight});
+               params.center_joints_weight});
     }
-    if (params_.avoid_joint_limits_weight > 0.0) {
+    if (params.avoid_joint_limits_weight > 0.0) {
       goals.push_back(
           Goal{make_avoid_joint_limits_cost_fn(robot_, active_variable_indexes_,
                                                minimal_displacement_factors_),
-               params_.avoid_joint_limits_weight});
+               params.avoid_joint_limits_weight});
     }
-    if (params_.minimal_displacement_weight > 0.0) {
+    if (params.minimal_displacement_weight > 0.0) {
       goals.push_back(Goal{make_minimal_displacement_cost_fn(
                                ik_seed_state, minimal_displacement_factors_),
-                           params_.minimal_displacement_weight});
+                           params.minimal_displacement_weight});
     }
     if (cost_function) {
       for (auto const& pose : ik_poses) {
@@ -160,10 +161,10 @@ class GDIKPlugin : public kinematics::KinematicsBase {
       }
     }
 
-    auto const fk = make_fk_fn(robot_model_, jmg_, tip_link_indexes_);
+    auto const fk_fn = make_fk_fn(robot_model_, jmg_, tip_link_indexes_);
     auto const solution_fn = make_is_solution_test_fn(
-        frame_tests, goals, params_.cost_threshold, fk);
-    auto const fitness_fn = make_fitness_fn(pose_cost_functions, goals, fk);
+        frame_tests, pose_cost_functions, goals, params.cost_threshold, fk_fn);
+    auto const fitness_fn = make_fitness_fn(pose_cost_functions, goals, fk_fn);
 
     auto const maybe_solution =
         ik_search(ik_seed_state, robot_, active_variable_indexes_, fitness_fn,

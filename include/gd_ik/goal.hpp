@@ -63,13 +63,14 @@ using SolutionTestFn =
     std::function<bool(std::vector<double> const& active_positions)>;
 
 auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
+                              std::vector<PoseCostFn> pose_cost_functions,
                               std::vector<Goal> goals, double cost_threshold,
-                              FkFn const& fk) -> SolutionTestFn;
+                              FkFn fk) -> SolutionTestFn;
 
 using FitnessFn =
     std::function<double(std::vector<double> const& active_positions)>;
 
 auto make_fitness_fn(std::vector<PoseCostFn> pose_cost_functions,
-                     std::vector<Goal> goals, FkFn const& fk) -> FitnessFn;
+                     std::vector<Goal> goals, FkFn fk) -> FitnessFn;
 
 }  // namespace gd_ik
