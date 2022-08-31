@@ -164,6 +164,7 @@ class GDIKPlugin : public kinematics::KinematicsBase {
             jmg_->enforcePositionBounds(solution.data());
         } else {
             error_code.val = error_code.NO_IK_SOLUTION;
+            solution = ik_seed_state;
         }
 
         // callback?

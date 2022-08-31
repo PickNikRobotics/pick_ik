@@ -113,9 +113,7 @@ auto ik_search(std::vector<double> const& initial_guess,
     auto const timeout_point =
         std::chrono::system_clock::now() + std::chrono::duration<double>(timeout);
     while (std::chrono::system_clock::now() < timeout_point) {
-        auto const found_better_solution = step(ik, robot, cost_fn);
-
-        if (found_better_solution) {
+        if (step(ik, robot, cost_fn)) {
             if (solution_fn(ik.best)) {
                 return ik.best;
             }
