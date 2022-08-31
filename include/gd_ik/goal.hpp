@@ -35,25 +35,30 @@ struct Goal {
     double weight;
 };
 
-auto make_center_joints_cost_fn(Robot robot, std::vector<size_t> active_variable_indexes,
+auto make_center_joints_cost_fn(Robot robot,
+                                std::vector<size_t> active_variable_indexes,
                                 std::vector<double> minimal_displacement_factors) -> CostFn;
 
-auto make_avoid_joint_limits_cost_fn(Robot robot, std::vector<size_t> active_variable_indexes,
+auto make_avoid_joint_limits_cost_fn(Robot robot,
+                                     std::vector<size_t> active_variable_indexes,
                                      std::vector<double> minimal_displacement_factors) -> CostFn;
 
 auto make_minimal_displacement_cost_fn(std::vector<double> initial_guess,
                                        std::vector<double> minimal_displacement_factors) -> CostFn;
 
-auto make_ik_cost_fn(geometry_msgs::msg::Pose pose, kinematics::KinematicsBase::IKCostFn cost_fn,
+auto make_ik_cost_fn(geometry_msgs::msg::Pose pose,
+                     kinematics::KinematicsBase::IKCostFn cost_fn,
                      std::shared_ptr<moveit::core::RobotModel const> robot_model,
-                     moveit::core::JointModelGroup const* jmg, std::vector<double> initial_guess)
-    -> CostFn;
+                     moveit::core::JointModelGroup const* jmg,
+                     std::vector<double> initial_guess) -> CostFn;
 
 // Create a solution test function from frame tests and goals
 using SolutionTestFn = std::function<bool(std::vector<double> const& active_positions)>;
 
-auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests, std::vector<Goal> goals,
-                              double cost_threshold, FkFn fk) -> SolutionTestFn;
+auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
+                              std::vector<Goal> goals,
+                              double cost_threshold,
+                              FkFn fk) -> SolutionTestFn;
 
 using FitnessFn = std::function<double(std::vector<double> const& active_positions)>;
 

@@ -10,8 +10,8 @@
 namespace gd_ik {
 
 auto make_fk_fn(std::shared_ptr<moveit::core::RobotModel const> robot_model,
-                moveit::core::JointModelGroup const* jmg, std::vector<size_t> tip_link_indexes)
-    -> FkFn {
+                moveit::core::JointModelGroup const* jmg,
+                std::vector<size_t> tip_link_indexes) -> FkFn {
     return [=](std::vector<double> const& active_positions) {
         auto robot_state = moveit::core::RobotState(robot_model);
         robot_state.setToDefaultValues();
@@ -19,8 +19,10 @@ auto make_fk_fn(std::shared_ptr<moveit::core::RobotModel const> robot_model,
         robot_state.updateLinkTransforms();
 
         std::vector<Frame> tip_frames;
-        std::transform(tip_link_indexes.cbegin(), tip_link_indexes.cend(),
-                       std::back_inserter(tip_frames), [&](auto index) {
+        std::transform(tip_link_indexes.cbegin(),
+                       tip_link_indexes.cend(),
+                       std::back_inserter(tip_frames),
+                       [&](auto index) {
                            auto const* link_model = robot_model->getLinkModel(index);
                            return Frame::from(robot_state.getGlobalLinkTransform(link_model));
                        });

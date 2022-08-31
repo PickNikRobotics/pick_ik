@@ -46,7 +46,12 @@ auto to_string(Frame const& self) -> std::string {
     return fmt::format(
         "gd_ik::Frame{{tf2::Vector3({}, {}, {}), tf2::Quaternion({}, {}, {}, "
         "{})}}",
-        self.pos.x(), self.pos.y(), self.pos.z(), self.rot.x(), self.rot.y(), self.rot.z(),
+        self.pos.x(),
+        self.pos.y(),
+        self.pos.z(),
+        self.rot.x(),
+        self.rot.y(),
+        self.rot.z(),
         self.rot.w());
 }
 

@@ -16,26 +16,24 @@
 namespace gd_ik {
 
 auto make_frame_test_fn(Frame goal_frame, double twist_threshold) -> FrameTestFn {
-    if (twist_threshold != DBL_MAX) {
-        return [=](Frame const& tip_frame) -> bool {
-            auto goal_kdl = to_KDL(goal_frame);
-            auto tip_kdl = to_KDL(tip_frame);
-            KDL::Twist kdl_diff(goal_kdl.M.Inverse() * KDL::diff(goal_kdl.p, tip_kdl.p),
-                                goal_kdl.M.Inverse() * KDL::diff(goal_kdl.M, tip_kdl.M));
-            if (!KDL::Equal(kdl_diff, KDL::Twist::Zero(), twist_threshold)) {
-                return false;
-            }
-            return true;
-        };
-    } else {
-        return [](Frame const&) { return true; };
-    }
+    return [=](Frame const& tip_frame) -> bool {
+        auto goal_kdl = to_KDL(goal_frame);
+        auto tip_kdl = to_KDL(tip_frame);
+        KDL::Twist kdl_diff(goal_kdl.M.Inverse() * KDL::diff(goal_kdl.p, tip_kdl.p),
+                            goal_kdl.M.Inverse() * KDL::diff(goal_kdl.M, tip_kdl.M));
+        if (!KDL::Equal(kdl_diff, KDL::Twist::Zero(), twist_threshold)) {
+            return false;
+        }
+        return true;
+    };
 }
 
 auto make_frame_tests(std::vector<Frame> goal_frames, double twist_threshold)
     -> std::vector<FrameTestFn> {
     auto tests = std::vector<FrameTestFn>{};
-    std::transform(goal_frames.cbegin(), goal_frames.cend(), std::back_inserter(tests),
+    std::transform(goal_frames.cbegin(),
+                   goal_frames.cend(),
+                   std::back_inserter(tests),
                    [&](auto const& frame) { return make_frame_test_fn(frame, twist_threshold); });
     return tests;
 }
@@ -64,7 +62,8 @@ auto make_pose_cost_functions(std::vector<Frame> goal_frames, double rotation_sc
     return cost_functions;
 }
 
-auto make_center_joints_cost_fn(Robot robot, std::vector<size_t> active_variable_indexes,
+auto make_center_joints_cost_fn(Robot robot,
+                                std::vector<size_t> active_variable_indexes,
                                 std::vector<double> minimal_displacement_factors) -> CostFn {
     return [=](std::vector<double> const& active_positions) -> double {
         double sum = 0;
@@ -87,7 +86,8 @@ auto make_center_joints_cost_fn(Robot robot, std::vector<size_t> active_variable
     };
 }
 
-auto make_avoid_joint_limits_cost_fn(Robot robot, std::vector<size_t> active_variable_indexes,
+auto make_avoid_joint_limits_cost_fn(Robot robot,
+                                     std::vector<size_t> active_variable_indexes,
                                      std::vector<double> minimal_displacement_factors) -> CostFn {
     return [=](std::vector<double> const& active_positions) -> double {
         double sum = 0;
@@ -128,10 +128,11 @@ auto make_minimal_displacement_cost_fn(std::vector<double> initial_guess,
     };
 }
 
-auto make_ik_cost_fn(geometry_msgs::msg::Pose pose, kinematics::KinematicsBase::IKCostFn cost_fn,
+auto make_ik_cost_fn(geometry_msgs::msg::Pose pose,
+                     kinematics::KinematicsBase::IKCostFn cost_fn,
                      std::shared_ptr<moveit::core::RobotModel const> robot_model,
-                     moveit::core::JointModelGroup const* jmg, std::vector<double> initial_guess)
-    -> CostFn {
+                     moveit::core::JointModelGroup const* jmg,
+                     std::vector<double> initial_guess) -> CostFn {
     return [=](std::vector<double> const& active_positions) -> double {
         auto robot_state = moveit::core::RobotState(robot_model);
         robot_state.setJointGroupPositions(jmg, active_positions);
@@ -140,8 +141,10 @@ auto make_ik_cost_fn(geometry_msgs::msg::Pose pose, kinematics::KinematicsBase::
     };
 }
 
-auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests, std::vector<Goal> goals,
-                              double cost_threshold, FkFn fk) -> SolutionTestFn {
+auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
+                              std::vector<Goal> goals,
+                              double cost_threshold,
+                              FkFn fk) -> SolutionTestFn {
     return [=](std::vector<double> const& active_positions) {
         auto tip_frames = fk(active_positions);
         assert(frame_tests.size() == tip_frames.size());
@@ -168,7 +171,9 @@ auto make_fitness_fn(std::vector<PoseCostFn> pose_cost_functions, std::vector<Go
     return [=](std::vector<double> const& active_positions) {
         auto tip_frames = fk(active_positions);
         auto const pose_cost =
-            std::accumulate(pose_cost_functions.cbegin(), pose_cost_functions.cend(), 0.0,
+            std::accumulate(pose_cost_functions.cbegin(),
+                            pose_cost_functions.cend(),
+                            0.0,
                             [&](auto sum, auto const& fn) { return sum + fn(tip_frames); });
         auto const goal_cost =
             std::accumulate(goals.cbegin(), goals.cend(), 0.0, [&](auto sum, auto const& goal) {

@@ -3,6 +3,11 @@ BasedOnStyle:  Google
 ColumnLimit: 100
 IndentWidth: 4
 
+BinPackArguments: false
+BinPackParameters: false
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
 DerivePointerAlignment: false
 QualifierAlignment: Right
 ReferenceAlignment: Pointer

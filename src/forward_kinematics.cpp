@@ -31,12 +31,15 @@ auto make_link_frames(std::shared_ptr<moveit::core::RobotModel const> const& mod
     -> std::vector<Frame> {
     std::vector<Frame> link_frames;
     std::transform(
-        model->getLinkModels().cbegin(), model->getLinkModels().cend(), link_frames.begin(),
+        model->getLinkModels().cbegin(),
+        model->getLinkModels().cend(),
+        link_frames.begin(),
         [](auto* link_model) { return Frame::from(link_model->getJointOriginTransform()); });
     return link_frames;
 }
 
-auto get_frame(moveit::core::JointModel const& joint_model, std::vector<double> const& variables,
+auto get_frame(moveit::core::JointModel const& joint_model,
+               std::vector<double> const& variables,
                std::vector<tf2::Vector3> const& joint_axes) -> Frame {
     auto const type = joint_model.getType();
     size_t const index = joint_model.getJointIndex();
@@ -98,9 +101,10 @@ auto has_joint_moved(moveit::core::JointModel const& joint_model,
     return false;
 }
 
-auto get_frame(CachedJointFrames& cache, moveit::core::JointModel const& joint_model,
-               std::vector<double> const& variables, std::vector<tf2::Vector3> const& joint_axes)
-    -> Frame {
+auto get_frame(CachedJointFrames& cache,
+               moveit::core::JointModel const& joint_model,
+               std::vector<double> const& variables,
+               std::vector<tf2::Vector3> const& joint_axes) -> Frame {
     size_t const index = joint_model.getJointIndex();
 
     if (!has_joint_moved(joint_model, cache.variables, variables)) {

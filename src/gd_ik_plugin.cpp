@@ -35,12 +35,14 @@ class GDIKPlugin : public kinematics::KinematicsBase {
    public:
     virtual bool initialize(rclcpp::Node::SharedPtr const& node,
                             moveit::core::RobotModel const& robot_model,
-                            std::string const& group_name, std::string const& base_frame,
+                            std::string const& group_name,
+                            std::string const& base_frame,
                             std::vector<std::string> const& tip_frames,
                             double search_discretization) {
         node_ = node;
         parameter_listener_ = std::make_shared<ParamListener>(
-            node, std::string("robot_description_kinematics.").append(group_name));
+            node,
+            std::string("robot_description_kinematics.").append(group_name));
 
         // Initialize internal state of base class KinematicsBase
         // Creates these internal state variables:
@@ -96,9 +98,13 @@ class GDIKPlugin : public kinematics::KinematicsBase {
 
     virtual bool searchPositionIK(
         std::vector<geometry_msgs::msg::Pose> const& ik_poses,
-        std::vector<double> const& ik_seed_state, double timeout, std::vector<double> const&,
-        std::vector<double>& solution, IKCallbackFn const& solution_callback,
-        IKCostFn cost_function, moveit_msgs::msg::MoveItErrorCodes& error_code,
+        std::vector<double> const& ik_seed_state,
+        double timeout,
+        std::vector<double> const&,
+        std::vector<double>& solution,
+        IKCallbackFn const& solution_callback,
+        IKCostFn cost_function,
+        moveit_msgs::msg::MoveItErrorCodes& error_code,
         kinematics::KinematicsQueryOptions const& options = kinematics::KinematicsQueryOptions(),
         moveit::core::RobotState const* context_state = nullptr) const {
         (void)context_state;
@@ -124,12 +130,14 @@ class GDIKPlugin : public kinematics::KinematicsBase {
         // Create goals
         auto goals = std::vector<Goal>{};
         if (params.center_joints_weight > 0.0) {
-            goals.push_back(Goal{make_center_joints_cost_fn(robot_, active_variable_indexes_,
+            goals.push_back(Goal{make_center_joints_cost_fn(robot_,
+                                                            active_variable_indexes_,
                                                             minimal_displacement_factors_),
                                  params.center_joints_weight});
         }
         if (params.avoid_joint_limits_weight > 0.0) {
-            goals.push_back(Goal{make_avoid_joint_limits_cost_fn(robot_, active_variable_indexes_,
+            goals.push_back(Goal{make_avoid_joint_limits_cost_fn(robot_,
+                                                                 active_variable_indexes_,
                                                                  minimal_displacement_factors_),
                                  params.avoid_joint_limits_weight});
         }
@@ -140,8 +148,9 @@ class GDIKPlugin : public kinematics::KinematicsBase {
         }
         if (cost_function) {
             for (auto const& pose : ik_poses) {
-                goals.push_back(Goal{
-                    make_ik_cost_fn(pose, cost_function, robot_model_, jmg_, ik_seed_state), 1.0});
+                goals.push_back(
+                    Goal{make_ik_cost_fn(pose, cost_function, robot_model_, jmg_, ik_seed_state),
+                         1.0});
             }
         }
 
@@ -151,8 +160,12 @@ class GDIKPlugin : public kinematics::KinematicsBase {
         auto const fitness_fn = make_fitness_fn(pose_cost_functions, goals, fk_fn);
 
         // TODO: fix aprox solution handling
-        auto const maybe_solution = ik_search(ik_seed_state, robot_, active_variable_indexes_,
-                                              fitness_fn, solution_fn, timeout);
+        auto const maybe_solution = ik_search(ik_seed_state,
+                                              robot_,
+                                              active_variable_indexes_,
+                                              fitness_fn,
+                                              solution_fn,
+                                              timeout);
 
         if (!maybe_solution.has_value() && !options.return_approximate_solution) {
             error_code.val = error_code.NO_IK_SOLUTION;
@@ -181,74 +194,112 @@ class GDIKPlugin : public kinematics::KinematicsBase {
 
     virtual std::vector<std::string> const& getLinkNames() const { return link_names_; }
 
-    virtual bool getPositionFK(std::vector<std::string> const&, std::vector<double> const&,
+    virtual bool getPositionFK(std::vector<std::string> const&,
+                               std::vector<double> const&,
                                std::vector<geometry_msgs::msg::Pose>&) const {
         return false;
     }
 
-    virtual bool getPositionIK(geometry_msgs::msg::Pose const&, std::vector<double> const&,
-                               std::vector<double>&, moveit_msgs::msg::MoveItErrorCodes&,
+    virtual bool getPositionIK(geometry_msgs::msg::Pose const&,
+                               std::vector<double> const&,
+                               std::vector<double>&,
+                               moveit_msgs::msg::MoveItErrorCodes&,
                                kinematics::KinematicsQueryOptions const&) const {
         return false;
     }
 
     virtual bool searchPositionIK(geometry_msgs::msg::Pose const& ik_pose,
-                                  std::vector<double> const& ik_seed_state, double timeout,
+                                  std::vector<double> const& ik_seed_state,
+                                  double timeout,
                                   std::vector<double>& solution,
                                   moveit_msgs::msg::MoveItErrorCodes& error_code,
                                   kinematics::KinematicsQueryOptions const& options =
                                       kinematics::KinematicsQueryOptions()) const {
-        return searchPositionIK(std::vector<geometry_msgs::msg::Pose>{ik_pose}, ik_seed_state,
-                                timeout, std::vector<double>(), solution, IKCallbackFn(),
-                                error_code, options);
-    }
-
-    virtual bool searchPositionIK(geometry_msgs::msg::Pose const& ik_pose,
-                                  std::vector<double> const& ik_seed_state, double timeout,
-                                  std::vector<double> const& consistency_limits,
-                                  std::vector<double>& solution,
-                                  moveit_msgs::msg::MoveItErrorCodes& error_code,
-                                  kinematics::KinematicsQueryOptions const& options =
-                                      kinematics::KinematicsQueryOptions()) const {
-        return searchPositionIK(std::vector<geometry_msgs::msg::Pose>{ik_pose}, ik_seed_state,
-                                timeout, consistency_limits, solution, IKCallbackFn(), error_code,
+        return searchPositionIK(std::vector<geometry_msgs::msg::Pose>{ik_pose},
+                                ik_seed_state,
+                                timeout,
+                                std::vector<double>(),
+                                solution,
+                                IKCallbackFn(),
+                                error_code,
                                 options);
     }
 
     virtual bool searchPositionIK(geometry_msgs::msg::Pose const& ik_pose,
-                                  std::vector<double> const& ik_seed_state, double timeout,
+                                  std::vector<double> const& ik_seed_state,
+                                  double timeout,
+                                  std::vector<double> const& consistency_limits,
+                                  std::vector<double>& solution,
+                                  moveit_msgs::msg::MoveItErrorCodes& error_code,
+                                  kinematics::KinematicsQueryOptions const& options =
+                                      kinematics::KinematicsQueryOptions()) const {
+        return searchPositionIK(std::vector<geometry_msgs::msg::Pose>{ik_pose},
+                                ik_seed_state,
+                                timeout,
+                                consistency_limits,
+                                solution,
+                                IKCallbackFn(),
+                                error_code,
+                                options);
+    }
+
+    virtual bool searchPositionIK(geometry_msgs::msg::Pose const& ik_pose,
+                                  std::vector<double> const& ik_seed_state,
+                                  double timeout,
                                   std::vector<double>& solution,
                                   IKCallbackFn const& solution_callback,
                                   moveit_msgs::msg::MoveItErrorCodes& error_code,
                                   kinematics::KinematicsQueryOptions const& options =
                                       kinematics::KinematicsQueryOptions()) const {
-        return searchPositionIK(std::vector<geometry_msgs::msg::Pose>{ik_pose}, ik_seed_state,
-                                timeout, std::vector<double>(), solution, solution_callback,
-                                error_code, options);
+        return searchPositionIK(std::vector<geometry_msgs::msg::Pose>{ik_pose},
+                                ik_seed_state,
+                                timeout,
+                                std::vector<double>(),
+                                solution,
+                                solution_callback,
+                                error_code,
+                                options);
     }
 
     virtual bool searchPositionIK(geometry_msgs::msg::Pose const& ik_pose,
-                                  std::vector<double> const& ik_seed_state, double timeout,
+                                  std::vector<double> const& ik_seed_state,
+                                  double timeout,
                                   std::vector<double> const& consistency_limits,
                                   std::vector<double>& solution,
                                   IKCallbackFn const& solution_callback,
                                   moveit_msgs::msg::MoveItErrorCodes& error_code,
                                   kinematics::KinematicsQueryOptions const& options =
                                       kinematics::KinematicsQueryOptions()) const {
-        return searchPositionIK(std::vector<geometry_msgs::msg::Pose>{ik_pose}, ik_seed_state,
-                                timeout, consistency_limits, solution, solution_callback,
-                                error_code, options);
+        return searchPositionIK(std::vector<geometry_msgs::msg::Pose>{ik_pose},
+                                ik_seed_state,
+                                timeout,
+                                consistency_limits,
+                                solution,
+                                solution_callback,
+                                error_code,
+                                options);
     }
 
     virtual bool searchPositionIK(
         std::vector<geometry_msgs::msg::Pose> const& ik_poses,
-        std::vector<double> const& ik_seed_state, double timeout,
-        std::vector<double> const& consistency_limits, std::vector<double>& solution,
-        IKCallbackFn const& solution_callback, moveit_msgs::msg::MoveItErrorCodes& error_code,
+        std::vector<double> const& ik_seed_state,
+        double timeout,
+        std::vector<double> const& consistency_limits,
+        std::vector<double>& solution,
+        IKCallbackFn const& solution_callback,
+        moveit_msgs::msg::MoveItErrorCodes& error_code,
         kinematics::KinematicsQueryOptions const& options = kinematics::KinematicsQueryOptions(),
         moveit::core::RobotState const* context_state = NULL) const {
-        return searchPositionIK(ik_poses, ik_seed_state, timeout, consistency_limits, solution,
-                                solution_callback, IKCostFn(), error_code, options, context_state);
+        return searchPositionIK(ik_poses,
+                                ik_seed_state,
+                                timeout,
+                                consistency_limits,
+                                solution,
+                                solution_callback,
+                                IKCostFn(),
+                                error_code,
+                                options,
+                                context_state);
     }
 };
 

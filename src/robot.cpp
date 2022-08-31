@@ -108,7 +108,8 @@ auto get_active_variable_indexes(std::shared_ptr<moveit::core::RobotModel const>
     joint_usage.resize(robot_model->getJointModelCount(), 0);
     for (auto tip_index : tip_link_indexes) {
         for (auto const* link_model = robot_model->getLinkModels().at(tip_index);
-             link_model != nullptr; link_model = link_model->getParentLinkModel()) {
+             link_model != nullptr;
+             link_model = link_model->getParentLinkModel()) {
             auto const* joint_model = link_model->getParentJointModel();
             auto const joint_index = joint_model->getJointIndex();
             joint_usage[joint_index] = 1;
@@ -142,14 +143,18 @@ auto get_minimal_displacement_factors(std::vector<size_t> const& active_variable
     auto minimal_displacement_factors = std::vector<double>{};
     minimal_displacement_factors.resize(active_variable_indexes.size());
     if (double s = std::accumulate(
-            active_variable_indexes.cbegin(), active_variable_indexes.cend(), 0.0,
+            active_variable_indexes.cbegin(),
+            active_variable_indexes.cend(),
+            0.0,
             [&robot](auto sum, auto ivar) { return sum + get_max_velocity_rcp(robot, ivar); });
         s > 0) {
-        std::transform(active_variable_indexes.cbegin(), active_variable_indexes.cend(),
+        std::transform(active_variable_indexes.cbegin(),
+                       active_variable_indexes.cend(),
                        minimal_displacement_factors.begin(),
                        [&robot, s](auto ivar) { return get_max_velocity_rcp(robot, ivar) / s; });
     } else {
-        std::fill(minimal_displacement_factors.begin(), minimal_displacement_factors.end(),
+        std::fill(minimal_displacement_factors.begin(),
+                  minimal_displacement_factors.end(),
                   1.0 / active_variable_indexes.size());
     }
     return minimal_displacement_factors;

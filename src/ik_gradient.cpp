@@ -13,11 +13,16 @@
 namespace gd_ik {
 
 GradientIk GradientIk::from(std::vector<double> const& initial_guess, FitnessFn const& fitness_fn) {
-    return GradientIk{std::vector<double>(initial_guess.size(), 0.0), initial_guess, initial_guess,
-                      initial_guess, fitness_fn(initial_guess)};
+    return GradientIk{std::vector<double>(initial_guess.size(), 0.0),
+                      initial_guess,
+                      initial_guess,
+                      initial_guess,
+                      fitness_fn(initial_guess)};
 }
 
-auto step(GradientIk& self, Robot const& robot, std::vector<size_t> const& active_variable_indexes,
+auto step(GradientIk& self,
+          Robot const& robot,
+          std::vector<size_t> const& active_variable_indexes,
           FitnessFn const& fitness_fn) -> bool {
     double const jd = 0.0001;
     auto const count = self.local.size();
@@ -43,10 +48,14 @@ auto step(GradientIk& self, Robot const& robot, std::vector<size_t> const& activ
     }
 
     // normalize gradient direction
-    auto sum = std::accumulate(self.gradient.cbegin(), self.gradient.cend(), 0.0001,
+    auto sum = std::accumulate(self.gradient.cbegin(),
+                               self.gradient.cend(),
+                               0.0001,
                                [](auto sum, auto value) { return sum + std::fabs(value); });
     double const f = 1.0 / sum * jd;
-    std::transform(self.gradient.cbegin(), self.gradient.cend(), self.gradient.begin(),
+    std::transform(self.gradient.cbegin(),
+                   self.gradient.cend(),
+                   self.gradient.begin(),
                    [&](auto value) { return value * f; });
 
     // initialize line search
@@ -90,10 +99,12 @@ auto step(GradientIk& self, Robot const& robot, std::vector<size_t> const& activ
     return false;
 }
 
-auto ik_search(std::vector<double> const& initial_guess, Robot const& robot,
-               std::vector<size_t> const& active_variable_indexes, FitnessFn const& fitness_fn,
-               SolutionTestFn const& solution_fn, double timeout)
-    -> std::optional<std::vector<double>> {
+auto ik_search(std::vector<double> const& initial_guess,
+               Robot const& robot,
+               std::vector<size_t> const& active_variable_indexes,
+               FitnessFn const& fitness_fn,
+               SolutionTestFn const& solution_fn,
+               double timeout) -> std::optional<std::vector<double>> {
     if (solution_fn(initial_guess)) {
         return initial_guess;
     }

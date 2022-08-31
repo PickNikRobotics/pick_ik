@@ -16,7 +16,8 @@ auto make_joint_axes(std::shared_ptr<moveit::core::RobotModel const> const& mode
 auto make_link_frames(std::shared_ptr<moveit::core::RobotModel const> const& model)
     -> std::vector<Frame>;
 
-auto get_frame(moveit::core::JointModel const& joint_model, std::vector<double> const& variables,
+auto get_frame(moveit::core::JointModel const& joint_model,
+               std::vector<double> const& variables,
                std::vector<tf2::Vector3> const& joint_axes) -> Frame;
 
 auto get_frame(moveit::core::LinkModel const& link_model, std::vector<Frame> const& link_frame)
@@ -31,8 +32,9 @@ struct CachedJointFrames {
     std::vector<Frame> frames;
 };
 
-auto get_frame(CachedJointFrames& cache, moveit::core::JointModel const& joint_model,
-               std::vector<double> const& variables, std::vector<tf2::Vector3> const& joint_axes)
-    -> Frame;
+auto get_frame(CachedJointFrames& cache,
+               moveit::core::JointModel const& joint_model,
+               std::vector<double> const& variables,
+               std::vector<tf2::Vector3> const& joint_axes) -> Frame;
 
 }  // namespace gd_ik
