@@ -157,27 +157,22 @@ class GDIKPlugin : public kinematics::KinematicsBase {
                                               timeout,
                                               options.return_approximate_solution);
 
-        if (!maybe_solution.has_value()) {
-            error_code.val = error_code.NO_IK_SOLUTION;
-            return false;
-        } else {
+        if (maybe_solution.has_value()) {
             // set the output parameter solution and wrap angles
+            error_code.val = error_code.SUCCESS;
             solution = maybe_solution.value();
             jmg_->enforcePositionBounds(solution.data());
+        } else {
+            error_code.val = error_code.NO_IK_SOLUTION;
         }
 
         // callback?
         if (solution_callback) {
             // run callback
             solution_callback(ik_poses.front(), solution, error_code);
-
-            // return success if callback has accepted the solution
-            return error_code.val == error_code.SUCCESS;
         }
 
-        // return success
-        error_code.val = error_code.SUCCESS;
-        return true;
+        return error_code.val == error_code.SUCCESS;
     }
 
     virtual std::vector<std::string> const& getJointNames() const { return joint_names_; }
