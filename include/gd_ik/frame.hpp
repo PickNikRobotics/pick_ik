@@ -12,20 +12,19 @@
 namespace gd_ik {
 
 struct Frame {
-  tf2::Vector3 pos;
-  tf2::Quaternion rot;
+    tf2::Vector3 pos;
+    tf2::Quaternion rot;
 
-  static Frame from(KDL::Frame const& kdl);
-  static Frame from(geometry_msgs::msg::Pose const& msg);
-  static Frame from(Eigen::Isometry3d const& f);
-  static Frame identity();
+    static Frame from(KDL::Frame const& kdl);
+    static Frame from(geometry_msgs::msg::Pose const& msg);
+    static Frame from(Eigen::Isometry3d const& f);
+    static Frame identity();
 };
 
 auto to_string(Frame const& self) -> std::string;
 auto to_KDL(Frame const& self) -> KDL::Frame;
 auto multiply(tf2::Quaternion const& q, tf2::Vector3 const& v) -> tf2::Vector3;
-auto multiply(tf2::Quaternion const& p, tf2::Quaternion const& q)
-    -> tf2::Quaternion;
+auto multiply(tf2::Quaternion const& p, tf2::Quaternion const& q) -> tf2::Quaternion;
 auto concat(Frame const& a, Frame const& b) -> Frame;
 auto concat(Frame const& a, Frame const& b, Frame const& c) -> Frame;
 auto invert(tf2::Quaternion const& q) -> tf2::Quaternion;

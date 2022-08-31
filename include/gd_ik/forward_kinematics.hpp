@@ -10,33 +10,29 @@
 
 namespace gd_ik {
 
-auto make_joint_axes(
-    std::shared_ptr<moveit::core::RobotModel const> const& model)
+auto make_joint_axes(std::shared_ptr<moveit::core::RobotModel const> const& model)
     -> std::vector<tf2::Vector3>;
 
-auto make_link_frames(
-    std::shared_ptr<moveit::core::RobotModel const> const& model)
+auto make_link_frames(std::shared_ptr<moveit::core::RobotModel const> const& model)
     -> std::vector<Frame>;
 
-auto get_frame(moveit::core::JointModel const& joint_model,
-               std::vector<double> const& variables,
+auto get_frame(moveit::core::JointModel const& joint_model, std::vector<double> const& variables,
                std::vector<tf2::Vector3> const& joint_axes) -> Frame;
 
-auto get_frame(moveit::core::LinkModel const& link_model,
-               std::vector<Frame> const& link_frame) -> Frame;
+auto get_frame(moveit::core::LinkModel const& link_model, std::vector<Frame> const& link_frame)
+    -> Frame;
 
 auto has_joint_moved(moveit::core::JointModel const& joint_model,
                      std::vector<double> const& cached_variables,
                      std::vector<double> const& variables) -> bool;
 
 struct CachedJointFrames {
-  std::vector<double> variables;
-  std::vector<Frame> frames;
+    std::vector<double> variables;
+    std::vector<Frame> frames;
 };
 
-auto get_frame(CachedJointFrames& cache,
-               moveit::core::JointModel const& joint_model,
-               std::vector<double> const& variables,
-               std::vector<tf2::Vector3> const& joint_axes) -> Frame;
+auto get_frame(CachedJointFrames& cache, moveit::core::JointModel const& joint_model,
+               std::vector<double> const& variables, std::vector<tf2::Vector3> const& joint_axes)
+    -> Frame;
 
 }  // namespace gd_ik
