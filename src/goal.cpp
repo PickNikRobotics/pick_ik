@@ -122,8 +122,12 @@ auto make_ik_cost_fn(geometry_msgs::msg::Pose pose,
                      std::shared_ptr<moveit::core::RobotModel const> robot_model,
                      moveit::core::JointModelGroup const* jmg,
                      std::vector<double> initial_guess) -> CostFn {
-    return [=](std::vector<double> const& active_positions) -> double {
-        auto robot_state = moveit::core::RobotState(robot_model);
+    auto robot_state = moveit::core::RobotState(robot_model);
+    robot_state.setToDefaultValues();
+    robot_state.setJointGroupPositions(jmg, initial_guess);
+    robot_state.update();
+
+    return [=](std::vector<double> const& active_positions) mutable {
         robot_state.setJointGroupPositions(jmg, active_positions);
         robot_state.update();
         return cost_fn(pose, robot_state, jmg, initial_guess);
