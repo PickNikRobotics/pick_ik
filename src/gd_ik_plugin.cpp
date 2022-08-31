@@ -150,6 +150,7 @@ class GDIKPlugin : public kinematics::KinematicsBase {
             make_is_solution_test_fn(frame_tests, goals, params.cost_threshold, fk_fn);
         auto const fitness_fn = make_fitness_fn(pose_cost_functions, goals, fk_fn);
 
+        // TODO: fix aprox solution handling
         auto const maybe_solution = ik_search(ik_seed_state, robot_, active_variable_indexes_,
                                               fitness_fn, solution_fn, timeout);
 
