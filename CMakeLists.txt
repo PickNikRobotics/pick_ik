@@ -91,4 +91,8 @@ ament_export_dependencies(
   tf2_kdl
 )
 
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
+
 ament_package()

@@ -19,10 +19,9 @@ template <typename T>
 auto set_indexes(std::vector<T> const& initial_state,
                  std::vector<T> const& values,
                  std::vector<size_t> const& indexes) {
-  assert(values.size() == indexes.size());
   auto ret = initial_state;
   for (size_t i = 0; i < values.size(); ++i) {
-    ret.at(indexes[i]) = values[i];
+    ret.at(indexes.at(i)) = values.at(i);
   }
   return ret;
 }
