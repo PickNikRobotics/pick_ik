@@ -49,7 +49,7 @@ auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn) -> bool {
     auto sum = std::accumulate(self.gradient.cbegin(),
                                self.gradient.cend(),
                                0.0001,
-                               [](auto sum, auto value) { return sum + std::fabs(value); });
+                               [](auto acc, auto value) { return acc + std::fabs(value); });
     double const f = 1.0 / sum * jd;
     std::transform(self.gradient.cbegin(),
                    self.gradient.cend(),
