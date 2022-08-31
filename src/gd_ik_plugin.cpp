@@ -9,8 +9,6 @@
 #include <pluginlib/class_list_macros.hpp>
 #include <rclcpp/rclcpp.hpp>
 
-#include <fmt/core.h>
-#include <fmt/ranges.h>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_state/robot_state.h>
@@ -113,8 +111,6 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     // Read current ROS parameters
     auto params = parameter_listener_->get_params();
 
-    RCLCPP_ERROR(LOGGER, "GDIK GDIK GDIK GDIK GDIK GDIK\n");
-
     auto robot_state = moveit::core::RobotState(robot_model_);
     robot_state.setToDefaultValues();
     robot_state.setJointGroupPositions(jmg_, ik_seed_state);
@@ -127,8 +123,7 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     auto const goal_frames =
         transform_poses_to_frames(robot_state, ik_poses, getBaseFrame());
     auto const frame_tests =
-        make_frame_tests(goal_frames, params.position_threshold,
-                         params.rotation_threshold, params.twist_threshold);
+        make_frame_tests(goal_frames, params.twist_threshold);
     auto const active_initial_guess = ik_seed_state;
 
     auto const pose_cost_functions =
@@ -163,7 +158,7 @@ class GDIKPlugin : public kinematics::KinematicsBase {
 
     auto const fk_fn = make_fk_fn(robot_model_, jmg_, tip_link_indexes_);
     auto const solution_fn = make_is_solution_test_fn(
-        frame_tests, pose_cost_functions, goals, params.cost_threshold, fk_fn);
+        frame_tests, goals, params.cost_threshold, fk_fn);
     auto const fitness_fn = make_fitness_fn(pose_cost_functions, goals, fk_fn);
 
     auto const maybe_solution =
@@ -178,11 +173,6 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     // wrap angles
     solution = maybe_solution.value();
     jmg_->enforcePositionBounds(solution.data());
-
-    {
-      // print solution
-      fmt::print(stderr, "solution: {}\n", fmt::join(solution, ", "));
-    }
 
     // callback?
     if (solution_callback) {

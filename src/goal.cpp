@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <fmt/core.h>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_model/robot_model.h>
@@ -16,45 +15,31 @@
 
 namespace gd_ik {
 
-auto make_frame_test_fn(Frame goal_frame, double position_threshold,
-                        double rotation_threshold, double twist_threshold)
+auto make_frame_test_fn(Frame goal_frame, double twist_threshold)
     -> FrameTestFn {
-  return [=](Frame const& tip_frame) -> bool {
-    if (position_threshold != DBL_MAX || rotation_threshold != DBL_MAX) {
-      double p_dist = (tip_frame.pos - goal_frame.pos).length();
-      double r_dist = tip_frame.rot.angleShortestPath(goal_frame.rot);
-      r_dist = r_dist * 180 / M_PI;
-
-      fmt::print(stderr, "p_dist({}) <= position_threshold({}): {}\n", p_dist,
-                 position_threshold, (p_dist <= position_threshold));
-      fmt::print(stderr, "r_dist({}) <= rotation_threshold({}): {}\n", r_dist,
-                 rotation_threshold, (r_dist <= rotation_threshold));
-
-      if (!(p_dist <= position_threshold)) return false;
-      if (!(r_dist <= rotation_threshold)) return false;
-    }
-    // if (twist_threshold != DBL_MAX) {
-    //   auto goal_kdl = to_KDL(goal_frame);
-    //   auto tip_kdl = to_KDL(tip_frame);
-    //   KDL::Twist kdl_diff(
-    //       goal_kdl.M.Inverse() * KDL::diff(goal_kdl.p, tip_kdl.p),
-    //       goal_kdl.M.Inverse() * KDL::diff(goal_kdl.M, tip_kdl.M));
-    //   if (!KDL::Equal(kdl_diff, KDL::Twist::Zero(), twist_threshold))
-    //     return false;
-    // }
-    return true;
-  };
+  if (twist_threshold != DBL_MAX) {
+    return [=](Frame const& tip_frame) -> bool {
+      auto goal_kdl = to_KDL(goal_frame);
+      auto tip_kdl = to_KDL(tip_frame);
+      KDL::Twist kdl_diff(
+          goal_kdl.M.Inverse() * KDL::diff(goal_kdl.p, tip_kdl.p),
+          goal_kdl.M.Inverse() * KDL::diff(goal_kdl.M, tip_kdl.M));
+      if (!KDL::Equal(kdl_diff, KDL::Twist::Zero(), twist_threshold)) {
+        return false;
+      }
+      return true;
+    };
+  } else {
+    return [](Frame const&) { return true; };
+  }
 }
 
-auto make_frame_tests(std::vector<Frame> goal_frames, double position_threshold,
-                      double rotation_threshold, double twist_threshold)
+auto make_frame_tests(std::vector<Frame> goal_frames, double twist_threshold)
     -> std::vector<FrameTestFn> {
   auto tests = std::vector<FrameTestFn>{};
   std::transform(goal_frames.cbegin(), goal_frames.cend(),
                  std::back_inserter(tests), [&](auto const& frame) {
-                   return make_frame_test_fn(frame, position_threshold,
-                                             rotation_threshold,
-                                             twist_threshold);
+                   return make_frame_test_fn(frame, twist_threshold);
                  });
   return tests;
 }
@@ -169,7 +154,6 @@ auto make_ik_cost_fn(
 }
 
 auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
-                              std::vector<PoseCostFn> pose_cost_functions,
                               std::vector<Goal> goals, double cost_threshold,
                               FkFn fk) -> SolutionTestFn {
   return [=](std::vector<double> const& active_positions) {
@@ -182,13 +166,6 @@ auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
     }
 
     auto const cost_threshold_sq = std::pow(cost_threshold, 2);
-
-    for (auto const& pose_cost : pose_cost_functions) {
-      if (pose_cost(tip_frames) >= cost_threshold_sq) {
-        return false;
-      }
-    }
-
     for (auto const& goal : goals) {
       auto const cost = goal.eval(active_positions) * std::pow(goal.weight, 2);
       if (cost >= cost_threshold_sq) {
@@ -211,7 +188,6 @@ auto make_fitness_fn(std::vector<PoseCostFn> pose_cost_functions,
         goals.cbegin(), goals.cend(), 0.0, [&](auto sum, auto const& goal) {
           return sum + goal.eval(active_positions) * std::pow(goal.weight, 2);
         });
-    ;
     return pose_cost + goal_cost;
   };
 }

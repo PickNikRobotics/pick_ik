@@ -14,10 +14,14 @@
 namespace gd_ik {
 
 struct GradientIk {
+  std::vector<double> gradient;
   std::vector<double> working;
   std::vector<double> local;
   std::vector<double> best;
   double fitness;
+
+  static GradientIk from(std::vector<double> const& initial_guess,
+                         FitnessFn const& fitness_fn);
 };
 
 auto step(GradientIk& self, Robot const& robot,

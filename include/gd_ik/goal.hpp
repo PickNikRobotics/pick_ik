@@ -16,12 +16,9 @@ namespace gd_ik {
 // Test if a frame satisfies a goal
 using FrameTestFn = std::function<bool(Frame const& tip_frame)>;
 
-auto make_frame_tests(Frame goal_frame, double position_threshold,
-                      double rotation_threshold, double twist_threshold)
-    -> FrameTestFn;
+auto make_frame_tests(Frame goal_frame, double twist_threshold) -> FrameTestFn;
 
-auto make_frame_tests(std::vector<Frame> goal_frames, double position_threshold,
-                      double rotation_threshold, double twist_threshold)
+auto make_frame_tests(std::vector<Frame> goal_frames, double twist_threshold)
     -> std::vector<FrameTestFn>;
 
 using PoseCostFn = std::function<double(std::vector<Frame> const& tip_frames)>;
@@ -63,7 +60,6 @@ using SolutionTestFn =
     std::function<bool(std::vector<double> const& active_positions)>;
 
 auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
-                              std::vector<PoseCostFn> pose_cost_functions,
                               std::vector<Goal> goals, double cost_threshold,
                               FkFn fk) -> SolutionTestFn;
 
