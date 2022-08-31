@@ -18,17 +18,18 @@ struct GradientIk {
     std::vector<double> working;
     std::vector<double> local;
     std::vector<double> best;
-    double fitness;
+    double cost;
 
-    static GradientIk from(std::vector<double> const& initial_guess, FitnessFn const& fitness_fn);
+    static GradientIk from(std::vector<double> const& initial_guess, CostFn const& cost_fn);
 };
 
-auto step(GradientIk& self, Robot const& robot, FitnessFn const& fitness_fn) -> bool;
+auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn) -> bool;
 
 auto ik_search(std::vector<double> const& initial_guess,
                Robot const& robot,
-               FitnessFn const& fitness_fn,
+               CostFn const& cost_fn,
                SolutionTestFn const& solution_fn,
-               double timeout) -> std::optional<std::vector<double>>;
+               double timeout,
+               bool approx_solution) -> std::optional<std::vector<double>>;
 
 }  // namespace gd_ik

@@ -75,7 +75,6 @@ class GDIKPlugin : public kinematics::KinematicsBase {
         auto jmg_tips = std::vector<std::string>{};
         jmg_->getEndEffectorTips(jmg_tips);
         if (!jmg_tips.empty()) tip_frames_ = jmg_tips;
-        ///////////////////////////////////////////////////////////
 
         // link_names are the same as tip frames
         // TODO: why do we need to set this
@@ -99,27 +98,30 @@ class GDIKPlugin : public kinematics::KinematicsBase {
         moveit_msgs::msg::MoveItErrorCodes& error_code,
         kinematics::KinematicsQueryOptions const& options = kinematics::KinematicsQueryOptions(),
         moveit::core::RobotState const* context_state = nullptr) const {
-        (void)context_state;
+        (void)context_state;  // not used
 
         // Read current ROS parameters
         auto params = parameter_listener_->get_params();
 
-        auto robot_state = moveit::core::RobotState(robot_model_);
-        robot_state.setToDefaultValues();
-        robot_state.setJointGroupPositions(jmg_, ik_seed_state);
-        robot_state.update();
-        auto const* variables = robot_state.getVariablePositions();
-        auto const count = robot_state.getVariableCount();
-        auto const initial_guess = std::vector<double>(variables, variables + count);
+        auto const goal_frames = [&]() {
+            auto robot_state = moveit::core::RobotState(robot_model_);
+            robot_state.setToDefaultValues();
+            robot_state.setJointGroupPositions(jmg_, ik_seed_state);
+            robot_state.update();
+            return transform_poses_to_frames(robot_state, ik_poses, getBaseFrame());
+        }();
 
-        auto const goal_frames = transform_poses_to_frames(robot_state, ik_poses, getBaseFrame());
+        // Test functions to determine if we are at our goal frame
         auto const frame_tests = make_frame_tests(goal_frames, params.twist_threshold);
-        auto const active_initial_guess = ik_seed_state;
 
+        // Cost functions used for optimizing towards goal frames
         auto const pose_cost_functions =
             make_pose_cost_functions(goal_frames, params.rotation_scale);
 
-        // Create goals
+        // forward kinematics function
+        auto const fk_fn = make_fk_fn(robot_model_, jmg_, tip_link_indexes_);
+
+        // Create goals (weighted cost functions)
         auto goals = std::vector<Goal>{};
         if (params.center_joints_weight > 0.0) {
             goals.push_back(Goal{make_center_joints_cost_fn(robot_), params.center_joints_weight});
@@ -140,23 +142,29 @@ class GDIKPlugin : public kinematics::KinematicsBase {
             }
         }
 
-        auto const fk_fn = make_fk_fn(robot_model_, jmg_, tip_link_indexes_);
+        // test if this is a valid solution
         auto const solution_fn =
             make_is_solution_test_fn(frame_tests, goals, params.cost_threshold, fk_fn);
-        auto const fitness_fn = make_fitness_fn(pose_cost_functions, goals, fk_fn);
 
-        // TODO: fix aprox solution handling
-        auto const maybe_solution =
-            ik_search(ik_seed_state, robot_, fitness_fn, solution_fn, timeout);
+        // single function used by gradient decent to calculate cost of solution
+        auto const cost_fn = make_cost_fn(pose_cost_functions, goals, fk_fn);
 
-        if (!maybe_solution.has_value() && !options.return_approximate_solution) {
+        // search for a solution
+        auto const maybe_solution = ik_search(ik_seed_state,
+                                              robot_,
+                                              cost_fn,
+                                              solution_fn,
+                                              timeout,
+                                              options.return_approximate_solution);
+
+        if (!maybe_solution.has_value()) {
             error_code.val = error_code.NO_IK_SOLUTION;
             return false;
+        } else {
+            // set the output parameter solution and wrap angles
+            solution = maybe_solution.value();
+            jmg_->enforcePositionBounds(solution.data());
         }
-
-        // wrap angles
-        solution = maybe_solution.value();
-        jmg_->enforcePositionBounds(solution.data());
 
         // callback?
         if (solution_callback) {

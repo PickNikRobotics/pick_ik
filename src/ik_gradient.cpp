@@ -13,15 +13,15 @@
 
 namespace gd_ik {
 
-GradientIk GradientIk::from(std::vector<double> const& initial_guess, FitnessFn const& fitness_fn) {
+GradientIk GradientIk::from(std::vector<double> const& initial_guess, CostFn const& cost_fn) {
     return GradientIk{std::vector<double>(initial_guess.size(), 0.0),
                       initial_guess,
                       initial_guess,
                       initial_guess,
-                      fitness_fn(initial_guess)};
+                      cost_fn(initial_guess)};
 }
 
-auto step(GradientIk& self, Robot const& robot, FitnessFn const& fitness_fn) -> bool {
+auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn) -> bool {
     double const jd = 0.0001;
     auto const count = self.local.size();
     assert(active_variable_indexes.size() == count);
@@ -31,17 +31,17 @@ auto step(GradientIk& self, Robot const& robot, FitnessFn const& fitness_fn) -> 
     for (size_t i = 0; i < count; ++i) {
         // test negative displacement
         self.working[i] = self.local[i] - jd;
-        double const p1 = fitness_fn(self.working);
+        double const p1 = cost_fn(self.working);
 
         // test positive displacement
         self.working[i] = self.local[i] + jd;
-        double const p3 = fitness_fn(self.working);
+        double const p3 = cost_fn(self.working);
 
         // reset self.working
         self.working[i] = self.local[i];
 
-        // + gradient = + on this joint increases fitness fn result
-        // - gradient = - on this joint increases fitness fn result
+        // + gradient = + on this joint increases cost fn result
+        // - gradient = - on this joint increases cost fn result
         self.gradient[i] = p3 - p1;
     }
 
@@ -62,12 +62,12 @@ auto step(GradientIk& self, Robot const& robot, FitnessFn const& fitness_fn) -> 
     for (size_t i = 0; i < count; ++i) {
         self.working[i] = self.local[i] - self.gradient[i];
     }
-    double const p1 = fitness_fn(self.working);
+    double const p1 = cost_fn(self.working);
 
     for (size_t i = 0; i < count; ++i) {
         self.working[i] = self.local[i] + self.gradient[i];
     }
-    double const p3 = fitness_fn(self.working);
+    double const p3 = cost_fn(self.working);
     double const p2 = (p1 + p3) * 0.5;
 
     // linear step size estimation
@@ -89,10 +89,10 @@ auto step(GradientIk& self, Robot const& robot, FitnessFn const& fitness_fn) -> 
     self.local = self.working;
 
     // update best solution
-    auto const local_cost = fitness_fn(self.local);
-    if (local_cost < self.fitness) {
+    auto const local_cost = cost_fn(self.local);
+    if (local_cost < self.cost) {
         self.best = self.local;
-        self.fitness = local_cost;
+        self.cost = local_cost;
         return true;
     }
     return false;
@@ -100,25 +100,30 @@ auto step(GradientIk& self, Robot const& robot, FitnessFn const& fitness_fn) -> 
 
 auto ik_search(std::vector<double> const& initial_guess,
                Robot const& robot,
-               FitnessFn const& fitness_fn,
+               CostFn const& cost_fn,
                SolutionTestFn const& solution_fn,
-               double timeout) -> std::optional<std::vector<double>> {
+               double timeout,
+               bool approx_solution) -> std::optional<std::vector<double>> {
     if (solution_fn(initial_guess)) {
         return initial_guess;
     }
 
     assert(robot.variables.size() == initial_guess.size());
-    auto ik = GradientIk::from(initial_guess, fitness_fn);
+    auto ik = GradientIk::from(initial_guess, cost_fn);
     auto const timeout_point =
         std::chrono::system_clock::now() + std::chrono::duration<double>(timeout);
     while (std::chrono::system_clock::now() < timeout_point) {
-        auto const found_better_solution = step(ik, robot, fitness_fn);
+        auto const found_better_solution = step(ik, robot, cost_fn);
 
         if (found_better_solution) {
             if (solution_fn(ik.best)) {
                 return ik.best;
             }
         }
+    }
+
+    if (approx_solution) {
+        return ik.best;
     }
 
     return std::nullopt;

@@ -155,8 +155,8 @@ auto make_is_solution_test_fn(std::vector<FrameTestFn> frame_tests,
     };
 }
 
-auto make_fitness_fn(std::vector<PoseCostFn> pose_cost_functions, std::vector<Goal> goals, FkFn fk)
-    -> FitnessFn {
+auto make_cost_fn(std::vector<PoseCostFn> pose_cost_functions, std::vector<Goal> goals, FkFn fk)
+    -> CostFn {
     return [=](std::vector<double> const& active_positions) {
         auto tip_frames = fk(active_positions);
         auto const pose_cost =
