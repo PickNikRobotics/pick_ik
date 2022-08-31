@@ -35,16 +35,11 @@ struct Goal {
     double weight;
 };
 
-auto make_center_joints_cost_fn(Robot robot,
-                                std::vector<size_t> active_variable_indexes,
-                                std::vector<double> minimal_displacement_factors) -> CostFn;
+auto make_center_joints_cost_fn(Robot robot) -> CostFn;
 
-auto make_avoid_joint_limits_cost_fn(Robot robot,
-                                     std::vector<size_t> active_variable_indexes,
-                                     std::vector<double> minimal_displacement_factors) -> CostFn;
+auto make_avoid_joint_limits_cost_fn(Robot robot) -> CostFn;
 
-auto make_minimal_displacement_cost_fn(std::vector<double> initial_guess,
-                                       std::vector<double> minimal_displacement_factors) -> CostFn;
+auto make_minimal_displacement_cost_fn(Robot robot, std::vector<double> initial_guess) -> CostFn;
 
 auto make_ik_cost_fn(geometry_msgs::msg::Pose pose,
                      kinematics::KinematicsBase::IKCostFn cost_fn,

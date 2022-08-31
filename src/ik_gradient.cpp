@@ -2,6 +2,7 @@
 #include <gd_ik/frame.hpp>
 #include <gd_ik/goal.hpp>
 #include <gd_ik/ik_gradient.hpp>
+#include <gd_ik/math.hpp>
 #include <gd_ik/robot.hpp>
 
 #include <algorithm>
@@ -20,10 +21,7 @@ GradientIk GradientIk::from(std::vector<double> const& initial_guess, FitnessFn 
                       fitness_fn(initial_guess)};
 }
 
-auto step(GradientIk& self,
-          Robot const& robot,
-          std::vector<size_t> const& active_variable_indexes,
-          FitnessFn const& fitness_fn) -> bool {
+auto step(GradientIk& self, Robot const& robot, FitnessFn const& fitness_fn) -> bool {
     double const jd = 0.0001;
     auto const count = self.local.size();
     assert(active_variable_indexes.size() == count);
@@ -82,8 +80,9 @@ auto step(GradientIk& self,
     // apply optimization step
     // (move along gradient direction by estimated step size)
     for (size_t i = 0; i < count; ++i) {
-        self.working[i] =
-            clip(robot, self.local[i] - self.gradient[i] * joint_diff, active_variable_indexes[i]);
+        self.working[i] = clamp2(self.local[i] - self.gradient[i] * joint_diff,
+                                 robot.variables[i].clip_min,
+                                 robot.variables[i].clip_max);
     }
 
     // Always accept the solution and continue
@@ -101,7 +100,6 @@ auto step(GradientIk& self,
 
 auto ik_search(std::vector<double> const& initial_guess,
                Robot const& robot,
-               std::vector<size_t> const& active_variable_indexes,
                FitnessFn const& fitness_fn,
                SolutionTestFn const& solution_fn,
                double timeout) -> std::optional<std::vector<double>> {
@@ -109,11 +107,12 @@ auto ik_search(std::vector<double> const& initial_guess,
         return initial_guess;
     }
 
+    assert(robot.variables.size() == initial_guess.size());
     auto ik = GradientIk::from(initial_guess, fitness_fn);
     auto const timeout_point =
         std::chrono::system_clock::now() + std::chrono::duration<double>(timeout);
     while (std::chrono::system_clock::now() < timeout_point) {
-        auto const found_better_solution = step(ik, robot, active_variable_indexes, fitness_fn);
+        auto const found_better_solution = step(ik, robot, fitness_fn);
 
         if (found_better_solution) {
             if (solution_fn(ik.best)) {

@@ -27,10 +27,8 @@ class GDIKPlugin : public kinematics::KinematicsBase {
 
     std::vector<std::string> joint_names_;
     std::vector<std::string> link_names_;
-    Robot robot_;
     std::vector<size_t> tip_link_indexes_;
-    std::vector<size_t> active_variable_indexes_;
-    std::vector<double> minimal_displacement_factors_;
+    Robot robot_;
 
    public:
     virtual bool initialize(rclcpp::Node::SharedPtr const& node,
@@ -84,14 +82,8 @@ class GDIKPlugin : public kinematics::KinematicsBase {
         link_names_ = tip_frames_;
 
         // Create our internal Robot object from the robot model
-        robot_ = Robot::from(robot_model_);
-
-        // Calculate internal state used in IK
         tip_link_indexes_ = get_link_indexes(robot_model_, tip_frames_);
-        active_variable_indexes_ =  // jmg_->getKinematicsSolverJointBijection();
-            get_active_variable_indexes(robot_model_, jmg_, tip_link_indexes_);
-        minimal_displacement_factors_ =
-            get_minimal_displacement_factors(active_variable_indexes_, robot_);
+        robot_ = Robot::from(robot_model_, jmg_, tip_link_indexes_);
 
         return true;
     }
@@ -130,21 +122,15 @@ class GDIKPlugin : public kinematics::KinematicsBase {
         // Create goals
         auto goals = std::vector<Goal>{};
         if (params.center_joints_weight > 0.0) {
-            goals.push_back(Goal{make_center_joints_cost_fn(robot_,
-                                                            active_variable_indexes_,
-                                                            minimal_displacement_factors_),
-                                 params.center_joints_weight});
+            goals.push_back(Goal{make_center_joints_cost_fn(robot_), params.center_joints_weight});
         }
         if (params.avoid_joint_limits_weight > 0.0) {
-            goals.push_back(Goal{make_avoid_joint_limits_cost_fn(robot_,
-                                                                 active_variable_indexes_,
-                                                                 minimal_displacement_factors_),
-                                 params.avoid_joint_limits_weight});
+            goals.push_back(
+                Goal{make_avoid_joint_limits_cost_fn(robot_), params.avoid_joint_limits_weight});
         }
         if (params.minimal_displacement_weight > 0.0) {
-            goals.push_back(Goal{
-                make_minimal_displacement_cost_fn(ik_seed_state, minimal_displacement_factors_),
-                params.minimal_displacement_weight});
+            goals.push_back(Goal{make_minimal_displacement_cost_fn(robot_, ik_seed_state),
+                                 params.minimal_displacement_weight});
         }
         if (cost_function) {
             for (auto const& pose : ik_poses) {
@@ -160,12 +146,8 @@ class GDIKPlugin : public kinematics::KinematicsBase {
         auto const fitness_fn = make_fitness_fn(pose_cost_functions, goals, fk_fn);
 
         // TODO: fix aprox solution handling
-        auto const maybe_solution = ik_search(ik_seed_state,
-                                              robot_,
-                                              active_variable_indexes_,
-                                              fitness_fn,
-                                              solution_fn,
-                                              timeout);
+        auto const maybe_solution =
+            ik_search(ik_seed_state, robot_, fitness_fn, solution_fn, timeout);
 
         if (!maybe_solution.has_value() && !options.return_approximate_solution) {
             error_code.val = error_code.NO_IK_SOLUTION;

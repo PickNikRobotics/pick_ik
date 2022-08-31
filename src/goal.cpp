@@ -62,49 +62,39 @@ auto make_pose_cost_functions(std::vector<Frame> goal_frames, double rotation_sc
     return cost_functions;
 }
 
-auto make_center_joints_cost_fn(Robot robot,
-                                std::vector<size_t> active_variable_indexes,
-                                std::vector<double> minimal_displacement_factors) -> CostFn {
+auto make_center_joints_cost_fn(Robot robot) -> CostFn {
     return [=](std::vector<double> const& active_positions) -> double {
         double sum = 0;
-        assert(active_positions.size() == active_variable_indexes.size() &&
-               active_positions.size() == minimal_displacement_factors.size());
+        assert(robot.variables.size() == active_positions.size());
         for (size_t i = 0; i < active_positions.size(); ++i) {
-            auto const index = active_variable_indexes[i];
-            if (get_clip_max(robot, index) == DBL_MAX) {
+            auto const& variable = robot.variables[i];
+            if (variable.clip_max == DBL_MAX) {
                 continue;
             }
 
             auto const position = active_positions[i];
-            auto const weight = minimal_displacement_factors[i];
-            auto const min = get_min(robot, index);
-            auto const max = get_max(robot, index);
-            auto const mid = (min + max) * 0.5;
+            auto const weight = variable.minimal_displacement_factor;
+            auto const mid = (variable.min + variable.max) * 0.5;
             sum += std::pow((position - mid) * weight, 2);
         }
         return sum;
     };
 }
 
-auto make_avoid_joint_limits_cost_fn(Robot robot,
-                                     std::vector<size_t> active_variable_indexes,
-                                     std::vector<double> minimal_displacement_factors) -> CostFn {
+auto make_avoid_joint_limits_cost_fn(Robot robot) -> CostFn {
     return [=](std::vector<double> const& active_positions) -> double {
         double sum = 0;
-        assert(active_positions.size() == active_variable_indexes.size() &&
-               active_positions.size() == minimal_displacement_factors.size());
+        assert(robot.variables.size() == active_positions.size());
         for (size_t i = 0; i < active_positions.size(); ++i) {
-            auto const index = active_variable_indexes[i];
-            if (get_clip_max(robot, index) == DBL_MAX) {
+            auto const& variable = robot.variables[i];
+            if (variable.clip_max == DBL_MAX) {
                 continue;
             }
 
             auto const position = active_positions[i];
-            auto const weight = minimal_displacement_factors[i];
-            auto const min = get_min(robot, index);
-            auto const max = get_max(robot, index);
-            auto const mid = (min + max) * 0.5;
-            auto const span = get_span(robot, index);
+            auto const weight = variable.minimal_displacement_factor;
+            auto const mid = (variable.min + variable.max) * 0.5;
+            auto const span = variable.span;
             sum +=
                 std::pow(std::fmax(0.0, std::fabs(position - mid) * 2.0 - span * 0.5) * weight, 2);
         }
@@ -112,16 +102,15 @@ auto make_avoid_joint_limits_cost_fn(Robot robot,
     };
 }
 
-auto make_minimal_displacement_cost_fn(std::vector<double> initial_guess,
-                                       std::vector<double> minimal_displacement_factors) -> CostFn {
+auto make_minimal_displacement_cost_fn(Robot robot, std::vector<double> initial_guess) -> CostFn {
     return [=](std::vector<double> const& active_positions) -> double {
         double sum = 0;
-        assert(active_positions.size() == initial_guess.size() &&
-               active_positions.size() == minimal_displacement_factors.size());
+        assert(active_positions.size() == robot.variables.size() &&
+               active_positions.size() == initial_guess.size());
         for (size_t i = 0; i < active_positions.size(); ++i) {
             auto const guess = initial_guess[i];
             auto const position = active_positions[i];
-            auto const weight = minimal_displacement_factors[i];
+            auto const weight = robot.variables[i].minimal_displacement_factor;
             sum += std::pow((position - guess) * weight, 2);
         }
         return sum;

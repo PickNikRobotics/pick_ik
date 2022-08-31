@@ -23,14 +23,10 @@ struct GradientIk {
     static GradientIk from(std::vector<double> const& initial_guess, FitnessFn const& fitness_fn);
 };
 
-auto step(GradientIk& self,
-          Robot const& robot,
-          std::vector<size_t> const& active_variable_indexes,
-          FitnessFn const& fitness_fn) -> bool;
+auto step(GradientIk& self, Robot const& robot, FitnessFn const& fitness_fn) -> bool;
 
 auto ik_search(std::vector<double> const& initial_guess,
                Robot const& robot,
-               std::vector<size_t> const& active_variable_indexes,
                FitnessFn const& fitness_fn,
                SolutionTestFn const& solution_fn,
                double timeout) -> std::optional<std::vector<double>>;

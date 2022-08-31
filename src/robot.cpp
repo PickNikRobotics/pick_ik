@@ -14,17 +14,28 @@
 
 namespace gd_ik {
 
-auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model) -> Robot {
+auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
+                 moveit::core::JointModelGroup const* jmg,
+                 std::vector<size_t> tip_link_indexes) -> Robot {
     auto robot = Robot{};
 
-    for (auto const& name : model->getVariableNames()) {
+    // jmg_->getKinematicsSolverJointBijection();
+    auto const active_variable_indexes = get_active_variable_indexes(model, jmg, tip_link_indexes);
+    auto const variable_count = active_variable_indexes.size();
+
+    auto const& names = model->getVariableNames();
+
+    auto minimal_displacement_divisor = 0.0;
+
+    for (auto ivar : active_variable_indexes) {
+        auto const& name = names.at(ivar);
         auto const& bounds = model->getVariableBounds(name);
 
         auto var = Variable{};
 
         bool bounded = bounds.position_bounded_;
 
-        auto* joint_model = model->getJointOfVariable(robot.variables.size());
+        auto const* joint_model = model->getJointOfVariable(robot.variables.size());
         if (dynamic_cast<moveit::core::RevoluteJointModel const*>(joint_model)) {
             if (bounds.max_position_ - bounds.min_position_ >= 2 * M_PI * 0.9999) {
                 bounded = false;
@@ -41,34 +52,23 @@ auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model) -
 
         if (!(var.span >= 0 && var.span < FLT_MAX)) var.span = 1;
 
-        var.max_velocity = bounds.max_velocity_;
-        var.max_velocity_rcp = var.max_velocity > 0.0 ? 1.0 / var.max_velocity : 0.0;
+        auto const max_velocity = bounds.max_velocity_;
+        var.max_velocity_rcp = max_velocity > 0.0 ? 1.0 / max_velocity : 0.0;
+
+        var.minimal_displacement_factor = 1.0 / variable_count;
+        minimal_displacement_divisor += var.max_velocity_rcp;
 
         robot.variables.push_back(var);
     }
 
-    for (size_t ivar = 0; ivar < model->getVariableCount(); ++ivar) {
-        robot.variable_joint_types.push_back(model->getJointOfVariable(ivar)->getType());
+    // Calculate minimal cisplacement factors
+    if (minimal_displacement_divisor > 0) {
+        for (auto& var : robot.variables) {
+            var.minimal_displacement_factor = var.max_velocity_rcp / minimal_displacement_divisor;
+        }
     }
 
     return robot;
-}
-
-auto get_span(Robot const& self, size_t i) -> double { return self.variables.at(i).span; }
-
-auto get_clip_max(Robot const& self, size_t i) -> double { return self.variables.at(i).clip_max; }
-
-auto get_min(Robot const& self, size_t i) -> double { return self.variables.at(i).min; }
-
-auto get_max(Robot const& self, size_t i) -> double { return self.variables.at(i).max; }
-
-auto get_max_velocity_rcp(Robot const& self, size_t i) -> double {
-    return self.variables.at(i).max_velocity_rcp;
-}
-
-auto clip(Robot const& self, double p, size_t i) -> double {
-    auto const& info = self.variables.at(i);
-    return clamp2(p, info.clip_min, info.clip_max);
 }
 
 auto get_link_indexes(std::shared_ptr<moveit::core::RobotModel const> const& model,
@@ -122,28 +122,6 @@ auto get_active_variable_indexes(std::shared_ptr<moveit::core::RobotModel const>
     }
 
     return active_variable_indexes;
-}
-
-auto get_minimal_displacement_factors(std::vector<size_t> const& active_variable_indexes,
-                                      Robot const& robot) -> std::vector<double> {
-    auto minimal_displacement_factors = std::vector<double>{};
-    minimal_displacement_factors.resize(active_variable_indexes.size());
-    if (double s = std::accumulate(
-            active_variable_indexes.cbegin(),
-            active_variable_indexes.cend(),
-            0.0,
-            [&robot](auto sum, auto ivar) { return sum + get_max_velocity_rcp(robot, ivar); });
-        s > 0) {
-        std::transform(active_variable_indexes.cbegin(),
-                       active_variable_indexes.cend(),
-                       minimal_displacement_factors.begin(),
-                       [&robot, s](auto ivar) { return get_max_velocity_rcp(robot, ivar) / s; });
-    } else {
-        std::fill(minimal_displacement_factors.begin(),
-                  minimal_displacement_factors.end(),
-                  1.0 / active_variable_indexes.size());
-    }
-    return minimal_displacement_factors;
 }
 
 auto get_variables(moveit::core::RobotState const& robot_state) -> std::vector<double> {
