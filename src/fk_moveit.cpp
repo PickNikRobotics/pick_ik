@@ -17,6 +17,7 @@ auto make_fk_fn(std::shared_ptr<moveit::core::RobotModel const> robot_model,
 
     // IK function is mutable so it re-uses the robot_state instead of creating
     // new copies. This function should not be shared between threads.
+    // It is however safe to make copies of.
     return [=](std::vector<double> const& active_positions) mutable {
         robot_state.setJointGroupPositions(jmg, active_positions);
         robot_state.updateLinkTransforms();
