@@ -56,25 +56,11 @@ auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model) -
 
 auto get_span(Robot const& self, size_t i) -> double { return self.variables.at(i).span; }
 
-auto get_clip_min(Robot const& self, size_t i) -> double { return self.variables.at(i).clip_min; }
-
 auto get_clip_max(Robot const& self, size_t i) -> double { return self.variables.at(i).clip_max; }
 
 auto get_min(Robot const& self, size_t i) -> double { return self.variables.at(i).min; }
 
 auto get_max(Robot const& self, size_t i) -> double { return self.variables.at(i).max; }
-
-auto is_revolute(Robot const& self, size_t variable_index) -> bool {
-    return self.variable_joint_types.at(variable_index) == moveit::core::JointModel::REVOLUTE;
-}
-
-auto is_prismatic(Robot const& self, size_t variable_index) -> bool {
-    return self.variable_joint_types.at(variable_index) == moveit::core::JointModel::PRISMATIC;
-}
-
-auto get_max_velocity(Robot const& self, size_t i) -> double {
-    return self.variables.at(i).max_velocity;
-}
 
 auto get_max_velocity_rcp(Robot const& self, size_t i) -> double {
     return self.variables.at(i).max_velocity_rcp;

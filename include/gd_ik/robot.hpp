@@ -25,13 +25,9 @@ struct Robot {
 };
 
 auto get_span(Robot const& self, size_t i) -> double;
-auto get_clip_min(Robot const& self, size_t i) -> double;
 auto get_clip_max(Robot const& self, size_t i) -> double;
 auto get_min(Robot const& self, size_t i) -> double;
 auto get_max(Robot const& self, size_t i) -> double;
-auto is_revolute(Robot const& self, size_t variable_index) -> bool;
-auto is_prismatic(Robot const& self, size_t variable_index) -> bool;
-auto get_max_velocity(Robot const& self, size_t i) -> double;
 auto get_max_velocity_rcp(Robot const& self, size_t i) -> double;
 auto clip(Robot const& self, double p, size_t i) -> double;
 
