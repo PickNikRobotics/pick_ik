@@ -12,9 +12,12 @@ namespace gd_ik {
 auto make_fk_fn(std::shared_ptr<moveit::core::RobotModel const> robot_model,
                 moveit::core::JointModelGroup const* jmg,
                 std::vector<size_t> tip_link_indexes) -> FkFn {
-    return [=](std::vector<double> const& active_positions) {
-        auto robot_state = moveit::core::RobotState(robot_model);
-        robot_state.setToDefaultValues();
+    auto robot_state = moveit::core::RobotState(robot_model);
+    robot_state.setToDefaultValues();
+
+    // IK function is mutable so it re-uses the robot_state instead of creating
+    // new copies. This function should not be shared between threads.
+    return [=](std::vector<double> const& active_positions) mutable {
         robot_state.setJointGroupPositions(jmg, active_positions);
         robot_state.updateLinkTransforms();
 
