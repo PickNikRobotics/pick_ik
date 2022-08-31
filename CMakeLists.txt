@@ -13,8 +13,8 @@ find_package(Eigen3 REQUIRED)
 find_package(fmt REQUIRED)
 find_package(generate_parameter_library REQUIRED)
 find_package(moveit_core REQUIRED)
-find_package(moveit_ros_planning REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(range-v3 REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_eigen REQUIRED)
@@ -39,20 +39,22 @@ target_compile_features(gd_ik_plugin PUBLIC c_std_99 cxx_std_17)
 target_include_directories(gd_ik_plugin PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-ament_target_dependencies(gd_ik_plugin
-  Eigen3
-  moveit_core
-  moveit_ros_planning
-  pluginlib
-  rclcpp
-  tf2
-  tf2_eigen
-  tf2_geometry_msgs
-  tf2_kdl
-)
 target_link_libraries(gd_ik_plugin
-  fmt::fmt
-  gd_ik_parameters
+  PUBLIC
+    Eigen3::Eigen
+    moveit_core::moveit_kinematics_base
+    moveit_core::moveit_robot_model
+    moveit_core::moveit_robot_state
+    pluginlib::pluginlib
+    rclcpp::rclcpp
+    tf2::tf2
+    tf2_eigen::tf2_eigen
+    tf2_geometry_msgs::tf2_geometry_msgs
+    tf2_kdl::tf2_kdl
+  PRIVATE
+    fmt::fmt
+    gd_ik_parameters
+    range-v3::range-v3
 )
 
 pluginlib_export_plugin_description_file(
@@ -79,17 +81,6 @@ install(
 ament_export_include_directories(include)
 ament_export_libraries(gd_ik_plugin)
 ament_export_targets(export_gd_ik)
-ament_export_dependencies(
-  Eigen3
-  moveit_core
-  moveit_ros_planning
-  pluginlib
-  rclcpp
-  tf2
-  tf2_eigen
-  tf2_geometry_msgs
-  tf2_kdl
-)
 
 if(BUILD_TESTING)
   add_subdirectory(tests)
