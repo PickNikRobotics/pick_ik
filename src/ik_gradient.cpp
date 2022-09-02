@@ -1,4 +1,3 @@
-#include <gd_ik/algorithm.hpp>
 #include <gd_ik/frame.hpp>
 #include <gd_ik/goal.hpp>
 #include <gd_ik/ik_gradient.hpp>
