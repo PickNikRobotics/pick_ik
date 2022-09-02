@@ -62,7 +62,7 @@ auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
         robot.variables.push_back(var);
     }
 
-    // Calculate minimal cisplacement factors
+    // Calculate minimal displacement factors
     if (minimal_displacement_divisor > 0) {
         for (auto& var : robot.variables) {
             var.minimal_displacement_factor = var.max_velocity_rcp / minimal_displacement_divisor;
