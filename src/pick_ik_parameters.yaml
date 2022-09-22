@@ -1,4 +1,4 @@
-gd_ik:
+pick_ik:
   twist_threshold: {
     type: double,
     default_value: 0.00001,

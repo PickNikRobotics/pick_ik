@@ -1,8 +1,8 @@
-#include <gd_ik/frame.hpp>
-#include <gd_ik/goal.hpp>
-#include <gd_ik/ik_gradient.hpp>
-#include <gd_ik/math.hpp>
-#include <gd_ik/robot.hpp>
+#include <pick_ik/frame.hpp>
+#include <pick_ik/goal.hpp>
+#include <pick_ik/ik_gradient.hpp>
+#include <pick_ik/math.hpp>
+#include <pick_ik/robot.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -10,7 +10,7 @@
 #include <optional>
 #include <vector>
 
-namespace gd_ik {
+namespace pick_ik {
 
 GradientIk GradientIk::from(std::vector<double> const& initial_guess, CostFn const& cost_fn) {
     return GradientIk{std::vector<double>(initial_guess.size(), 0.0),
@@ -126,4 +126,4 @@ auto ik_search(std::vector<double> const& initial_guess,
     return std::nullopt;
 }
 
-}  // namespace gd_ik
+}  // namespace pick_ik

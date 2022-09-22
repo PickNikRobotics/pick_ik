@@ -9,7 +9,7 @@
 #include <tf2/LinearMath/Vector3.h>
 #include <vector>
 
-namespace gd_ik {
+namespace pick_ik {
 
 struct Frame {
     tf2::Vector3 pos;
@@ -35,4 +35,4 @@ auto operator*=(Frame& self, Frame const& b) -> Frame&;
 auto normalize(tf2::Quaternion const& q) -> tf2::Quaternion;
 auto frame_twist(Frame const& a, Frame const& b) -> KDL::Twist;
 
-}  // namespace gd_ik
+}  // namespace pick_ik

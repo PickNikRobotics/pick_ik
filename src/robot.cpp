@@ -1,6 +1,6 @@
-#include <gd_ik/frame.hpp>
-#include <gd_ik/math.hpp>
-#include <gd_ik/robot.hpp>
+#include <pick_ik/frame.hpp>
+#include <pick_ik/math.hpp>
+#include <pick_ik/robot.hpp>
 
 #include <tf2_eigen/tf2_eigen.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -12,7 +12,7 @@
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
 
-namespace gd_ik {
+namespace pick_ik {
 
 auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
                  moveit::core::JointModelGroup const* jmg,
@@ -145,4 +145,4 @@ auto transform_poses_to_frames(moveit::core::RobotState const& robot_state,
     return frames;
 }
 
-}  // namespace gd_ik
+}  // namespace pick_ik

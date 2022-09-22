@@ -1,8 +1,8 @@
 #pragma once
 
-#include <gd_ik/frame.hpp>
-#include <gd_ik/goal.hpp>
-#include <gd_ik/robot.hpp>
+#include <pick_ik/frame.hpp>
+#include <pick_ik/goal.hpp>
+#include <pick_ik/robot.hpp>
 
 #include <chrono>
 #include <memory>
@@ -11,7 +11,7 @@
 #include <optional>
 #include <vector>
 
-namespace gd_ik {
+namespace pick_ik {
 
 struct GradientIk {
     std::vector<double> gradient;
@@ -32,4 +32,4 @@ auto ik_search(std::vector<double> const& initial_guess,
                double timeout,
                bool approx_solution) -> std::optional<std::vector<double>>;
 
-}  // namespace gd_ik
+}  // namespace pick_ik

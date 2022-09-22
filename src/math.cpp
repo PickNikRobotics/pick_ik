@@ -1,6 +1,6 @@
-#include <gd_ik/math.hpp>
+#include <pick_ik/math.hpp>
 
-namespace gd_ik {
+namespace pick_ik {
 
 auto clamp2(double v, double lo, double hi) -> double {
     if (v <= lo) v = lo;
@@ -8,4 +8,4 @@ auto clamp2(double v, double lo, double hi) -> double {
     return v;
 }
 
-}  // namespace gd_ik
+}  // namespace pick_ik

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <gd_ik/fk_moveit.hpp>
-#include <gd_ik/frame.hpp>
-#include <gd_ik/robot.hpp>
+#include <pick_ik/fk_moveit.hpp>
+#include <pick_ik/frame.hpp>
+#include <pick_ik/robot.hpp>
 
 #include <functional>
 #include <moveit/kinematics_base/kinematics_base.h>
@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-namespace gd_ik {
+namespace pick_ik {
 
 // Test if a frame satisfies a goal
 using FrameTestFn = std::function<bool(Frame const& tip_frame)>;
@@ -60,4 +60,4 @@ using CostFn = std::function<double(std::vector<double> const& active_positions)
 auto make_cost_fn(std::vector<PoseCostFn> pose_cost_functions, std::vector<Goal> goals, FkFn fk)
     -> CostFn;
 
-}  // namespace gd_ik
+}  // namespace pick_ik

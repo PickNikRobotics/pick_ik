@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>gd_ik</name>
+  <name>pick_ik</name>
   <version>0.0.0</version>
-  <description>Gradient Descent Inverse Kinematics solver for MoveIt</description>
+  <description>Inverse Kinematics solver for MoveIt</description>
   <author email="maybe@tylerjw.dev">Tyler Weaver</author>
   <maintainer email="maybe@tylerjw.dev">Tyler Weaver</maintainer>
   <license>BSD-3-Clause</license>
@@ -21,6 +21,6 @@
 
   <export>
     <build_type>ament_cmake</build_type>
-    <moveit_core plugin="${prefix}/gd_ik_kinematics_description.xml"/>
+    <moveit_core plugin="${prefix}/pick_ik_kinematics_description.xml"/>
   </export>
 </package>

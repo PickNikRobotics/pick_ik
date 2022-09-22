@@ -1,13 +1,13 @@
 #pragma once
 
-#include <gd_ik/frame.hpp>
+#include <pick_ik/frame.hpp>
 
 #include <moveit/robot_model/joint_model.h>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_model/robot_model.h>
 #include <vector>
 
-namespace gd_ik {
+namespace pick_ik {
 
 struct Robot {
     struct Variable {
@@ -43,4 +43,4 @@ auto transform_poses_to_frames(moveit::core::RobotState const& robot_state,
                                std::vector<geometry_msgs::msg::Pose> const& poses,
                                std::string const& base_frame_name) -> std::vector<Frame>;
 
-}  // namespace gd_ik
+}  // namespace pick_ik

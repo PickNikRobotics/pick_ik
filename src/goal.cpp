@@ -1,7 +1,7 @@
-#include <gd_ik/fk_moveit.hpp>
-#include <gd_ik/frame.hpp>
-#include <gd_ik/goal.hpp>
-#include <gd_ik/robot.hpp>
+#include <pick_ik/fk_moveit.hpp>
+#include <pick_ik/frame.hpp>
+#include <pick_ik/goal.hpp>
+#include <pick_ik/robot.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -12,7 +12,7 @@
 #include <optional>
 #include <vector>
 
-namespace gd_ik {
+namespace pick_ik {
 
 auto make_frame_test_fn(Frame goal_frame, double twist_threshold) -> FrameTestFn {
     return [=](Frame const& tip_frame) -> bool {
@@ -175,4 +175,4 @@ auto make_cost_fn(std::vector<PoseCostFn> pose_cost_functions, std::vector<Goal>
     };
 }
 
-}  // namespace gd_ik
+}  // namespace pick_ik

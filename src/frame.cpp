@@ -1,4 +1,4 @@
-#include <gd_ik/frame.hpp>
+#include <pick_ik/frame.hpp>
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_kdl/tf2_kdl.hpp>
@@ -9,7 +9,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Vector3.h>
 
-namespace gd_ik {
+namespace pick_ik {
 
 auto Frame::from(const KDL::Frame& kdl) -> Frame {
     Frame frame;
@@ -44,7 +44,7 @@ auto Frame::identity() -> Frame {
 
 auto to_string(Frame const& self) -> std::string {
     return fmt::format(
-        "gd_ik::Frame{{tf2::Vector3({}, {}, {}), tf2::Quaternion({}, {}, {}, "
+        "pick_ik::Frame{{tf2::Vector3({}, {}, {}), tf2::Quaternion({}, {}, {}, "
         "{})}}",
         self.pos.x(),
         self.pos.y(),
@@ -190,4 +190,4 @@ auto frame_twist(Frame const& a, Frame const& b) -> KDL::Twist {
     return twist;
 }
 
-}  // namespace gd_ik
+}  // namespace pick_ik

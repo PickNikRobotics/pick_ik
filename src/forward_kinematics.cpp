@@ -1,5 +1,5 @@
-#include <gd_ik/forward_kinematics.hpp>
-#include <gd_ik/frame.hpp>
+#include <pick_ik/forward_kinematics.hpp>
+#include <pick_ik/frame.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -9,7 +9,7 @@
 #include <tf2/LinearMath/Vector3.h>
 #include <vector>
 
-namespace gd_ik {
+namespace pick_ik {
 
 auto make_joint_axes(std::shared_ptr<moveit::core::RobotModel const> const& model)
     -> std::vector<tf2::Vector3> {
@@ -126,4 +126,4 @@ auto get_frame(CachedJointFrames& cache,
     return cache.frames.at(index);
 }
 
-}  // namespace gd_ik
+}  // namespace pick_ik

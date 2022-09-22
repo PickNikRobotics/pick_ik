@@ -17,7 +17,7 @@ PointerAlignment: Left
 IncludeBlocks: Regroup
 IncludeCategories:
   - Priority: 1
-    Regex: '^<gd_ik\/'
+    Regex: '^<pick_ik\/'
   - Priority: 2
     Regex: '^<(.+).hpp>$'
   - Priority: 3

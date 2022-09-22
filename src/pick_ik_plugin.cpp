@@ -1,10 +1,10 @@
-#include <gd_ik/fk_moveit.hpp>
-#include <gd_ik/frame.hpp>
-#include <gd_ik/goal.hpp>
-#include <gd_ik/ik_gradient.hpp>
-#include <gd_ik/robot.hpp>
+#include <pick_ik/fk_moveit.hpp>
+#include <pick_ik/frame.hpp>
+#include <pick_ik/goal.hpp>
+#include <pick_ik/ik_gradient.hpp>
+#include <pick_ik/robot.hpp>
 
-#include <gd_ik_parameters.hpp>
+#include <pick_ik_parameters.hpp>
 #include <pluginlib/class_list_macros.hpp>
 #include <rclcpp/rclcpp.hpp>
 
@@ -14,12 +14,12 @@
 #include <string>
 #include <vector>
 
-namespace gd_ik {
+namespace pick_ik {
 namespace {
-auto const LOGGER = rclcpp::get_logger("gd_ik");
+auto const LOGGER = rclcpp::get_logger("pick_ik");
 }
 
-class GDIKPlugin : public kinematics::KinematicsBase {
+class PickIKPlugin : public kinematics::KinematicsBase {
     rclcpp::Node::SharedPtr node_;
     std::shared_ptr<ParamListener> parameter_listener_;
     moveit::core::JointModelGroup const* jmg_;
@@ -288,6 +288,6 @@ class GDIKPlugin : public kinematics::KinematicsBase {
     }
 };
 
-}  // namespace gd_ik
+}  // namespace pick_ik
 
-PLUGINLIB_EXPORT_CLASS(gd_ik::GDIKPlugin, kinematics::KinematicsBase);
+PLUGINLIB_EXPORT_CLASS(pick_ik::PickIKPlugin, kinematics::KinematicsBase);

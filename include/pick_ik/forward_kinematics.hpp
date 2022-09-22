@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gd_ik/frame.hpp>
+#include <pick_ik/frame.hpp>
 
 #include <memory>
 #include <moveit/robot_model/joint_model.h>
@@ -8,7 +8,7 @@
 #include <tf2/LinearMath/Vector3.h>
 #include <vector>
 
-namespace gd_ik {
+namespace pick_ik {
 
 auto make_joint_axes(std::shared_ptr<moveit::core::RobotModel const> const& model)
     -> std::vector<tf2::Vector3>;
@@ -37,4 +37,4 @@ auto get_frame(CachedJointFrames& cache,
                std::vector<double> const& variables,
                std::vector<tf2::Vector3> const& joint_axes) -> Frame;
 
-}  // namespace gd_ik
+}  // namespace pick_ik
