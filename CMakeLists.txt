@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(gd_ik)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
-    add_compile_options(-Werror -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast)
+    add_compile_options(-Werror -Wall -Wextra -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast)
 endif()
 
 find_package(ament_cmake REQUIRED)
@@ -16,6 +16,8 @@ find_package(range-v3 REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_kdl REQUIRED)
+find_package(moveit_ros_planning_interface REQUIRED)
+find_package(tl_expected REQUIRED)
 
 generate_parameter_library(
   gd_ik_parameters
@@ -31,7 +33,7 @@ add_library(gd_ik_plugin SHARED
   src/math.cpp
   src/robot.cpp
 )
-target_compile_features(gd_ik_plugin PUBLIC c_std_99 cxx_std_17)
+target_compile_features(gd_ik_plugin PUBLIC cxx_std_17)
 target_include_directories(gd_ik_plugin PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
@@ -49,10 +51,20 @@ target_link_libraries(gd_ik_plugin
     range-v3::range-v3
     rclcpp::rclcpp
 )
-
 pluginlib_export_plugin_description_file(
   moveit_core
   gd_ik_kinematics_description.xml
+)
+
+add_executable(ik_jogging_example src/ik_jogging_example.cpp)
+target_compile_features(ik_jogging_example PUBLIC cxx_std_17)
+target_link_libraries(ik_jogging_example
+  PRIVATE
+    moveit_ros_planning_interface::moveit_move_group_interface
+    rclcpp::rclcpp
+    fmt::fmt
+    range-v3::range-v3
+    tl_expected::tl_expected
 )
 
 install(
