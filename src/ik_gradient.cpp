@@ -23,7 +23,6 @@ GradientIk GradientIk::from(std::vector<double> const& initial_guess, CostFn con
 auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn) -> bool {
     double const jd = 0.0001;
     auto const count = self.local.size();
-    assert(active_variable_indexes.size() == count);
 
     // compute gradient direction
     self.working = self.local;
