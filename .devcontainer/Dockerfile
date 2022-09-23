@@ -111,4 +111,3 @@ FROM development as devcontainer
 
 ENV SHELL /bin/bash
 ENTRYPOINT []
-CMD [ "sleep", "infinity" ]
