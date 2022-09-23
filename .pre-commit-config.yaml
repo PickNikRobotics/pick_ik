@@ -5,14 +5,12 @@ repos:
     hooks:
       - id: check-added-large-files
       - id: check-ast
-      - id: check-byte-order-marker
       - id: check-builtin-literals
+      - id: check-byte-order-marker
       - id: check-case-conflict
       - id: check-docstring-first
       - id: check-executables-have-shebangs
       - id: check-json
-      - id: check-executables-have-shebangs
-      - id: pretty-format-json
       - id: check-merge-conflict
       - id: check-symlinks
       - id: check-toml
@@ -22,7 +20,6 @@ repos:
       - id: destroyed-symlinks
       - id: detect-private-key
       - id: end-of-file-fixer
-      - id: mixed-line-ending
       - id: fix-byte-order-marker
       - id: fix-encoding-pragma
       - id: forbid-new-submodules
