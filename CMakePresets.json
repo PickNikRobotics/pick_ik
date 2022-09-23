@@ -1,0 +1,87 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 22,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "relwithdebinfo",
+            "displayName": "RelWithDebInfo",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/relwithdebinfo",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_C_COMPILER_LAUNCHER": "ccache",
+                "CMAKE_CXX_COMPILER_LAUNCHER": "ccache",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=lld",
+                "CMAKE_MODULE_LINKER_FLAGS": "-fuse-ld=lld",
+                "CMAKE_SHARED_LINKER_FLAGS": "-fuse-ld=lld"
+            },
+            "warnings": {
+                "unusedCli": false
+            }
+        },
+        {
+            "name": "debug",
+            "inherits": "relwithdebinfo",
+            "displayName": "Debug",
+            "binaryDir": "${sourceDir}/build/debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "release",
+            "inherits": "relwithdebinfo",
+            "displayName": "Release",
+            "binaryDir": "${sourceDir}/build/release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "asan",
+            "inherits": "debug",
+            "displayName": "Address sanitizer debug",
+            "binaryDir": "${sourceDir}/build/asan",
+            "cacheVariables": {
+                "CMAKE_C_FLAGS": "-fsanitize=address",
+                "CMAKE_CXX_FLAGS": "-fsanitize=address"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "relwithdebinfo",
+            "configurePreset": "relwithdebinfo"
+        },
+        {
+            "name": "debug",
+            "configurePreset": "debug"
+        },
+        {
+            "name": "release",
+            "configurePreset": "release"
+        },
+        {
+            "name": "asan",
+            "configurePreset": "asan"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "relwithdebinfo",
+            "configurePreset": "relwithdebinfo",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": true
+            }
+        }
+    ]
+}
