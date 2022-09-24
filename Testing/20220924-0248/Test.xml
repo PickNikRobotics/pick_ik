@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Site BuildName="(empty)"
+	BuildStamp="20220924-0248-Experimental"
+	Name="(empty)"
+	Generator="ctest-3.22.1"
+	CompilerName=""
+	CompilerVersion=""
+	OSName="Linux"
+	Hostname="pick_ik"
+	OSRelease="5.15.0-48-generic"
+	OSVersion="#54-Ubuntu SMP Fri Aug 26 13:26:29 UTC 2022"
+	OSPlatform="x86_64"
+	Is64Bits="1"
+	VendorString="AuthenticAMD"
+	VendorID="Advanced Micro Devices"
+	FamilyID="25"
+	ModelID="33"
+	ProcessorCacheSize="512"
+	NumberOfLogicalCPU="16"
+	NumberOfPhysicalCPU="8"
+	TotalVirtualMemory="66244"
+	TotalPhysicalMemory="32006"
+	LogicalProcessorsPerPhysical="2"
+	ProcessorClockFrequency="4199.68"
+	>
+	<Testing>
+		<StartDateTime>Sep 24 02:48 UTC</StartDateTime>
+		<StartTestTime>1663987710</StartTestTime>
+		<TestList/>
+		<EndDateTime>Sep 24 02:48 UTC</EndDateTime>
+		<EndTestTime>1663987710</EndTestTime>
+		<ElapsedMinutes>0</ElapsedMinutes>
+	</Testing>
+</Site>
