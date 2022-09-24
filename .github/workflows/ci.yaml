@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-22.04
-    container: ghcr.io/picknikrobotics/pick_ik:upstream
+    container: ghcr.io/picknikrobotics/pick_ik:ci
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2

@@ -1,10 +1,12 @@
-name: ci
+name: docker
 
 on:
   workflow_dispatch:
+  pull_request:
+  push:
 
 jobs:
-  upstream-docker:
+  ci-docker:
     runs-on: ubuntu-22.04
     steps:
       - name: Check out the repo
@@ -37,7 +39,7 @@ jobs:
           context: .
           file: .devcontainer/Dockerfile
           push: true
-          target: upstream
-          tags: ghcr.io/picknikrobotics/pick_ik:upstream
+          target: ci
+          tags: ghcr.io/picknikrobotics/pick_ik:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
