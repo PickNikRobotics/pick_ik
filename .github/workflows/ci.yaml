@@ -9,14 +9,29 @@ jobs:
   build-and-test:
     runs-on: ubuntu-22.04
     container: ghcr.io/picknikrobotics/pick_ik:ci
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
-      - name: Source ROS workspaces
+      - name: Cache ccache
+        uses: pat-s/always-upload-cache@v3.0.1
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ccache-${{ github.sha }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-${{ github.sha }}
+            ccache
+      - name: Source ROS Workspaces
         run: |
-          source /opt/ros/rolling/setup.sh
-          source /opt/upstream/install/setup.sh
-      - name: Configure and Build
+          . /opt/ros/rolling/setup.sh
+          . /opt/upstream/install/setup.sh
+          echo "$(env)" >> $GITHUB_ENV
+      - name: Configure
         run: cmake --preset relwithdebinfo
-      - name: Run tests
-        run: ctest --preset relwithdebinfo
+      - name: Build
+        working-directory: ./build/relwithdebinfo
+        run: ninja
+      - name: Test
+        working-directory: ./build/relwithdebinfo
+        run: ctest . --rerun-failed --output-on-failure
