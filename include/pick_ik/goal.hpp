@@ -15,9 +15,6 @@ namespace pick_ik {
 
 // Test if a frame satisfies a goal
 using FrameTestFn = std::function<bool(Frame const& tip_frame)>;
-
-auto make_frame_tests(Frame goal_frame, double twist_threshold) -> FrameTestFn;
-
 auto make_frame_tests(std::vector<Frame> goal_frames, double twist_threshold)
     -> std::vector<FrameTestFn>;
 
