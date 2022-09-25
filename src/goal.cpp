@@ -42,8 +42,8 @@ auto make_pose_cost_fn(Frame goal, size_t goal_link_index, double rotation_scale
         return [=](std::vector<Frame> const& tip_frames) -> double {
             auto const& frame = tip_frames[goal_link_index];
             return frame.pos.distance2(goal.pos) +
-                   fmin((frame.rot - goal.rot).length2(), (frame.rot + goal.rot).length2()) *
-                       (rotation_scale * rotation_scale);
+                   std::fmin((frame.rot - goal.rot).length2(), (frame.rot + goal.rot).length2()) *
+                       std::pow(rotation_scale, 2);
         };
     }
     return [=](std::vector<Frame> const& tip_frames) -> double {
