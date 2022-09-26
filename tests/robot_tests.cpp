@@ -5,12 +5,8 @@
 
 #include <moveit/utils/robot_model_test_utils.h>
 
-using moveit::core::RobotModelBuilder;
-
-namespace pick_ik {
-
 auto make_rr_model() {
-    auto builder = RobotModelBuilder("rr", "base");
+    auto builder = moveit::core::RobotModelBuilder("rr", "base");
     geometry_msgs::msg::Pose origin;
     origin.position.x = 1;
     origin.orientation.w = 1;
@@ -21,33 +17,31 @@ auto make_rr_model() {
     return builder.build();
 }
 
-TEST_CASE("get_link_indexes") {
+TEST_CASE("pick_ik::get_link_indexes") {
     auto const robot_model = make_rr_model();
 
     SECTION("tip joint") {
-        auto const tip_link_indexes = get_link_indexes(robot_model, {"b"});
+        auto const tip_link_indexes = pick_ik::get_link_indexes(robot_model, {"b"});
         REQUIRE(tip_link_indexes.has_value());
         CHECK(tip_link_indexes->size() == 1);
         CHECK(tip_link_indexes->at(0) == 2);
     }
 
     SECTION("no joints") {
-        auto const tip_link_indexes = get_link_indexes(robot_model, {});
+        auto const tip_link_indexes = pick_ik::get_link_indexes(robot_model, {});
         REQUIRE(tip_link_indexes.has_value());
         CHECK(tip_link_indexes->size() == 0);
     }
 
     SECTION("invalid joint") {
-        auto const tip_link_indexes = get_link_indexes(robot_model, {"c"});
+        auto const tip_link_indexes = pick_ik::get_link_indexes(robot_model, {"c"});
         REQUIRE(tip_link_indexes.has_value() == false);
     }
 
     SECTION("base joint") {
-        auto const tip_link_indexes = get_link_indexes(robot_model, {"base"});
+        auto const tip_link_indexes = pick_ik::get_link_indexes(robot_model, {"base"});
         REQUIRE(tip_link_indexes.has_value());
         CHECK(tip_link_indexes->size() == 1);
         CHECK(tip_link_indexes->at(0) == 0);
     }
 }
-
-}  // namespace pick_ik
