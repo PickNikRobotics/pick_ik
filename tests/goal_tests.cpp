@@ -1,4 +1,3 @@
-#include <pick_ik/frame.hpp>
 #include <pick_ik/goal.hpp>
 
 #include <catch2/catch_approx.hpp>
