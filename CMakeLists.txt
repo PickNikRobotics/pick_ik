@@ -28,7 +28,6 @@ add_library(pick_ik_plugin SHARED
   src/pick_ik_plugin.cpp
   src/goal.cpp
   src/ik_gradient.cpp
-  src/math.cpp
   src/robot.cpp
 )
 target_compile_features(pick_ik_plugin PUBLIC c_std_99 cxx_std_17)
