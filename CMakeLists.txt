@@ -33,7 +33,7 @@ add_library(pick_ik_plugin SHARED
 )
 target_compile_features(pick_ik_plugin PUBLIC c_std_99 cxx_std_17)
 target_include_directories(pick_ik_plugin PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(pick_ik_plugin
   PUBLIC
