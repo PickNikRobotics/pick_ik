@@ -21,8 +21,8 @@ services:
       - ../:/home/dev/pick_ik
       - ~/.ssh:/home/dev/.ssh:ro
       - ~/.gitconfig:/home/dev/.gitconfig:ro
-      - ~/.pick_ik/ccache:/home/dev/.ccache
-      - ~/.pick_ik/log:/home/dev/.ros/log
+      - ~/.local/.pick_ik/ccache:/home/dev/.ccache
+      - ~/.local/.pick_ik/log:/home/dev/.ros/log
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
       - ${SSH_AUTH_SOCK}:${SSH_AUTH_SOCK}
     working_dir: /home/pick_ik
