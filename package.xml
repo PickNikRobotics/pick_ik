@@ -18,6 +18,7 @@
   <depend>rclcpp</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>tf2_kdl</depend>
+  <depend>tl_expected</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
