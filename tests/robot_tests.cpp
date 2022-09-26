@@ -1,6 +1,7 @@
 #include <pick_ik/robot.hpp>
 
-#include <catch2/catch_all.hpp>
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <moveit/utils/robot_model_test_utils.h>
