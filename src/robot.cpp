@@ -3,6 +3,7 @@
 
 #include <tf2_eigen/tf2_eigen.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tl_expected/expected.hpp>
 
 #include <Eigen/Geometry>
 #include <cfloat>
@@ -72,15 +73,17 @@ auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
 }
 
 auto get_link_indexes(std::shared_ptr<moveit::core::RobotModel const> const& model,
-                      std::vector<std::string> const& names) -> std::vector<size_t> {
-    std::vector<size_t> indexes(names.size(), 0);
-    std::transform(names.cbegin(), names.cend(), indexes.begin(), [&model](auto const& name) {
+                      std::vector<std::string> const& names)
+    -> tl::expected<std::vector<size_t>, std::string> {
+    auto indexes = std::vector<size_t>();
+    for (auto const& name : names) {
         auto const* link_model = model->getLinkModel(name);
         if (!link_model) {
-            throw std::invalid_argument(fmt::format("link not found: {}", name));
+            return tl::make_unexpected(fmt::format("link not found: {}", name));
         }
-        return link_model->getLinkIndex();
-    });
+        indexes.push_back(link_model->getLinkIndex());
+    }
+
     return indexes;
 }
 

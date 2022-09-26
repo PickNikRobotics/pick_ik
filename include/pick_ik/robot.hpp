@@ -2,9 +2,12 @@
 
 #include <pick_ik/frame.hpp>
 
+#include <tl_expected/expected.hpp>
+
 #include <moveit/robot_model/joint_model.h>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_model/robot_model.h>
+#include <string>
 #include <vector>
 
 namespace pick_ik {
@@ -27,7 +30,8 @@ struct Robot {
 };
 
 auto get_link_indexes(std::shared_ptr<moveit::core::RobotModel const> const& model,
-                      std::vector<std::string> const& names) -> std::vector<size_t>;
+                      std::vector<std::string> const& names)
+    -> tl::expected<std::vector<size_t>, std::string>;
 
 auto get_active_variable_indexes(std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
                                  moveit::core::JointModelGroup const* jmg,
