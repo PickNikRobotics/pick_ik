@@ -1,5 +1,4 @@
 #include <pick_ik/frame.hpp>
-#include <pick_ik/math.hpp>
 #include <pick_ik/robot.hpp>
 
 #include <tf2_eigen/tf2_eigen.hpp>

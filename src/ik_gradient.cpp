@@ -1,7 +1,6 @@
 #include <pick_ik/frame.hpp>
 #include <pick_ik/goal.hpp>
 #include <pick_ik/ik_gradient.hpp>
-#include <pick_ik/math.hpp>
 #include <pick_ik/robot.hpp>
 
 #include <algorithm>
@@ -78,9 +77,9 @@ auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn) -> bool {
     // apply optimization step
     // (move along gradient direction by estimated step size)
     for (size_t i = 0; i < count; ++i) {
-        self.working[i] = clamp2(self.local[i] - self.gradient[i] * joint_diff,
-                                 robot.variables[i].clip_min,
-                                 robot.variables[i].clip_max);
+        self.working[i] = std::clamp(self.local[i] - self.gradient[i] * joint_diff,
+                                     robot.variables[i].clip_min,
+                                     robot.variables[i].clip_max);
     }
 
     // Always accept the solution and continue
