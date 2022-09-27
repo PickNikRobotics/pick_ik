@@ -46,3 +46,15 @@ TEST_CASE("pick_ik::get_link_indexes") {
         CHECK(tip_link_indexes->at(0) == 0);
     }
 }
+
+TEST_CASE("pick_ik::Robot::from") {
+    auto const robot_model = make_rr_model();
+    auto* const jmg = robot_model->getJointModelGroup("group");
+    auto const tip_link_indexes =
+        pick_ik::get_link_indexes(robot_model, {"b"})
+            .or_else([](auto const& error) { throw std::invalid_argument(error); })
+            .value();
+    auto const robot = pick_ik::Robot::from(robot_model, jmg, tip_link_indexes);
+
+    SECTION("rr has two joints") { CHECK(robot.variables.size() == 2); }
+}
