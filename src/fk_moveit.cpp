@@ -1,5 +1,4 @@
 #include <pick_ik/fk_moveit.hpp>
-#include <pick_ik/frame.hpp>
 
 #include <algorithm>
 #include <memory>
@@ -22,13 +21,13 @@ auto make_fk_fn(std::shared_ptr<moveit::core::RobotModel const> robot_model,
         robot_state.setJointGroupPositions(jmg, active_positions);
         robot_state.updateLinkTransforms();
 
-        std::vector<Frame> tip_frames;
+        std::vector<Eigen::Isometry3d> tip_frames;
         std::transform(tip_link_indexes.cbegin(),
                        tip_link_indexes.cend(),
                        std::back_inserter(tip_frames),
                        [&](auto index) {
                            auto const* link_model = robot_model->getLinkModel(index);
-                           return Frame::from(robot_state.getGlobalLinkTransform(link_model));
+                           return robot_state.getGlobalLinkTransform(link_model);
                        });
         return tip_frames;
     };

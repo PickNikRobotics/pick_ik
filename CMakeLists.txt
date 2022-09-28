@@ -25,7 +25,6 @@ generate_parameter_library(
 add_library(pick_ik_plugin SHARED
   src/fk_moveit.cpp
   src/forward_kinematics.cpp
-  src/frame.cpp
   src/pick_ik_plugin.cpp
   src/goal.cpp
   src/ik_gradient.cpp

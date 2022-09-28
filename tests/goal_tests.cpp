@@ -3,12 +3,13 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <Eigen/Geometry>
+#include <cmath>
+
 TEST_CASE("pick_ik::make_frame_tests") {
     auto const epsilon = 0.00001;
-    auto const zero_frame = pick_ik::Frame{
-        tf2::Vector3(0, 0, 0),
-        tf2::Quaternion(0, 0, 0, 1),
-    };
+    Eigen::Isometry3d const zero_frame =
+        Eigen::Translation3d(0.0, 0.0, 0.0) * Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
 
     SECTION("One goal, one test") {
         auto const test_fns = pick_ik::make_frame_tests({zero_frame}, epsilon);
@@ -16,25 +17,21 @@ TEST_CASE("pick_ik::make_frame_tests") {
     }
 
     SECTION("Zero threshold") {
-        auto const test_fns = pick_ik::make_frame_tests({zero_frame}, 0.);
-        CHECK(test_fns.at(0)({zero_frame}) == false);
+        auto const test_fns = pick_ik::make_frame_tests({zero_frame}, 0.0);
+        CHECK(test_fns.at(0)({zero_frame}) == true);
     }
 
     SECTION("Goal is almost frame, but not quite") {
-        auto const frame = pick_ik::Frame{
-            tf2::Vector3(epsilon, epsilon, epsilon),
-            tf2::Quaternion(0, 0, epsilon, 1 - epsilon),
-        };
+        Eigen::Isometry3d const frame = Eigen::Translation3d(epsilon, epsilon, epsilon) *
+                                        Eigen::Quaterniond(1 - epsilon, 0.0, 0.0, epsilon);
 
         auto const test_fns = pick_ik::make_frame_tests({zero_frame}, epsilon);
         CHECK(test_fns.at(0)({frame}) == false);
     }
 
     SECTION("Goal is almost frame, within threshold") {
-        auto const frame = pick_ik::Frame{
-            tf2::Vector3(0, 0.000009, 0),
-            tf2::Quaternion(0, 0, 0.000001, 0.99999),
-        };
+        Eigen::Isometry3d const frame =
+            Eigen::Translation3d(0.0, 0.000009, 0.0) * Eigen::Quaterniond(0.9999, 0.0, 0.0, 0.0);
 
         auto const test_fns = pick_ik::make_frame_tests({zero_frame}, epsilon);
         CHECK(test_fns.at(0)({frame}) == true);
@@ -47,173 +44,153 @@ TEST_CASE("pick_ik::make_frame_tests") {
 }
 
 TEST_CASE("pick_ik::make_pose_cost_fn") {
-    auto const zero_frame = pick_ik::Frame{
-        tf2::Vector3(0, 0, 0),
-        tf2::Quaternion(0, 0, 0, 1),
-    };
-    auto const translate_y2_frame = pick_ik::Frame{
-        tf2::Vector3(0, 2, 0),
-        tf2::Quaternion(0, 0, 0, 1),
-    };
-    auto const translate_xy1_frame = pick_ik::Frame{
-        tf2::Vector3(1, 1, 0),
-        tf2::Quaternion(0, 0, 0, 1),
-    };
-    auto const translate_xyz1_frame = pick_ik::Frame{
-        tf2::Vector3(1, 1, 1),
-        tf2::Quaternion(0, 0, 0, 1),
-    };
-    auto const rotate_x1_frame = pick_ik::Frame{
-        tf2::Vector3(0, 0, 0),
-        tf2::Quaternion(1, 0, 0, 1),
-    };
-    auto const rotate_y2_frame = pick_ik::Frame{
-        tf2::Vector3(0, 0, 0),
-        tf2::Quaternion(0, 2, 0, 1),
-    };
+    Eigen::Isometry3d const zero_frame =
+        Eigen::Translation3d(0.0, 0.0, 0.0) * Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
+    Eigen::Isometry3d const translate_y2_frame =
+        Eigen::Translation3d(0.0, 2.0, 0.0) * Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
+    Eigen::Isometry3d const translate_xy1_frame =
+        Eigen::Translation3d(1.0, 1.0, 0.0) * Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
+    Eigen::Isometry3d const translate_xyz1_frame =
+        Eigen::Translation3d(1.0, 1.0, 1.0) * Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
+    Eigen::Isometry3d const rotate_x1_frame =
+        Eigen::Translation3d(0.0, 0.0, 0.0) * Eigen::AngleAxisd(1.0, Eigen::Vector3d::UnitX());
+    Eigen::Isometry3d const rotate_y2_frame =
+        Eigen::Translation3d(0.0, 0.0, 0.0) * Eigen::AngleAxisd(2.0, Eigen::Vector3d::UnitY());
 
     SECTION("Goal is frame") {
-        auto const cost_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 0);
-        CHECK(cost_fn({zero_frame}) == Catch::Approx(0.));
+        auto const cost_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 0.0);
+        CHECK(cost_fn({zero_frame}) == Catch::Approx(0.0));
     }
 
     SECTION("Goal is frame, with rotation scale") {
         auto const cost_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 0.5);
-        CHECK(cost_fn({zero_frame}) == Catch::Approx(0.));
+        CHECK(cost_fn({zero_frame}) == Catch::Approx(0.0));
     }
 
     SECTION("Goal is second index") {
-        auto const cost_fn = pick_ik::make_pose_cost_fn(translate_y2_frame, 1, 0);
-        CHECK(cost_fn({zero_frame, translate_y2_frame}) == Catch::Approx(0.));
+        auto const cost_fn = pick_ik::make_pose_cost_fn(translate_y2_frame, 1, 0.0);
+        CHECK(cost_fn({zero_frame, translate_y2_frame}) == Catch::Approx(0.0));
     }
 
-    SECTION("Translation along one axis square of distance") {
+    SECTION("Translation along one axis, square of distance") {
         auto const cost_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 0.5);
-        CHECK(cost_fn({translate_y2_frame}) == Catch::Approx(std::pow(2., 2)));
+        CHECK(cost_fn({translate_y2_frame}) == Catch::Approx(std::pow(2.0, 2)));
+    }
+
+    SECTION("Translation in two axes, square of distance") {
+        // We know that the distance between (0,0,0) and (1,1,0) is sqrt(2),
+        // so the squared distance in the cost function should be 2.
+        auto const const_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 0.5);
+        CHECK(const_fn({translate_xy1_frame}) == Catch::Approx(2.0));
+    }
+
+    SECTION("Translation in three axes, square of distance") {
+        // We know that the distance between (0,0,0) and (1,1,1) is sqrt(3),
+        // so the squared distance in the cost function should be 3.
+        auto const const_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 0.5);
+        CHECK(const_fn({translate_xyz1_frame}) == Catch::Approx(3.0));
     }
 
     SECTION("Zero rotation scale with rotation") {
-        auto const cost_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 0);
-        CHECK(cost_fn({rotate_x1_frame}) == Catch::Approx(0.));
+        auto const cost_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 0.0);
+        CHECK(cost_fn({rotate_x1_frame}) == Catch::Approx(0.0));
     }
 
-    SECTION("Negative rotation same as zero rotation scale") {
-        auto const cost_fn_zero = pick_ik::make_pose_cost_fn(zero_frame, 0, 0.);
+    SECTION("Negative rotation scale same as zero rotation scale") {
+        auto const cost_fn_zero = pick_ik::make_pose_cost_fn(zero_frame, 0, 0.0);
         auto const cost_fn_neg = pick_ik::make_pose_cost_fn(zero_frame, 0, -0.5);
         CHECK(cost_fn_zero({rotate_x1_frame}) == cost_fn_neg({rotate_x1_frame}));
     }
 
-    SECTION("Translation in two axis, square of distance") {
-        // We know that the distance between (0,0,0) and (1,1,0) is sqrt(2)
-        auto const translation_distance = std::sqrt(2.);
-
-        auto const const_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 0.5);
-        CHECK(const_fn({translate_xy1_frame}) == Catch::Approx(std::pow(translation_distance, 2)));
-    }
-
-    SECTION("Translation in three axis, square of distance") {
-        // We know that the distance between (0,0,0) and (1,1,1) is sqrt(3)
-        auto const translation_distance = std::sqrt(3.);
-
-        auto const const_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 0.5);
-        CHECK(const_fn({translate_xyz1_frame}) == Catch::Approx(std::pow(translation_distance, 2)));
-    }
-
     SECTION("Rotation in one axis") {
-        // We know that the distance between (0, 0, 0, 1) and (2, 0, 0, 1) is 2
-        auto const rotational_distance = 2.;
-
-        auto const const_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 1.0);
-        CHECK(const_fn({rotate_y2_frame}) == Catch::Approx(std::pow(rotational_distance, 2)));
+        // Since we specified an angle of 2 radians about the Y axis, the
+        // squared angle should be 4.0.
+        auto const rotational_distance = 2.0;
+        auto const cost_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 1.0);
+        CHECK(cost_fn({rotate_y2_frame}) == Catch::Approx(std::pow(rotational_distance, 2)));
     }
 
     SECTION("Rotation in one axis, scaled 0.5") {
-        // We know that the distance between (0, 0, 0, 1) and (2, 0, 0, 1) is 2
-        auto const rotational_distance = 2.;
+        // Since we specified an angle of 2 radians about the Y axis, the
+        // squared angle should be 4.0.
+        auto const rotational_distance = 2.0;
         auto const rotation_scale = 0.5;
 
-        auto const const_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, rotation_scale);
+        auto const cost_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, rotation_scale);
 
-        // The rotation scale is squared before being multiplied by the square of the distance
-        CHECK(const_fn({rotate_y2_frame}) ==
+        // The rotation scale is squared in addition to the square of the distance
+        CHECK(cost_fn({rotate_y2_frame}) ==
               Catch::Approx(std::pow(rotational_distance, 2) * std::pow(rotation_scale, 2)));
     }
 
     SECTION("Test 0 - sample data taken from instrumenting bio_ik") {
-        auto const goal = pick_ik::Frame{
-            tf2::Vector3(0.3548182547092438, -0.04776066541671753, 0.5902695655822754),
-            tf2::Quaternion(0.9239557003781338,
-                            -0.38249949508300274,
-                            1.324932598914536e-12,
-                            3.2004117980888137e-12)};
-        auto const frame = pick_ik::Frame{
-            tf2::Vector3(0.3363926217416014, -0.043807946580255344, 0.5864240526436293),
-            tf2::Quaternion(0.9163043570028795,
-                            -0.40044067474764505,
-                            -0.004762331364117075,
-                            -0.0033032628064278945)};
+        auto const q_goal = Eigen::Quaterniond(3.2004117980888137e-12,
+                                               0.9239557003781338,
+                                               -0.38249949508300274,
+                                               1.324932598914536e-12);
+        Eigen::Isometry3d const goal =
+            Eigen::Translation3d(0.3548182547092438, -0.04776066541671753, 0.5902695655822754) *
+            q_goal;
+
+        auto const q_frame = Eigen::Quaterniond(-0.0033032628064278945,
+                                                0.9163043570028795,
+                                                -0.40044067474764505,
+                                                -0.004762331364117075);
+        Eigen::Isometry3d const frame =
+            Eigen::Translation3d(0.3363926217416014, -0.043807946580255344, 0.5864240526436293) *
+            q_frame;
+
         auto const rotation_scale = 0.5;
-        auto const error = 0.00047342098832687954;
+        auto const expected_cost =
+            (goal.translation() - frame.translation()).squaredNorm() +
+            std::pow(2.0 * std::acos(q_goal.dot(q_frame)) * rotation_scale, 2);
 
         auto const cost_fn = pick_ik::make_pose_cost_fn(goal, 0, rotation_scale);
-        auto const cost = cost_fn(std::vector<pick_ik::Frame>{frame});
-        CHECK(cost == Catch::Approx(error));
+        auto const cost = cost_fn({frame});
+        CHECK(cost == Catch::Approx(expected_cost));
     }
-    SECTION("Test 1 - sample data taken from instrumenting bio_ik") {
-        auto const goal = pick_ik::Frame{
-            tf2::Vector3(0.3548182547092438, -0.04776066541671753, 0.5902695655822754),
-            tf2::Quaternion(0.9239557003781338,
-                            -0.38249949508300274,
-                            1.324932598914536e-12,
-                            3.2004117980888137e-12)};
-        auto const frame = pick_ik::Frame{
-            tf2::Vector3(0.3548171636285567, -0.04776037000115037, 0.590266184369505),
-            tf2::Quaternion(0.9239556600447023,
-                            -0.3824995924622168,
-                            5.939810921340453e-06,
-                            -1.521495969650019e-06)};
-        auto const rotation_scale = 0.5;
-        auto const error = 2.2112179037775748e-11;
 
-        auto const cost_fn = pick_ik::make_pose_cost_fn(goal, 0, rotation_scale);
-        auto const cost = cost_fn(std::vector<pick_ik::Frame>{frame});
-        CHECK(cost == Catch::Approx(error));
-    }
     SECTION("Test 2 - sample data taken from instrumenting bio_ik") {
-        auto const goal = pick_ik::Frame{
-            tf2::Vector3(0.3327501714229584, -0.025710120797157288, 0.5902695655822754),
-            tf2::Quaternion(0.9239557003781338,
-                            -0.38249949508300274,
-                            1.324932598914536e-12,
-                            3.2004117980888137e-12)};
-        auto const frame = pick_ik::Frame{
-            tf2::Vector3(0.3327318727877646, -0.02570328270961634, 0.5900141633600922),
-            tf2::Quaternion(0.9239554647443051,
-                            -0.38250006378889556,
-                            1.925047999919496e-05,
-                            2.1223489422435532e-07)};
+        auto const q_goal = Eigen::Quaterniond(3.2004117980888137e-12,
+                                               0.9239557003781338,
+                                               -0.38249949508300274,
+                                               1.324932598914536e-12);
+        Eigen::Isometry3d const goal =
+            Eigen::Translation3d(0.3327501714229584, -0.025710120797157288, 0.5902695655822754) *
+            q_goal;
+
+        auto const q_frame = Eigen::Quaterniond(2.1223489422435532e-07,
+                                                0.9239554647443051,
+                                                -0.38250006378889556,
+                                                1.925047999919496e-05);
+        Eigen::Isometry3d const frame =
+            Eigen::Translation3d(0.3327318727877646, -0.02570328270961634, 0.5900141633600922) *
+            q_frame;
+
         auto const rotation_scale = 0.5;
-        auto const error = 6.570464581759838e-08;
+        auto const expected_cost =
+            (goal.translation() - frame.translation()).squaredNorm() +
+            std::pow(2.0 * std::acos(q_goal.dot(q_frame)) * rotation_scale, 2);
 
         auto const cost_fn = pick_ik::make_pose_cost_fn(goal, 0, rotation_scale);
-        auto const cost = cost_fn(std::vector<pick_ik::Frame>{frame});
-        CHECK(cost == Catch::Approx(error));
+        auto const cost = cost_fn({frame});
+        CHECK(cost == Catch::Approx(expected_cost));
     }
 }
 
 TEST_CASE("pick_ik::make_pose_cost_functions") {
-    auto const goal =
-        pick_ik::Frame{tf2::Vector3(0.3327501714229584, -0.025710120797157288, 0.5902695655822754),
-                       tf2::Quaternion(0.9239557003781338,
-                                       -0.38249949508300274,
-                                       1.324932598914536e-12,
-                                       3.2004117980888137e-12)};
-    auto const frame =
-        pick_ik::Frame{tf2::Vector3(0.3327318727877646, -0.02570328270961634, 0.5900141633600922),
-                       tf2::Quaternion(0.9239554647443051,
-                                       -0.38250006378889556,
-                                       1.925047999919496e-05,
-                                       2.1223489422435532e-07)};
+    Eigen::Isometry3d const goal =
+        Eigen::Translation3d(0.3327501714229584, -0.025710120797157288, 0.5902695655822754) *
+        Eigen::Quaterniond(3.2004117980888137e-12,
+                           0.9239557003781338,
+                           -0.38249949508300274,
+                           1.324932598914536e-12);
+    Eigen::Isometry3d const frame =
+        Eigen::Translation3d(0.3327318727877646, -0.02570328270961634, 0.5900141633600922) *
+        Eigen::Quaterniond(2.1223489422435532e-07,
+                           0.9239554647443051,
+                           -0.38250006378889556,
+                           1.925047999919496e-05);
     auto const rotation_scale = 0.5;
 
     SECTION("Function is same as pick_ik::make_pose_cost_fn") {
@@ -235,11 +212,11 @@ TEST_CASE("pick_ik::make_pose_cost_functions") {
 
     SECTION("First goal, tests first frame") {
         auto const cost_fns = pick_ik::make_pose_cost_functions({goal, frame}, rotation_scale);
-        CHECK(cost_fns.at(0)({goal, frame}) == Catch::Approx(0.));
+        CHECK(cost_fns.at(0)({goal, frame}) == Catch::Approx(0.0).margin(1e-15));
     }
 
     SECTION("Second goal, tests second frame") {
         auto const cost_fns = pick_ik::make_pose_cost_functions({goal, frame}, rotation_scale);
-        CHECK(cost_fns.at(1)({goal, frame}) == Catch::Approx(0.));
+        CHECK(cost_fns.at(1)({goal, frame}) == Catch::Approx(0.0).margin(1e-15));
     }
 }

@@ -1,4 +1,3 @@
-#include <pick_ik/frame.hpp>
 #include <pick_ik/robot.hpp>
 
 #include <tf2_eigen/tf2_eigen.hpp>
@@ -9,6 +8,7 @@
 #include <cfloat>
 #include <cmath>
 #include <fmt/core.h>
+#include <limits>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
 
@@ -46,8 +46,8 @@ auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
         var.min = bounds.min_position_;
         var.max = bounds.max_position_;
 
-        var.clip_min = bounded ? var.min : -DBL_MAX;
-        var.clip_max = bounded ? var.max : +DBL_MAX;
+        var.clip_min = bounded ? var.min : std::numeric_limits<double>::lowest();
+        var.clip_max = bounded ? var.max : std::numeric_limits<double>::max();
 
         var.span = var.max - var.min;
 
@@ -136,13 +136,14 @@ auto get_variables(moveit::core::RobotState const& robot_state) -> std::vector<d
 
 auto transform_poses_to_frames(moveit::core::RobotState const& robot_state,
                                std::vector<geometry_msgs::msg::Pose> const& poses,
-                               std::string const& base_frame_name) -> std::vector<Frame> {
-    auto frames = std::vector<Frame>{};
+                               std::string const& base_frame_name)
+    -> std::vector<Eigen::Isometry3d> {
+    auto frames = std::vector<Eigen::Isometry3d>{};
     std::transform(poses.cbegin(), poses.cend(), std::back_inserter(frames), [&](auto const& pose) {
-        Eigen::Isometry3d p, r;
+        Eigen::Isometry3d p;
         tf2::fromMsg(pose, p);
-        r = robot_state.getGlobalLinkTransform(base_frame_name);
-        return Frame::from(r * p);
+        auto const r = robot_state.getGlobalLinkTransform(base_frame_name);
+        return (r * p);
     });
     return frames;
 }

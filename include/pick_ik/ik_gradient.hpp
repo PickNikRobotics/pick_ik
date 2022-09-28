@@ -1,6 +1,5 @@
 #pragma once
 
-#include <pick_ik/frame.hpp>
 #include <pick_ik/goal.hpp>
 #include <pick_ik/robot.hpp>
 

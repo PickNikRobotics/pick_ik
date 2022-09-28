@@ -1,9 +1,9 @@
 #pragma once
 
 #include <pick_ik/fk_moveit.hpp>
-#include <pick_ik/frame.hpp>
 #include <pick_ik/robot.hpp>
 
+#include <Eigen/Geometry>
 #include <functional>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/robot_model/joint_model_group.h>
@@ -13,15 +13,15 @@
 
 namespace pick_ik {
 
-// Test if a frame satisfies a goal
-using FrameTestFn = std::function<bool(Frame const& tip_frame)>;
-auto make_frame_tests(std::vector<Frame> goal_frames, double twist_threshold)
+using FrameTestFn = std::function<bool(Eigen::Isometry3d const& tip_frame)>;
+auto make_frame_tests(std::vector<Eigen::Isometry3d> goal_frames, double twist_threshold)
     -> std::vector<FrameTestFn>;
 
-using PoseCostFn = std::function<double(std::vector<Frame> const& tip_frames)>;
-auto make_pose_cost_fn(Frame goal, size_t goal_link_index, double rotation_scale) -> PoseCostFn;
+using PoseCostFn = std::function<double(std::vector<Eigen::Isometry3d> const& tip_frames)>;
+auto make_pose_cost_fn(Eigen::Isometry3d goal, size_t goal_link_index, double rotation_scale)
+    -> PoseCostFn;
 
-auto make_pose_cost_functions(std::vector<Frame> goal_frames, double rotation_scale)
+auto make_pose_cost_functions(std::vector<Eigen::Isometry3d> goal_frames, double rotation_scale)
     -> std::vector<PoseCostFn>;
 
 // Goal Function type
