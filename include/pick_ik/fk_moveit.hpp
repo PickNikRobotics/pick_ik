@@ -13,6 +13,6 @@ using FkFn = std::function<std::vector<Eigen::Isometry3d>(std::vector<double> co
 
 auto make_fk_fn(std::shared_ptr<moveit::core::RobotModel const> robot_model,
                 moveit::core::JointModelGroup const* jmg,
-                std::vector<size_t> tip_link_indexes) -> FkFn;
+                std::vector<size_t> tip_link_indices) -> FkFn;
 
 }  // namespace pick_ik

@@ -16,18 +16,18 @@ namespace pick_ik {
 
 auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
                  moveit::core::JointModelGroup const* jmg,
-                 std::vector<size_t> tip_link_indexes) -> Robot {
+                 std::vector<size_t> tip_link_indices) -> Robot {
     auto robot = Robot{};
 
     // jmg_->getKinematicsSolverJointBijection();
-    auto const active_variable_indexes = get_active_variable_indexes(model, jmg, tip_link_indexes);
-    auto const variable_count = active_variable_indexes.size();
+    auto const active_variable_indices = get_active_variable_indices(model, jmg, tip_link_indices);
+    auto const variable_count = active_variable_indices.size();
 
     auto const& names = model->getVariableNames();
 
     auto minimal_displacement_divisor = 0.0;
 
-    for (auto ivar : active_variable_indexes) {
+    for (auto ivar : active_variable_indices) {
         auto const& name = names.at(ivar);
         auto const& bounds = model->getVariableBounds(name);
 
@@ -72,30 +72,30 @@ auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
     return robot;
 }
 
-auto get_link_indexes(std::shared_ptr<moveit::core::RobotModel const> const& model,
+auto get_link_indices(std::shared_ptr<moveit::core::RobotModel const> const& model,
                       std::vector<std::string> const& names)
     -> tl::expected<std::vector<size_t>, std::string> {
-    auto indexes = std::vector<size_t>();
+    auto indices = std::vector<size_t>();
     for (auto const& name : names) {
         auto const* link_model = model->getLinkModel(name);
         if (!link_model) {
             return tl::make_unexpected(fmt::format("link not found: {}", name));
         }
-        indexes.push_back(link_model->getLinkIndex());
+        indices.push_back(link_model->getLinkIndex());
     }
 
-    return indexes;
+    return indices;
 }
 
-auto get_active_variable_indexes(std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
+auto get_active_variable_indices(std::shared_ptr<moveit::core::RobotModel const> const& robot_model,
                                  moveit::core::JointModelGroup const* jmg,
-                                 std::vector<size_t> const& tip_link_indexes)
+                                 std::vector<size_t> const& tip_link_indices)
     -> std::vector<size_t> {
     // Walk the tree of links starting at each tip towards the parent
     // The parent joint of each of these links are the ones we are using
     auto joint_usage = std::vector<int>{};
     joint_usage.resize(robot_model->getJointModelCount(), 0);
-    for (auto tip_index : tip_link_indexes) {
+    for (auto tip_index : tip_link_indices) {
         for (auto const* link_model = robot_model->getLinkModels().at(tip_index);
              link_model != nullptr;
              link_model = link_model->getParentLinkModel()) {
@@ -117,14 +117,14 @@ auto get_active_variable_indexes(std::shared_ptr<moveit::core::RobotModel const>
         }
     }
 
-    // For each active variable name, add the indexes from that variable to the
+    // For each active variable name, add the indices from that variable to the
     // active variables
-    auto active_variable_indexes = std::vector<size_t>{};
+    auto active_variable_indices = std::vector<size_t>{};
     for (auto const& name : active_variable_names) {
-        active_variable_indexes.push_back(robot_model->getVariableIndex(name));
+        active_variable_indices.push_back(robot_model->getVariableIndex(name));
     }
 
-    return active_variable_indexes;
+    return active_variable_indices;
 }
 
 auto get_variables(moveit::core::RobotState const& robot_state) -> std::vector<double> {

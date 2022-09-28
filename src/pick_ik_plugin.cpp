@@ -25,7 +25,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
 
     std::vector<std::string> joint_names_;
     std::vector<std::string> link_names_;
-    std::vector<size_t> tip_link_indexes_;
+    std::vector<size_t> tip_link_indices_;
     Robot robot_;
 
    public:
@@ -79,11 +79,11 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         link_names_ = tip_frames_;
 
         // Create our internal Robot object from the robot model
-        tip_link_indexes_ =
-            get_link_indexes(robot_model_, tip_frames_)
+        tip_link_indices_ =
+            get_link_indices(robot_model_, tip_frames_)
                 .or_else([](auto const& error) { throw std::invalid_argument(error); })
                 .value();
-        robot_ = Robot::from(robot_model_, jmg_, tip_link_indexes_);
+        robot_ = Robot::from(robot_model_, jmg_, tip_link_indices_);
 
         return true;
     }
@@ -120,7 +120,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             make_pose_cost_functions(goal_frames, params.rotation_scale);
 
         // forward kinematics function
-        auto const fk_fn = make_fk_fn(robot_model_, jmg_, tip_link_indexes_);
+        auto const fk_fn = make_fk_fn(robot_model_, jmg_, tip_link_indices_);
 
         // Create goals (weighted cost functions)
         auto goals = std::vector<Goal>{};
