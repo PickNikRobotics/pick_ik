@@ -1,11 +1,10 @@
 #include <pick_ik/fk_moveit.hpp>
-#include <pick_ik/frame.hpp>
 #include <pick_ik/goal.hpp>
 #include <pick_ik/robot.hpp>
 
-#include <Eigen/Geometry>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_model/robot_model.h>
@@ -15,36 +14,13 @@
 
 namespace pick_ik {
 
-auto make_frame_test_fn(Eigen::Affine3d goal_frame, double twist_threshold) -> FrameTestFnEigen {
+auto make_frame_test_fn(Eigen::Affine3d goal_frame, double twist_threshold) -> FrameTestFn {
     return [=](Eigen::Affine3d const& tip_frame) -> bool {
         return goal_frame.isApprox(tip_frame, twist_threshold);
     };
 }
 
 auto make_frame_tests(std::vector<Eigen::Affine3d> goal_frames, double twist_threshold)
-    -> std::vector<FrameTestFnEigen> {
-    auto tests = std::vector<FrameTestFnEigen>{};
-    std::transform(goal_frames.cbegin(),
-                   goal_frames.cend(),
-                   std::back_inserter(tests),
-                   [&](auto const& frame) { return make_frame_test_fn(frame, twist_threshold); });
-    return tests;
-}
-
-auto make_frame_test_fn(Frame goal_frame, double twist_threshold) -> FrameTestFn {
-    return [=](Frame const& tip_frame) -> bool {
-        auto goal_kdl = to_KDL(goal_frame);
-        auto tip_kdl = to_KDL(tip_frame);
-        KDL::Twist kdl_diff(goal_kdl.M.Inverse() * KDL::diff(goal_kdl.p, tip_kdl.p),
-                            goal_kdl.M.Inverse() * KDL::diff(goal_kdl.M, tip_kdl.M));
-        if (!KDL::Equal(kdl_diff, KDL::Twist::Zero(), twist_threshold)) {
-            return false;
-        }
-        return true;
-    };
-}
-
-auto make_frame_tests(std::vector<Frame> goal_frames, double twist_threshold)
     -> std::vector<FrameTestFn> {
     auto tests = std::vector<FrameTestFn>{};
     std::transform(goal_frames.cbegin(),
@@ -54,23 +30,8 @@ auto make_frame_tests(std::vector<Frame> goal_frames, double twist_threshold)
     return tests;
 }
 
-auto make_pose_cost_fn(Frame goal, size_t goal_link_index, double rotation_scale) -> PoseCostFn {
-    if (rotation_scale > 0.0) {
-        return [=](std::vector<Frame> const& tip_frames) -> double {
-            auto const& frame = tip_frames[goal_link_index];
-            return frame.pos.distance2(goal.pos) +
-                   std::fmin((frame.rot - goal.rot).length2(), (frame.rot + goal.rot).length2()) *
-                       std::pow(rotation_scale, 2);
-        };
-    }
-    return [=](std::vector<Frame> const& tip_frames) -> double {
-        auto const& frame = tip_frames[goal_link_index];
-        return frame.pos.distance2(goal.pos);
-    };
-}
-
 auto make_pose_cost_fn(Eigen::Affine3d goal, size_t goal_link_index, double rotation_scale)
-    -> PoseCostFnEigen {
+    -> PoseCostFn {
     if (rotation_scale > 0.0) {
         auto const q_goal = Eigen::Quaterniond(goal.rotation());
         return [=](std::vector<Eigen::Affine3d> const& tip_frames) -> double {
@@ -86,18 +47,9 @@ auto make_pose_cost_fn(Eigen::Affine3d goal, size_t goal_link_index, double rota
     };
 }
 
-auto make_pose_cost_functions(std::vector<Frame> goal_frames, double rotation_scale)
+auto make_pose_cost_functions(std::vector<Eigen::Affine3d> goal_frames, double rotation_scale)
     -> std::vector<PoseCostFn> {
     auto cost_functions = std::vector<PoseCostFn>{};
-    for (size_t i = 0; i < goal_frames.size(); ++i) {
-        cost_functions.push_back(make_pose_cost_fn(goal_frames[i], i, rotation_scale));
-    }
-    return cost_functions;
-}
-
-auto make_pose_cost_functions(std::vector<Eigen::Affine3d> goal_frames, double rotation_scale)
-    -> std::vector<PoseCostFnEigen> {
-    auto cost_functions = std::vector<PoseCostFnEigen>{};
     for (size_t i = 0; i < goal_frames.size(); ++i) {
         cost_functions.push_back(make_pose_cost_fn(goal_frames[i], i, rotation_scale));
     }
@@ -110,7 +62,7 @@ auto make_center_joints_cost_fn(Robot robot) -> CostFn {
         assert(robot.variables.size() == active_positions.size());
         for (size_t i = 0; i < active_positions.size(); ++i) {
             auto const& variable = robot.variables[i];
-            if (variable.clip_max == DBL_MAX) {
+            if (variable.clip_max == std::numeric_limits<double>::max()) {
                 continue;
             }
 
@@ -129,7 +81,7 @@ auto make_avoid_joint_limits_cost_fn(Robot robot) -> CostFn {
         assert(robot.variables.size() == active_positions.size());
         for (size_t i = 0; i < active_positions.size(); ++i) {
             auto const& variable = robot.variables[i];
-            if (variable.clip_max == DBL_MAX) {
+            if (variable.clip_max == std::numeric_limits<double>::max()) {
                 continue;
             }
 

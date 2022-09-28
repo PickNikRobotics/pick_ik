@@ -1,9 +1,8 @@
 #pragma once
 
-#include <pick_ik/frame.hpp>
-
 #include <tl_expected/expected.hpp>
 
+#include <Eigen/Geometry>
 #include <moveit/robot_model/joint_model.h>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_model/robot_model.h>
@@ -45,6 +44,6 @@ auto get_variables(moveit::core::RobotState const& robot_state) -> std::vector<d
 
 auto transform_poses_to_frames(moveit::core::RobotState const& robot_state,
                                std::vector<geometry_msgs::msg::Pose> const& poses,
-                               std::string const& base_frame_name) -> std::vector<Frame>;
+                               std::string const& base_frame_name) -> std::vector<Eigen::Affine3d>;
 
 }  // namespace pick_ik

@@ -1,5 +1,4 @@
 #include <pick_ik/forward_kinematics.hpp>
-#include <pick_ik/frame.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -28,25 +27,24 @@ auto make_joint_axes(std::shared_ptr<moveit::core::RobotModel const> const& mode
 }
 
 auto make_link_frames(std::shared_ptr<moveit::core::RobotModel const> const& model)
-    -> std::vector<Frame> {
-    std::vector<Frame> link_frames;
-    std::transform(
-        model->getLinkModels().cbegin(),
-        model->getLinkModels().cend(),
-        link_frames.begin(),
-        [](auto* link_model) { return Frame::from(link_model->getJointOriginTransform()); });
+    -> std::vector<Eigen::Affine3d> {
+    std::vector<Eigen::Affine3d> link_frames;
+    std::transform(model->getLinkModels().cbegin(),
+                   model->getLinkModels().cend(),
+                   link_frames.begin(),
+                   [](auto* link_model) { return link_model->getJointOriginTransform(); });
     return link_frames;
 }
 
 auto get_frame(moveit::core::JointModel const& joint_model,
                std::vector<double> const& variables,
-               std::vector<tf2::Vector3> const& joint_axes) -> Frame {
+               std::vector<tf2::Vector3> const& joint_axes) -> Eigen::Affine3d {
     auto const type = joint_model.getType();
     size_t const index = joint_model.getJointIndex();
 
     switch (type) {
         case moveit::core::JointModel::FIXED:
-            return Frame::identity();
+            return Eigen::Affine3d::Identity();
         case moveit::core::JointModel::REVOLUTE: {
             auto const axis = joint_axes.at(index);
             auto const v = variables.at(joint_model.getFirstVariableIndex());
@@ -54,21 +52,20 @@ auto get_frame(moveit::core::JointModel const& joint_model,
             auto const fcos = cos(half_angle);
             auto const fsin = sin(half_angle);
 
-            return Frame{tf2::Vector3(0.0, 0.0, 0.0),
-                         tf2::Quaternion(axis.x() * fsin, axis.y() * fsin, axis.z() * fsin, fcos)};
+            return Eigen::Affine3d(
+                Eigen::Quaterniond(fcos, axis.x() * fsin, axis.y() * fsin, axis.z() * fsin));
         }
         case moveit::core::JointModel::PRISMATIC: {
             auto const axis = joint_axes.at(index);
             auto const v = variables.at(joint_model.getFirstVariableIndex());
-            return Frame{axis * v, tf2::Quaternion(0.0, 0.0, 0.0, 1.0)};
+            return Eigen::Affine3d(Eigen::Translation3d(axis.x() * v, axis.y() * v, axis.z() * v));
         }
         case moveit::core::JointModel::FLOATING: {
             assert(joint_model.getFirstVariableIndex() + 6 >= variables.size());
             auto const* vv = variables.data() + joint_model.getFirstVariableIndex();
-            return Frame{
-                tf2::Vector3(vv[0], vv[1], vv[2]),
-                tf2::Quaternion(vv[3], vv[4], vv[5], vv[6]).normalized(),
-            };
+            // Note that Eigen uses (w, x, y, z) for quaternion notation.
+            return Eigen::Translation3d(vv[0], vv[1], vv[2]) *
+                   Eigen::Quaterniond(vv[6], vv[3], vv[4], vv[5]);
         }
         case moveit::core::JointModel::PLANAR:
         case moveit::core::JointModel::UNKNOWN:
@@ -78,11 +75,11 @@ auto get_frame(moveit::core::JointModel const& joint_model,
     auto const* joint_variables = variables.data() + joint_model.getFirstVariableIndex();
     Eigen::Isometry3d joint_transform;
     joint_model.computeTransform(joint_variables, joint_transform);
-    return Frame::from(joint_transform);
+    return joint_transform;
 }
 
-auto get_frame(moveit::core::LinkModel const& link_model, std::vector<Frame> const& link_frames)
-    -> Frame {
+auto get_frame(moveit::core::LinkModel const& link_model,
+               std::vector<Eigen::Affine3d> const& link_frames) -> Eigen::Affine3d {
     return link_frames.at(link_model.getLinkIndex());
 }
 
@@ -104,7 +101,7 @@ auto has_joint_moved(moveit::core::JointModel const& joint_model,
 auto get_frame(CachedJointFrames& cache,
                moveit::core::JointModel const& joint_model,
                std::vector<double> const& variables,
-               std::vector<tf2::Vector3> const& joint_axes) -> Frame {
+               std::vector<tf2::Vector3> const& joint_axes) -> Eigen::Affine3d {
     size_t const index = joint_model.getJointIndex();
 
     if (!has_joint_moved(joint_model, cache.variables, variables)) {
