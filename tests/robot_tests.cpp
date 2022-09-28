@@ -82,7 +82,7 @@ TEST_CASE("pick_ik::get_link_indices") {
     }
 }
 
-TEST_CASE("pick_ik::Robot::from") {
+TEST_CASE("pick_ik::Robot::from -- Simple RR Model") {
     auto const robot_model = make_rr_model();
     auto* const jmg = robot_model->getJointModelGroup("group");
     auto const tip_link_indices =
@@ -92,4 +92,17 @@ TEST_CASE("pick_ik::Robot::from") {
     auto const robot = pick_ik::Robot::from(robot_model, jmg, tip_link_indices);
 
     SECTION("RR robot has two joints") { CHECK(robot.variables.size() == 2); }
+}
+
+TEST_CASE("pick_ik::Robot::from -- Panda Model") {
+    using moveit::core::loadTestingRobotModel;
+    auto const robot_model = loadTestingRobotModel("panda");
+    auto* const jmg = robot_model->getJointModelGroup("panda_arm");
+    auto const tip_link_indices =
+        pick_ik::get_link_indices(robot_model, {"panda_hand"})
+            .or_else([](auto const& error) { throw std::invalid_argument(error); })
+            .value();
+    auto const robot = pick_ik::Robot::from(robot_model, jmg, tip_link_indices);
+
+    SECTION("Panda has seven joints") { CHECK(robot.variables.size() == 7); }
 }
