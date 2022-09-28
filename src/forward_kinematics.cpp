@@ -27,8 +27,8 @@ auto make_joint_axes(std::shared_ptr<moveit::core::RobotModel const> const& mode
 }
 
 auto make_link_frames(std::shared_ptr<moveit::core::RobotModel const> const& model)
-    -> std::vector<Eigen::Affine3d> {
-    std::vector<Eigen::Affine3d> link_frames;
+    -> std::vector<Eigen::Isometry3d> {
+    std::vector<Eigen::Isometry3d> link_frames;
     std::transform(model->getLinkModels().cbegin(),
                    model->getLinkModels().cend(),
                    link_frames.begin(),
@@ -38,13 +38,13 @@ auto make_link_frames(std::shared_ptr<moveit::core::RobotModel const> const& mod
 
 auto get_frame(moveit::core::JointModel const& joint_model,
                std::vector<double> const& variables,
-               std::vector<tf2::Vector3> const& joint_axes) -> Eigen::Affine3d {
+               std::vector<tf2::Vector3> const& joint_axes) -> Eigen::Isometry3d {
     auto const type = joint_model.getType();
     size_t const index = joint_model.getJointIndex();
 
     switch (type) {
         case moveit::core::JointModel::FIXED:
-            return Eigen::Affine3d::Identity();
+            return Eigen::Isometry3d::Identity();
         case moveit::core::JointModel::REVOLUTE: {
             auto const axis = joint_axes.at(index);
             auto const v = variables.at(joint_model.getFirstVariableIndex());
@@ -52,13 +52,14 @@ auto get_frame(moveit::core::JointModel const& joint_model,
             auto const fcos = cos(half_angle);
             auto const fsin = sin(half_angle);
 
-            return Eigen::Affine3d(
+            return Eigen::Isometry3d(
                 Eigen::Quaterniond(fcos, axis.x() * fsin, axis.y() * fsin, axis.z() * fsin));
         }
         case moveit::core::JointModel::PRISMATIC: {
             auto const axis = joint_axes.at(index);
             auto const v = variables.at(joint_model.getFirstVariableIndex());
-            return Eigen::Affine3d(Eigen::Translation3d(axis.x() * v, axis.y() * v, axis.z() * v));
+            return Eigen::Isometry3d(
+                Eigen::Translation3d(axis.x() * v, axis.y() * v, axis.z() * v));
         }
         case moveit::core::JointModel::FLOATING: {
             assert(joint_model.getFirstVariableIndex() + 6 >= variables.size());
@@ -79,7 +80,7 @@ auto get_frame(moveit::core::JointModel const& joint_model,
 }
 
 auto get_frame(moveit::core::LinkModel const& link_model,
-               std::vector<Eigen::Affine3d> const& link_frames) -> Eigen::Affine3d {
+               std::vector<Eigen::Isometry3d> const& link_frames) -> Eigen::Isometry3d {
     return link_frames.at(link_model.getLinkIndex());
 }
 
@@ -101,7 +102,7 @@ auto has_joint_moved(moveit::core::JointModel const& joint_model,
 auto get_frame(CachedJointFrames& cache,
                moveit::core::JointModel const& joint_model,
                std::vector<double> const& variables,
-               std::vector<tf2::Vector3> const& joint_axes) -> Eigen::Affine3d {
+               std::vector<tf2::Vector3> const& joint_axes) -> Eigen::Isometry3d {
     size_t const index = joint_model.getJointIndex();
 
     if (!has_joint_moved(joint_model, cache.variables, variables)) {

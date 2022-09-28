@@ -8,7 +8,7 @@
 
 TEST_CASE("pick_ik::make_frame_tests") {
     auto const epsilon = 0.00001;
-    Eigen::Affine3d const zero_frame =
+    Eigen::Isometry3d const zero_frame =
         Eigen::Translation3d(0.0, 0.0, 0.0) * Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
 
     SECTION("One goal, one test") {
@@ -22,15 +22,15 @@ TEST_CASE("pick_ik::make_frame_tests") {
     }
 
     SECTION("Goal is almost frame, but not quite") {
-        Eigen::Affine3d const frame = Eigen::Translation3d(epsilon, epsilon, epsilon) *
-                                      Eigen::Quaterniond(1 - epsilon, 0.0, 0.0, epsilon);
+        Eigen::Isometry3d const frame = Eigen::Translation3d(epsilon, epsilon, epsilon) *
+                                        Eigen::Quaterniond(1 - epsilon, 0.0, 0.0, epsilon);
 
         auto const test_fns = pick_ik::make_frame_tests({zero_frame}, epsilon);
         CHECK(test_fns.at(0)({frame}) == false);
     }
 
     SECTION("Goal is almost frame, within threshold") {
-        Eigen::Affine3d const frame =
+        Eigen::Isometry3d const frame =
             Eigen::Translation3d(0.0, 0.000009, 0.0) * Eigen::Quaterniond(0.9999, 0.0, 0.0, 0.0);
 
         auto const test_fns = pick_ik::make_frame_tests({zero_frame}, epsilon);
@@ -44,17 +44,17 @@ TEST_CASE("pick_ik::make_frame_tests") {
 }
 
 TEST_CASE("pick_ik::make_pose_cost_fn") {
-    Eigen::Affine3d const zero_frame =
+    Eigen::Isometry3d const zero_frame =
         Eigen::Translation3d(0.0, 0.0, 0.0) * Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
-    Eigen::Affine3d const translate_y2_frame =
+    Eigen::Isometry3d const translate_y2_frame =
         Eigen::Translation3d(0.0, 2.0, 0.0) * Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
-    Eigen::Affine3d const translate_xy1_frame =
+    Eigen::Isometry3d const translate_xy1_frame =
         Eigen::Translation3d(1.0, 1.0, 0.0) * Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
-    Eigen::Affine3d const translate_xyz1_frame =
+    Eigen::Isometry3d const translate_xyz1_frame =
         Eigen::Translation3d(1.0, 1.0, 1.0) * Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
-    Eigen::Affine3d const rotate_x1_frame =
+    Eigen::Isometry3d const rotate_x1_frame =
         Eigen::Translation3d(0.0, 0.0, 0.0) * Eigen::AngleAxisd(1.0, Eigen::Vector3d::UnitX());
-    Eigen::Affine3d const rotate_y2_frame =
+    Eigen::Isometry3d const rotate_y2_frame =
         Eigen::Translation3d(0.0, 0.0, 0.0) * Eigen::AngleAxisd(2.0, Eigen::Vector3d::UnitY());
 
     SECTION("Goal is frame") {
@@ -128,7 +128,7 @@ TEST_CASE("pick_ik::make_pose_cost_fn") {
                                                0.9239557003781338,
                                                -0.38249949508300274,
                                                1.324932598914536e-12);
-        Eigen::Affine3d const goal =
+        Eigen::Isometry3d const goal =
             Eigen::Translation3d(0.3548182547092438, -0.04776066541671753, 0.5902695655822754) *
             q_goal;
 
@@ -136,7 +136,7 @@ TEST_CASE("pick_ik::make_pose_cost_fn") {
                                                 0.9163043570028795,
                                                 -0.40044067474764505,
                                                 -0.004762331364117075);
-        Eigen::Affine3d const frame =
+        Eigen::Isometry3d const frame =
             Eigen::Translation3d(0.3363926217416014, -0.043807946580255344, 0.5864240526436293) *
             q_frame;
 
@@ -155,7 +155,7 @@ TEST_CASE("pick_ik::make_pose_cost_fn") {
                                                0.9239557003781338,
                                                -0.38249949508300274,
                                                1.324932598914536e-12);
-        Eigen::Affine3d const goal =
+        Eigen::Isometry3d const goal =
             Eigen::Translation3d(0.3327501714229584, -0.025710120797157288, 0.5902695655822754) *
             q_goal;
 
@@ -163,7 +163,7 @@ TEST_CASE("pick_ik::make_pose_cost_fn") {
                                                 0.9239554647443051,
                                                 -0.38250006378889556,
                                                 1.925047999919496e-05);
-        Eigen::Affine3d const frame =
+        Eigen::Isometry3d const frame =
             Eigen::Translation3d(0.3327318727877646, -0.02570328270961634, 0.5900141633600922) *
             q_frame;
 
@@ -179,13 +179,13 @@ TEST_CASE("pick_ik::make_pose_cost_fn") {
 }
 
 TEST_CASE("pick_ik::make_pose_cost_functions") {
-    Eigen::Affine3d const goal =
+    Eigen::Isometry3d const goal =
         Eigen::Translation3d(0.3327501714229584, -0.025710120797157288, 0.5902695655822754) *
         Eigen::Quaterniond(3.2004117980888137e-12,
                            0.9239557003781338,
                            -0.38249949508300274,
                            1.324932598914536e-12);
-    Eigen::Affine3d const frame =
+    Eigen::Isometry3d const frame =
         Eigen::Translation3d(0.3327318727877646, -0.02570328270961634, 0.5900141633600922) *
         Eigen::Quaterniond(2.1223489422435532e-07,
                            0.9239554647443051,

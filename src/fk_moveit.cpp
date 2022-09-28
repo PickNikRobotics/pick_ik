@@ -21,7 +21,7 @@ auto make_fk_fn(std::shared_ptr<moveit::core::RobotModel const> robot_model,
         robot_state.setJointGroupPositions(jmg, active_positions);
         robot_state.updateLinkTransforms();
 
-        std::vector<Eigen::Affine3d> tip_frames;
+        std::vector<Eigen::Isometry3d> tip_frames;
         std::transform(tip_link_indexes.cbegin(),
                        tip_link_indexes.cend(),
                        std::back_inserter(tip_frames),

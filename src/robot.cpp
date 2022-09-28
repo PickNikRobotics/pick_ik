@@ -136,12 +136,13 @@ auto get_variables(moveit::core::RobotState const& robot_state) -> std::vector<d
 
 auto transform_poses_to_frames(moveit::core::RobotState const& robot_state,
                                std::vector<geometry_msgs::msg::Pose> const& poses,
-                               std::string const& base_frame_name) -> std::vector<Eigen::Affine3d> {
-    auto frames = std::vector<Eigen::Affine3d>{};
+                               std::string const& base_frame_name)
+    -> std::vector<Eigen::Isometry3d> {
+    auto frames = std::vector<Eigen::Isometry3d>{};
     std::transform(poses.cbegin(), poses.cend(), std::back_inserter(frames), [&](auto const& pose) {
-        Eigen::Affine3d p;
+        Eigen::Isometry3d p;
         tf2::fromMsg(pose, p);
-        Eigen::Affine3d const r = robot_state.getGlobalLinkTransform(base_frame_name);
+        auto const r = robot_state.getGlobalLinkTransform(base_frame_name);
         return (r * p);
     });
     return frames;

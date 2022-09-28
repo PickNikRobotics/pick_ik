@@ -44,6 +44,7 @@ auto get_variables(moveit::core::RobotState const& robot_state) -> std::vector<d
 
 auto transform_poses_to_frames(moveit::core::RobotState const& robot_state,
                                std::vector<geometry_msgs::msg::Pose> const& poses,
-                               std::string const& base_frame_name) -> std::vector<Eigen::Affine3d>;
+                               std::string const& base_frame_name)
+    -> std::vector<Eigen::Isometry3d>;
 
 }  // namespace pick_ik

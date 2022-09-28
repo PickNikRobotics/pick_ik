@@ -9,7 +9,7 @@
 
 namespace pick_ik {
 
-using FkFn = std::function<std::vector<Eigen::Affine3d>(std::vector<double> const&)>;
+using FkFn = std::function<std::vector<Eigen::Isometry3d>(std::vector<double> const&)>;
 
 auto make_fk_fn(std::shared_ptr<moveit::core::RobotModel const> robot_model,
                 moveit::core::JointModelGroup const* jmg,
