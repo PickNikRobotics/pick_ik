@@ -18,11 +18,22 @@ using FrameTestFn = std::function<bool(Frame const& tip_frame)>;
 auto make_frame_tests(std::vector<Frame> goal_frames, double twist_threshold)
     -> std::vector<FrameTestFn>;
 
+using FrameTestFnEigen = std::function<bool(Eigen::Affine3d const& tip_frame)>;
+auto make_frame_tests(std::vector<Eigen::Affine3d> goal_frames, double twist_threshold)
+    -> std::vector<FrameTestFnEigen>;
+
 using PoseCostFn = std::function<double(std::vector<Frame> const& tip_frames)>;
 auto make_pose_cost_fn(Frame goal, size_t goal_link_index, double rotation_scale) -> PoseCostFn;
 
+using PoseCostFnEigen = std::function<double(std::vector<Eigen::Affine3d> const& tip_frames)>;
+auto make_pose_cost_fn(Eigen::Affine3d goal, size_t goal_link_index, double rotation_scale)
+    -> PoseCostFnEigen;
+
 auto make_pose_cost_functions(std::vector<Frame> goal_frames, double rotation_scale)
     -> std::vector<PoseCostFn>;
+
+auto make_pose_cost_functions(std::vector<Eigen::Affine3d> goal_frames, double rotation_scale)
+    -> std::vector<PoseCostFnEigen>;
 
 // Goal Function type
 using CostFn = std::function<double(std::vector<double> const& active_positions)>;

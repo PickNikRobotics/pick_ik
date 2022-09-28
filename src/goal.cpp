@@ -3,6 +3,7 @@
 #include <pick_ik/goal.hpp>
 #include <pick_ik/robot.hpp>
 
+#include <Eigen/Geometry>
 #include <algorithm>
 #include <cmath>
 #include <moveit/kinematics_base/kinematics_base.h>
@@ -13,6 +14,22 @@
 #include <vector>
 
 namespace pick_ik {
+
+auto make_frame_test_fn(Eigen::Affine3d goal_frame, double twist_threshold) -> FrameTestFnEigen {
+    return [=](Eigen::Affine3d const& tip_frame) -> bool {
+        return goal_frame.isApprox(tip_frame, twist_threshold);
+    };
+}
+
+auto make_frame_tests(std::vector<Eigen::Affine3d> goal_frames, double twist_threshold)
+    -> std::vector<FrameTestFnEigen> {
+    auto tests = std::vector<FrameTestFnEigen>{};
+    std::transform(goal_frames.cbegin(),
+                   goal_frames.cend(),
+                   std::back_inserter(tests),
+                   [&](auto const& frame) { return make_frame_test_fn(frame, twist_threshold); });
+    return tests;
+}
 
 auto make_frame_test_fn(Frame goal_frame, double twist_threshold) -> FrameTestFn {
     return [=](Frame const& tip_frame) -> bool {
@@ -52,9 +69,35 @@ auto make_pose_cost_fn(Frame goal, size_t goal_link_index, double rotation_scale
     };
 }
 
+auto make_pose_cost_fn(Eigen::Affine3d goal, size_t goal_link_index, double rotation_scale)
+    -> PoseCostFnEigen {
+    if (rotation_scale > 0.0) {
+        auto const q_goal = Eigen::Quaterniond(goal.rotation());
+        return [=](std::vector<Eigen::Affine3d> const& tip_frames) -> double {
+            auto const& frame = tip_frames[goal_link_index];
+            auto const q_frame = Eigen::Quaterniond(frame.rotation());
+            return (goal.translation() - frame.translation()).squaredNorm() +
+                   std::pow(2.0 * std::acos(q_goal.dot(q_frame)) * rotation_scale, 2);
+        };
+    }
+    return [=](std::vector<Eigen::Affine3d> const& tip_frames) -> double {
+        auto const& frame = tip_frames[goal_link_index];
+        return (goal.translation() - frame.translation()).squaredNorm();
+    };
+}
+
 auto make_pose_cost_functions(std::vector<Frame> goal_frames, double rotation_scale)
     -> std::vector<PoseCostFn> {
     auto cost_functions = std::vector<PoseCostFn>{};
+    for (size_t i = 0; i < goal_frames.size(); ++i) {
+        cost_functions.push_back(make_pose_cost_fn(goal_frames[i], i, rotation_scale));
+    }
+    return cost_functions;
+}
+
+auto make_pose_cost_functions(std::vector<Eigen::Affine3d> goal_frames, double rotation_scale)
+    -> std::vector<PoseCostFnEigen> {
+    auto cost_functions = std::vector<PoseCostFnEigen>{};
     for (size_t i = 0; i < goal_frames.size(); ++i) {
         cost_functions.push_back(make_pose_cost_fn(goal_frames[i], i, rotation_scale));
     }
