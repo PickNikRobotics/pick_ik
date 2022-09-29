@@ -147,7 +147,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         auto const solution_fn =
             make_is_solution_test_fn(frame_tests, goals, params.cost_threshold, fk_fn);
 
-        // single function used by gradient decent to calculate cost of solution
+        // single function used by gradient descent to calculate cost of solution
         auto const cost_fn = make_cost_fn(pose_cost_functions, goals, fk_fn);
 
         // search for a solution
