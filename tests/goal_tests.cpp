@@ -44,7 +44,7 @@ TEST_CASE("pick_ik::make_frame_tests") {
     SECTION("Goal is frame, but orientation is different") {
         auto const zero_frame_rotated = Eigen::Translation3d(0.0, 0.0, 0.0) *
                                         Eigen::AngleAxisd(M_PI_4, Eigen::Vector3d::UnitZ());
-        
+
         // With rotation in frame test
         auto const test_fns = pick_ik::make_frame_tests({zero_frame}, epsilon, true);
         CHECK(test_fns.at(0)({zero_frame_rotated}) == false);
