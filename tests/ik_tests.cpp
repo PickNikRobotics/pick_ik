@@ -48,31 +48,31 @@ auto make_rr_model_for_ik() {
     return builder.build();
 }
 
-// TEST_CASE("RR model FK") {
-//     auto const robot_model = make_rr_model_for_ik();
+TEST_CASE("RR model FK") {
+    auto const robot_model = make_rr_model_for_ik();
 
-//     auto const jmg = robot_model->getJointModelGroup("group");
-//     auto const tip_link_indices = pick_ik::get_link_indices(robot_model, {"ee"}).value();
+    auto const jmg = robot_model->getJointModelGroup("group");
+    auto const tip_link_indices = pick_ik::get_link_indices(robot_model, {"ee"}).value();
 
-//     auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, tip_link_indices);
+    auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, tip_link_indices);
 
-//     SECTION("Zero joint position") {
-//         std::vector<double> const joint_vals = {0.0, 0.0};
-//         auto const result = fk_fn(joint_vals);
-//         CHECK(result[0].translation().x() == Catch::Approx(3.0));
-//         CHECK(result[0].translation().y() == Catch::Approx(0.0));
-//     }
+    SECTION("Zero joint position") {
+        std::vector<double> const joint_vals = {0.0, 0.0};
+        auto const result = fk_fn(joint_vals);
+        CHECK(result[0].translation().x() == Catch::Approx(3.0));
+        CHECK(result[0].translation().y() == Catch::Approx(0.0));
+    }
 
-//     SECTION("Non-zero joint position") {
-//         std::vector<double> const joint_vals = {M_PI_4, -M_PI_4};
-//         auto const expected_x = 2.0 * std::cos(M_PI_4) + 1.0;
-//         auto const expected_y = 2.0 * std::sin(M_PI_4);
+    SECTION("Non-zero joint position") {
+        std::vector<double> const joint_vals = {M_PI_4, -M_PI_4};
+        auto const expected_x = 2.0 * std::cos(M_PI_4) + 1.0;
+        auto const expected_y = 2.0 * std::sin(M_PI_4);
 
-//         auto const result = fk_fn(joint_vals);
-//         CHECK(result[0].translation().x() == Catch::Approx(expected_x).margin(0.001));
-//         CHECK(result[0].translation().y() == Catch::Approx(expected_y).margin(0.001));
-//     }
-// }
+        auto const result = fk_fn(joint_vals);
+        CHECK(result[0].translation().x() == Catch::Approx(expected_x).margin(0.001));
+        CHECK(result[0].translation().y() == Catch::Approx(expected_y).margin(0.001));
+    }
+}
 
 // Helper param struct and function to test IK solution.
 struct IkTestParams {
