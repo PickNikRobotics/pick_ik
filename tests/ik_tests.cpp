@@ -8,8 +8,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <Eigen/Geometry>
-#include <iostream>
 #include <cmath>
+#include <iostream>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/utils/robot_model_test_utils.h>
 
@@ -48,36 +48,36 @@ auto make_rr_model_for_ik() {
     return builder.build();
 }
 
-TEST_CASE("RR model FK") {
-    auto const robot_model = make_rr_model_for_ik();
+// TEST_CASE("RR model FK") {
+//     auto const robot_model = make_rr_model_for_ik();
 
-    auto const jmg = robot_model->getJointModelGroup("group");
-    auto const tip_link_indices = pick_ik::get_link_indices(robot_model, {"ee"}).value();
+//     auto const jmg = robot_model->getJointModelGroup("group");
+//     auto const tip_link_indices = pick_ik::get_link_indices(robot_model, {"ee"}).value();
 
-    auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, tip_link_indices);
+//     auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, tip_link_indices);
 
-    SECTION("Zero joint position") {
-        std::vector<double> const joint_vals = {0.0, 0.0};
-        auto const result = fk_fn(joint_vals);
-        CHECK(result[0].translation().x() == Catch::Approx(3.0));
-        CHECK(result[0].translation().y() == Catch::Approx(0.0));
-    }
+//     SECTION("Zero joint position") {
+//         std::vector<double> const joint_vals = {0.0, 0.0};
+//         auto const result = fk_fn(joint_vals);
+//         CHECK(result[0].translation().x() == Catch::Approx(3.0));
+//         CHECK(result[0].translation().y() == Catch::Approx(0.0));
+//     }
 
-    SECTION("Non-zero joint position") {
-        std::vector<double> const joint_vals = {M_PI_4, -M_PI_4};
-        auto const expected_x = 2.0 * std::cos(M_PI_4) + 1.0;
-        auto const expected_y = 2.0 * std::sin(M_PI_4);
+//     SECTION("Non-zero joint position") {
+//         std::vector<double> const joint_vals = {M_PI_4, -M_PI_4};
+//         auto const expected_x = 2.0 * std::cos(M_PI_4) + 1.0;
+//         auto const expected_y = 2.0 * std::sin(M_PI_4);
 
-        auto const result = fk_fn(joint_vals);
-        CHECK(result[0].translation().x() == Catch::Approx(expected_x).margin(0.001));
-        CHECK(result[0].translation().y() == Catch::Approx(expected_y).margin(0.001));
-    }
-}
+//         auto const result = fk_fn(joint_vals);
+//         CHECK(result[0].translation().x() == Catch::Approx(expected_x).margin(0.001));
+//         CHECK(result[0].translation().y() == Catch::Approx(expected_y).margin(0.001));
+//     }
+// }
 
 // Helper param struct and function to test IK solution.
 struct IkTestParams {
-    double twist_threshold = 0.001;
-    double cost_threshold = 0.001;
+    double twist_threshold = 0.0001;
+    double cost_threshold = 0.0001;
     double rotation_scale = 1.0;
     double timeout = 1.0;
     bool return_approximate_solution = false;
@@ -85,13 +85,14 @@ struct IkTestParams {
 
 auto solve_ik_test(moveit::core::RobotModelPtr robot_model,
                    std::string const group_name,
+                   std::string const goal_frame_name,
                    Eigen::Isometry3d const& goal_frame,
                    std::vector<double> const& initial_guess,
                    IkTestParams const& params = IkTestParams())
     -> std::optional<std::vector<double>> {
     // Make forward kinematics function
     auto const jmg = robot_model->getJointModelGroup(group_name);
-    auto const tip_link_indices = pick_ik::get_link_indices(robot_model, {"ee"}).value();
+    auto const tip_link_indices = pick_ik::get_link_indices(robot_model, {goal_frame_name}).value();
     auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, tip_link_indices);
 
     // Make solution function
@@ -129,7 +130,8 @@ TEST_CASE("RR model IK") {
         std::vector<double> const expected_joint_angles = {0.0, 0.0};
         std::vector<double> const initial_guess = {0.1, -0.1};
 
-        auto const maybe_solution = solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+        auto const maybe_solution =
+            solve_ik_test(robot_model, "group", "ee", goal_frame, initial_guess);
 
         REQUIRE(maybe_solution.has_value());
         CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
@@ -142,7 +144,8 @@ TEST_CASE("RR model IK") {
         std::vector<double> const expected_joint_angles = {0.0, 0.0};
         std::vector<double> const initial_guess = {M_PI_2, -M_PI_2};
 
-        auto const maybe_solution = solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+        auto const maybe_solution =
+            solve_ik_test(robot_model, "group", "ee", goal_frame, initial_guess);
 
         REQUIRE(maybe_solution.has_value());
         CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
@@ -156,7 +159,8 @@ TEST_CASE("RR model IK") {
         std::vector<double> const expected_joint_angles = {M_PI_4, M_PI_2};
         std::vector<double> const initial_guess = {M_PI_4 + 0.1, M_PI_2 - 0.1};
 
-        auto const maybe_solution = solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+        auto const maybe_solution =
+            solve_ik_test(robot_model, "group", "ee", goal_frame, initial_guess);
 
         REQUIRE(maybe_solution.has_value());
         CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
@@ -170,7 +174,8 @@ TEST_CASE("RR model IK") {
         std::vector<double> const expected_joint_angles = {M_PI_4, M_PI_2};
         std::vector<double> const initial_guess = {0.0, 0.0};
 
-        auto const maybe_solution = solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+        auto const maybe_solution =
+            solve_ik_test(robot_model, "group", "ee", goal_frame, initial_guess);
 
         REQUIRE(maybe_solution.has_value());
         CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
@@ -182,7 +187,8 @@ TEST_CASE("RR model IK") {
         std::vector<double> const expected_joint_angles = {0.0, 0.0};  // Doesn't matter
         std::vector<double> const initial_guess = {0.0, 0.0};
 
-        auto const maybe_solution = solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+        auto const maybe_solution =
+            solve_ik_test(robot_model, "group", "ee", goal_frame, initial_guess);
 
         CHECK(!maybe_solution.has_value());
     }
@@ -194,7 +200,8 @@ TEST_CASE("RR model IK") {
         std::vector<double> const expected_joint_angles = {0.0, 0.0};  // Doesn't matter
         std::vector<double> const initial_guess = {0.0, 0.0};
 
-        auto const maybe_solution = solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+        auto const maybe_solution =
+            solve_ik_test(robot_model, "group", "ee", goal_frame, initial_guess);
 
         CHECK(!maybe_solution.has_value());
     }
@@ -209,10 +216,64 @@ TEST_CASE("RR model IK") {
         params.rotation_scale = 0.0;
 
         auto const maybe_solution =
-            solve_ik_test(robot_model, "group", goal_frame, initial_guess, params);
+            solve_ik_test(robot_model, "group", "ee", goal_frame, initial_guess, params);
 
         CHECK(maybe_solution.has_value());
         CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
         CHECK(maybe_solution.value()[1] == Catch::Approx(expected_joint_angles[1]).margin(0.01));
+    }
+}
+
+TEST_CASE("Panda model IK") {
+    using moveit::core::loadTestingRobotModel;
+    auto const robot_model = loadTestingRobotModel("panda");
+
+    auto const jmg = robot_model->getJointModelGroup("panda_arm");
+    auto const tip_link_indices = pick_ik::get_link_indices(robot_model, {"panda_hand"}).value();
+    auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, tip_link_indices);
+
+    std::vector<double> const home_joint_angles =
+        {0.0, -M_PI_4, 0.0, -3.0 * M_PI_4, 0.0, M_PI_2, M_PI_4};
+
+    SECTION("Panda model IK at exact home values") {
+        auto const goal_frame = fk_fn(home_joint_angles)[0];
+        auto const initial_guess = home_joint_angles;
+        auto params = IkTestParams();
+        params.rotation_scale = 0.5;
+
+        auto const maybe_solution = solve_ik_test(robot_model,
+                                                  "panda_arm",
+                                                  "panda_hand",
+                                                  goal_frame,
+                                                  initial_guess,
+                                                  params);
+
+        REQUIRE(maybe_solution.has_value());
+        for (size_t i=0; i<7; ++i) {
+            CHECK(maybe_solution.value()[i] == Catch::Approx(home_joint_angles[i]).margin(0.01));
+        }
+    }
+
+    SECTION("Panda model IK at perturbed home values") {
+        std::vector<double> const actual_joint_angles =
+            {0.1, -M_PI_4 - 0.1, 0.1, -3.0 * M_PI_4 - 0.1, 0.1, M_PI_2 - 0.1, M_PI_4 + 0.1};
+        auto const goal_frame = fk_fn(actual_joint_angles)[0];
+
+        auto const initial_guess = home_joint_angles;
+        auto params = IkTestParams();
+        params.rotation_scale = 0.5;
+
+        auto const maybe_solution = solve_ik_test(robot_model,
+                                                  "panda_arm",
+                                                  "panda_hand",
+                                                  goal_frame,
+                                                  initial_guess,
+                                                  params);
+
+        REQUIRE(maybe_solution.has_value());
+        for (size_t i=0; i<7; ++i) {
+            // NOTE the extra tolerance...
+            CHECK(maybe_solution.value()[i] == Catch::Approx(actual_joint_angles[i]).margin(0.025));
+        }
     }
 }
