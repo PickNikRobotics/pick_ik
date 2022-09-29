@@ -9,6 +9,7 @@
 
 #include <Eigen/Geometry>
 #include <iostream>
+#include <math.h>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/utils/robot_model_test_utils.h>
 
@@ -29,14 +30,18 @@ auto make_rr_model_for_ik() {
     origin.orientation.w = 1.0;
 
     geometry_msgs::msg::Pose tform_x1;
-    tform_x1.position.x = 1.0;  // This is the length of each link.
+    tform_x1.position.x = 1.0;
     tform_x1.orientation.w = 1.0;
+
+    geometry_msgs::msg::Pose tform_x2;
+    tform_x2.position.x = 2.0;
+    tform_x2.orientation.w = 1.0;
 
     auto const z_axis = urdf::Vector3(0, 0, 1);
 
     // Build the actual robot chain.
     builder.addChain("base->a", "revolute", {origin}, z_axis);
-    builder.addChain("a->b", "revolute", {tform_x1}, z_axis);
+    builder.addChain("a->b", "revolute", {tform_x2}, z_axis);
     builder.addChain("b->ee", "fixed", {tform_x1});
     builder.addGroupChain("base", "ee", "group");
     CHECK(builder.isValid());
@@ -54,74 +59,168 @@ TEST_CASE("RR model FK") {
     SECTION("Zero joint position") {
         std::vector<double> const joint_vals = {0.0, 0.0};
         auto const result = fk_fn(joint_vals);
-        CHECK(result[0].translation().x() == Catch::Approx(2.0));
+        CHECK(result[0].translation().x() == Catch::Approx(3.0));
         CHECK(result[0].translation().y() == Catch::Approx(0.0));
     }
 
     SECTION("Non-zero joint position") {
-        auto constexpr PI_4 = 0.78539816339;
-        std::vector<double> const joint_vals = {PI_4, -PI_4};
+        std::vector<double> const joint_vals = {M_PI_4, -M_PI_4};
+        auto const expected_x = 2.0 * std::cos(M_PI_4) + 1.0;
+        auto const expected_y = 2.0 * std::sin(M_PI_4);
+
         auto const result = fk_fn(joint_vals);
-        CHECK(result[0].translation().x() == Catch::Approx(1.707).margin(0.001));
-        CHECK(result[0].translation().y() == Catch::Approx(0.707).margin(0.001));
+        CHECK(result[0].translation().x() == Catch::Approx(expected_x).margin(0.001));
+        CHECK(result[0].translation().y() == Catch::Approx(expected_y).margin(0.001));
     }
+}
+
+// Helper param struct and function to test IK solution.
+struct IkTestParams {
+    double twist_threshold = 0.001;
+    double cost_threshold = 0.001;
+    double rotation_scale = 1.0;
+    double timeout = 1.0;
+    bool return_approximate_solution = false;
+};
+
+auto solve_ik_test(moveit::core::RobotModelPtr robot_model,
+                   std::string const group_name,
+                   Eigen::Isometry3d const& goal_frame,
+                   std::vector<double> const& initial_guess,
+                   IkTestParams const& params = IkTestParams())
+    -> std::optional<std::vector<double>> {
+    // Make forward kinematics function
+    auto const jmg = robot_model->getJointModelGroup(group_name);
+    auto const tip_link_indices = pick_ik::get_link_indices(robot_model, {"ee"}).value();
+    auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, tip_link_indices);
+
+    // Make solution function
+    auto const frame_tests = pick_ik::make_frame_tests({goal_frame}, params.twist_threshold);
+    auto const cost_function =
+        kinematics::KinematicsBase::IKCostFn();  // What should be instantiated here?
+    std::vector<pick_ik::Goal> goals = {};       // TODO: Only works if empty.
+    auto const solution_fn =
+        pick_ik::make_is_solution_test_fn(frame_tests, goals, params.cost_threshold, fk_fn);
+
+    // CHECK(solution_fn({0.0, 0.0}) == true);         // Exact match (within floating point
+    // tolerance) CHECK(solution_fn({0.0001, -0.0001}) == true);  // Match within threshold
+    // CHECK(solution_fn({0.01, -0.01}) == false);     // Match outside threshold
+    // CHECK(solution_fn({1.5707, 0.0}) == false);     // Not a match
+
+    // Make pose cost function
+    auto const pose_cost_functions =
+        pick_ik::make_pose_cost_functions({goal_frame}, params.rotation_scale);
+    CHECK(pose_cost_functions.size() == 1);
+
+    // Solve IK
+    auto const robot = pick_ik::Robot::from(robot_model, jmg, tip_link_indices);
+    auto const cost_fn = pick_ik::make_cost_fn(pose_cost_functions, goals, fk_fn);
+    return pick_ik::ik_search(initial_guess,
+                              robot,
+                              cost_fn,
+                              solution_fn,
+                              params.timeout,
+                              params.return_approximate_solution);
 }
 
 TEST_CASE("RR model IK") {
     auto const robot_model = make_rr_model_for_ik();
-    auto const jmg = robot_model->getJointModelGroup("group");
-    auto const tip_link_indices = pick_ik::get_link_indices(robot_model, {"ee"}).value();
-    auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, tip_link_indices);
 
-    SECTION("Pose goal only") {
-        // Define goal frame and expected joint values.
+    SECTION("Zero joint angles with close initial guess") {
         Eigen::Isometry3d const goal_frame =
-            Eigen::Translation3d(2.0, 0.0, 0.0) * Eigen::AngleAxisd(0.0, Eigen::Vector3d::UnitZ());
-        const std::vector<double> expected_joint_angles = {0.0, 0.0};
+            Eigen::Translation3d(3.0, 0.0, 0.0) * Eigen::Quaterniond::Identity();
+        std::vector<double> const expected_joint_angles = {0.0, 0.0};
+        std::vector<double> const initial_guess = {0.1, -0.1};
 
-        // Make solution function
-        auto const twist_threshold = 0.001;
-        auto const frame_tests = pick_ik::make_frame_tests({goal_frame}, twist_threshold);
-        CHECK(frame_tests.size() == 1);
+        auto const maybe_solution =
+            solve_ik_test(robot_model, "group", goal_frame, initial_guess);
 
-        auto const cost_function = kinematics::KinematicsBase::IKCostFn();  // TODO
-
-        geometry_msgs::msg::Pose ik_pose;
-        ik_pose.position.x = 2.0;
-        ik_pose.orientation.w = 1.0;
-
-        auto const ik_seed_state = {0.1, -0.1};  // Initial guess
-        auto const cost_threshold = 0.001;
-        std::vector<pick_ik::Goal> goals = {};
-
-        auto const solution_fn =
-            pick_ik::make_is_solution_test_fn(frame_tests, goals, cost_threshold, fk_fn);
-
-        CHECK(solution_fn({0.0, 0.0}) == true);  // Exact match (within floating point tolerance)
-        CHECK(solution_fn({0.0001, -0.0001}) == true);  // Match within threshold
-        CHECK(solution_fn({0.01, -0.01}) == false);     // Match outside threshold
-        CHECK(solution_fn({1.5707, 0.0}) == false);     // Not a match
-
-        // Make pose cost function
-        auto const rotation_scale = 0.5;
-        auto const pose_cost_functions =
-            pick_ik::make_pose_cost_functions({goal_frame}, rotation_scale);
-        CHECK(pose_cost_functions.size() == 1);
-
-        // Solve IK
-        auto const robot = pick_ik::Robot::from(robot_model, jmg, tip_link_indices);
-        auto const cost_fn = pick_ik::make_cost_fn(pose_cost_functions, goals, fk_fn);
-
-        auto const timeout = 10.0;
-        auto const return_approx_solution = false;
-        auto const maybe_solution = pick_ik::ik_search(ik_seed_state,
-                                                       robot,
-                                                       cost_fn,
-                                                       solution_fn,
-                                                       timeout,
-                                                       return_approx_solution);
-        CHECK(maybe_solution);
+        REQUIRE(maybe_solution.has_value());
         CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
         CHECK(maybe_solution.value()[1] == Catch::Approx(expected_joint_angles[1]).margin(0.01));
     }
+
+    SECTION("Zero joint angles with far initial guess") {
+        Eigen::Isometry3d const goal_frame =
+            Eigen::Translation3d(3.0, 0.0, 0.0) * Eigen::Quaterniond::Identity();
+        std::vector<double> const expected_joint_angles = {0.0, 0.0};
+        std::vector<double> const initial_guess = {M_PI_2, -M_PI_2};
+
+        auto const maybe_solution =
+            solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+
+        REQUIRE(maybe_solution.has_value());
+        CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
+        CHECK(maybe_solution.value()[1] == Catch::Approx(expected_joint_angles[1]).margin(0.01));
+    }
+
+    SECTION("Nonzero joint angles with near initial guess") {
+        Eigen::Isometry3d const goal_frame =
+            Eigen::Translation3d(std::sin(M_PI_4), 3.0 * std::sin(M_PI_4), 0.0) *
+            Eigen::AngleAxisd(0.75 * M_PI, Eigen::Vector3d::UnitZ());
+        std::vector<double> const expected_joint_angles = {M_PI_4, M_PI_2};
+        std::vector<double> const initial_guess = {M_PI_4 + 0.1, M_PI_2 - 0.1};
+
+        auto const maybe_solution =
+            solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+
+        REQUIRE(maybe_solution.has_value());
+        CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
+        CHECK(maybe_solution.value()[1] == Catch::Approx(expected_joint_angles[1]).margin(0.01));
+    }
+
+    SECTION("Nonzero joint angles with far initial guess") {
+        Eigen::Isometry3d const goal_frame =
+            Eigen::Translation3d(std::sin(M_PI_4), 3.0 * std::sin(M_PI_4), 0.0) *
+            Eigen::AngleAxisd(0.75 * M_PI, Eigen::Vector3d::UnitZ());
+        std::vector<double> const expected_joint_angles = {M_PI_4, M_PI_2};
+        std::vector<double> const initial_guess = {0.0, 0.0};
+
+        auto const maybe_solution =
+            solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+
+        REQUIRE(maybe_solution.has_value());
+        CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
+        CHECK(maybe_solution.value()[1] == Catch::Approx(expected_joint_angles[1]).margin(0.01));
+    }
+
+    SECTION("Unreachable position") {
+        auto const goal_frame = Eigen::Isometry3d::Identity();
+        std::vector<double> const expected_joint_angles = {0.0, 0.0};  // Doesn't matter
+        std::vector<double> const initial_guess = {0.0, 0.0};
+
+        auto const maybe_solution =
+            solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+
+        CHECK(!maybe_solution.has_value());
+    }
+
+    SECTION("Reachable position, but not orientation") {
+        Eigen::Isometry3d const goal_frame =
+            Eigen::Translation3d(std::sin(M_PI_4), 3.0 * std::sin(M_PI_4), 0.0) *
+            Eigen::Quaterniond::Identity();
+        std::vector<double> const expected_joint_angles = {0.0, 0.0};  // Doesn't matter
+        std::vector<double> const initial_guess = {0.0, 0.0};
+
+        auto const maybe_solution =
+            solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+
+        CHECK(!maybe_solution.has_value());
+    }
+
+    // SECTION("Reachable position, but not orientation -- zero orientation scale") {
+    //     Eigen::Isometry3d const goal_frame =
+    //         Eigen::Translation3d(std::sin(M_PI_4), 3.0 * std::sin(M_PI_4), 0.0) *
+    //         Eigen::Quaterniond::Identity();
+    //     std::vector<double> const expected_joint_angles = {M_PI_4, -M_PI_2};  // Doesn't matter
+    //     std::vector<double> const initial_guess = {M_PI_4, -M_PI_2};
+    //     auto params = IkTestParams();
+    //     params.rotation_scale = 0.0;
+
+    //     auto const maybe_solution =
+    //         solve_ik_test(robot_model, "group", goal_frame, initial_guess, params);
+
+    //     CHECK(maybe_solution.has_value());
+    // }
+
 }
