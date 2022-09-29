@@ -249,7 +249,7 @@ TEST_CASE("Panda model IK") {
                                                   params);
 
         REQUIRE(maybe_solution.has_value());
-        for (size_t i=0; i<7; ++i) {
+        for (size_t i = 0; i < 7; ++i) {
             CHECK(maybe_solution.value()[i] == Catch::Approx(home_joint_angles[i]).margin(0.01));
         }
     }
@@ -271,7 +271,7 @@ TEST_CASE("Panda model IK") {
                                                   params);
 
         REQUIRE(maybe_solution.has_value());
-        for (size_t i=0; i<7; ++i) {
+        for (size_t i = 0; i < 7; ++i) {
             // NOTE the extra tolerance...
             CHECK(maybe_solution.value()[i] == Catch::Approx(actual_joint_angles[i]).margin(0.025));
         }
