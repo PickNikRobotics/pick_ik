@@ -13,10 +13,13 @@
 
 namespace pick_ik {
 
+// Frame equality tests
 using FrameTestFn = std::function<bool(Eigen::Isometry3d const& tip_frame)>;
-auto make_frame_tests(std::vector<Eigen::Isometry3d> goal_frames, double twist_threshold)
-    -> std::vector<FrameTestFn>;
+auto make_frame_tests(std::vector<Eigen::Isometry3d> goal_frames,
+                      double twist_threshold,
+                      bool test_rotation = true) -> std::vector<FrameTestFn>;
 
+// Pose cost functions
 using PoseCostFn = std::function<double(std::vector<Eigen::Isometry3d> const& tip_frames)>;
 auto make_pose_cost_fn(Eigen::Isometry3d goal, size_t goal_link_index, double rotation_scale)
     -> PoseCostFn;

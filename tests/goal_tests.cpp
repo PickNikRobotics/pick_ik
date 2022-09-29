@@ -8,8 +8,7 @@
 
 TEST_CASE("pick_ik::make_frame_tests") {
     auto const epsilon = 0.00001;
-    Eigen::Isometry3d const zero_frame =
-        Eigen::Translation3d(0.0, 0.0, 0.0) * Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
+    auto const zero_frame = Eigen::Isometry3d::Identity();
 
     SECTION("One goal, one test") {
         auto const test_fns = pick_ik::make_frame_tests({zero_frame}, epsilon);
@@ -41,11 +40,23 @@ TEST_CASE("pick_ik::make_frame_tests") {
         auto const test_fns = pick_ik::make_frame_tests({zero_frame}, epsilon);
         CHECK(test_fns.at(0)({zero_frame}) == true);
     }
+
+    SECTION("Goal is frame, but orientation is different") {
+        auto const zero_frame_rotated = Eigen::Translation3d(0.0, 0.0, 0.0) *
+                                        Eigen::AngleAxisd(M_PI_4, Eigen::Vector3d::UnitZ());
+        
+        // With rotation in frame test
+        auto const test_fns = pick_ik::make_frame_tests({zero_frame}, epsilon, true);
+        CHECK(test_fns.at(0)({zero_frame_rotated}) == false);
+
+        // Without rotation in frame test
+        auto const test_fns_pos_only = pick_ik::make_frame_tests({zero_frame}, epsilon, false);
+        CHECK(test_fns_pos_only.at(0)({zero_frame_rotated}) == true);
+    }
 }
 
 TEST_CASE("pick_ik::make_pose_cost_fn") {
-    Eigen::Isometry3d const zero_frame =
-        Eigen::Translation3d(0.0, 0.0, 0.0) * Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
+    auto const zero_frame = Eigen::Isometry3d::Identity();
     Eigen::Isometry3d const translate_y2_frame =
         Eigen::Translation3d(0.0, 2.0, 0.0) * Eigen::Quaterniond(1.0, 0.0, 0.0, 0.0);
     Eigen::Isometry3d const translate_xy1_frame =

@@ -9,7 +9,7 @@
 
 #include <Eigen/Geometry>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/utils/robot_model_test_utils.h>
 
@@ -95,17 +95,14 @@ auto solve_ik_test(moveit::core::RobotModelPtr robot_model,
     auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, tip_link_indices);
 
     // Make solution function
-    auto const frame_tests = pick_ik::make_frame_tests({goal_frame}, params.twist_threshold);
+    auto const test_rotation = (params.rotation_scale > 0.0);
+    auto const frame_tests =
+        pick_ik::make_frame_tests({goal_frame}, params.twist_threshold, test_rotation);
     auto const cost_function =
         kinematics::KinematicsBase::IKCostFn();  // What should be instantiated here?
     std::vector<pick_ik::Goal> goals = {};       // TODO: Only works if empty.
     auto const solution_fn =
         pick_ik::make_is_solution_test_fn(frame_tests, goals, params.cost_threshold, fk_fn);
-
-    // CHECK(solution_fn({0.0, 0.0}) == true);         // Exact match (within floating point
-    // tolerance) CHECK(solution_fn({0.0001, -0.0001}) == true);  // Match within threshold
-    // CHECK(solution_fn({0.01, -0.01}) == false);     // Match outside threshold
-    // CHECK(solution_fn({1.5707, 0.0}) == false);     // Not a match
 
     // Make pose cost function
     auto const pose_cost_functions =
@@ -132,8 +129,7 @@ TEST_CASE("RR model IK") {
         std::vector<double> const expected_joint_angles = {0.0, 0.0};
         std::vector<double> const initial_guess = {0.1, -0.1};
 
-        auto const maybe_solution =
-            solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+        auto const maybe_solution = solve_ik_test(robot_model, "group", goal_frame, initial_guess);
 
         REQUIRE(maybe_solution.has_value());
         CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
@@ -146,8 +142,7 @@ TEST_CASE("RR model IK") {
         std::vector<double> const expected_joint_angles = {0.0, 0.0};
         std::vector<double> const initial_guess = {M_PI_2, -M_PI_2};
 
-        auto const maybe_solution =
-            solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+        auto const maybe_solution = solve_ik_test(robot_model, "group", goal_frame, initial_guess);
 
         REQUIRE(maybe_solution.has_value());
         CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
@@ -161,8 +156,7 @@ TEST_CASE("RR model IK") {
         std::vector<double> const expected_joint_angles = {M_PI_4, M_PI_2};
         std::vector<double> const initial_guess = {M_PI_4 + 0.1, M_PI_2 - 0.1};
 
-        auto const maybe_solution =
-            solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+        auto const maybe_solution = solve_ik_test(robot_model, "group", goal_frame, initial_guess);
 
         REQUIRE(maybe_solution.has_value());
         CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
@@ -176,8 +170,7 @@ TEST_CASE("RR model IK") {
         std::vector<double> const expected_joint_angles = {M_PI_4, M_PI_2};
         std::vector<double> const initial_guess = {0.0, 0.0};
 
-        auto const maybe_solution =
-            solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+        auto const maybe_solution = solve_ik_test(robot_model, "group", goal_frame, initial_guess);
 
         REQUIRE(maybe_solution.has_value());
         CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
@@ -189,8 +182,7 @@ TEST_CASE("RR model IK") {
         std::vector<double> const expected_joint_angles = {0.0, 0.0};  // Doesn't matter
         std::vector<double> const initial_guess = {0.0, 0.0};
 
-        auto const maybe_solution =
-            solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+        auto const maybe_solution = solve_ik_test(robot_model, "group", goal_frame, initial_guess);
 
         CHECK(!maybe_solution.has_value());
     }
@@ -202,25 +194,25 @@ TEST_CASE("RR model IK") {
         std::vector<double> const expected_joint_angles = {0.0, 0.0};  // Doesn't matter
         std::vector<double> const initial_guess = {0.0, 0.0};
 
-        auto const maybe_solution =
-            solve_ik_test(robot_model, "group", goal_frame, initial_guess);
+        auto const maybe_solution = solve_ik_test(robot_model, "group", goal_frame, initial_guess);
 
         CHECK(!maybe_solution.has_value());
     }
 
-    // SECTION("Reachable position, but not orientation -- zero orientation scale") {
-    //     Eigen::Isometry3d const goal_frame =
-    //         Eigen::Translation3d(std::sin(M_PI_4), 3.0 * std::sin(M_PI_4), 0.0) *
-    //         Eigen::Quaterniond::Identity();
-    //     std::vector<double> const expected_joint_angles = {M_PI_4, -M_PI_2};  // Doesn't matter
-    //     std::vector<double> const initial_guess = {M_PI_4, -M_PI_2};
-    //     auto params = IkTestParams();
-    //     params.rotation_scale = 0.0;
+    SECTION("Reachable position, but not orientation -- zero rotation scale") {
+        Eigen::Isometry3d const goal_frame =
+            Eigen::Translation3d(std::sin(M_PI_4), 3.0 * std::sin(M_PI_4), 0.0) *
+            Eigen::Quaterniond::Identity();
+        std::vector<double> const expected_joint_angles = {M_PI_4, M_PI_2};  // Doesn't matter
+        std::vector<double> const initial_guess = {M_PI_4 + 0.1, M_PI_2 - 0.1};
+        auto params = IkTestParams();
+        params.rotation_scale = 0.0;
 
-    //     auto const maybe_solution =
-    //         solve_ik_test(robot_model, "group", goal_frame, initial_guess, params);
+        auto const maybe_solution =
+            solve_ik_test(robot_model, "group", goal_frame, initial_guess, params);
 
-    //     CHECK(maybe_solution.has_value());
-    // }
-
+        CHECK(maybe_solution.has_value());
+        CHECK(maybe_solution.value()[0] == Catch::Approx(expected_joint_angles[0]).margin(0.01));
+        CHECK(maybe_solution.value()[1] == Catch::Approx(expected_joint_angles[1]).margin(0.01));
+    }
 }

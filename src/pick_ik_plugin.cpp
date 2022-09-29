@@ -113,7 +113,9 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         }();
 
         // Test functions to determine if we are at our goal frame
-        auto const frame_tests = make_frame_tests(goal_frames, params.twist_threshold);
+        auto const test_rotation = (params.rotation_scale > 0.0);
+        auto const frame_tests =
+            make_frame_tests(goal_frames, params.twist_threshold, test_rotation);
 
         // Cost functions used for optimizing towards goal frames
         auto const pose_cost_functions =
