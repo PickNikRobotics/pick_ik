@@ -55,6 +55,10 @@ pluginlib_export_plugin_description_file(
   pick_ik_kinematics_description.xml
 )
 
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
+
 install(
   DIRECTORY include/
   DESTINATION include
@@ -65,14 +69,18 @@ install(
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
 )
 
-ament_export_include_directories(include)
-ament_export_libraries(pick_ik_plugin)
-ament_export_targets(export_pick_ik)
-
-if(BUILD_TESTING)
-  add_subdirectory(tests)
-endif()
-
+ament_export_targets(export_pick_ik HAS_LIBRARY_TARGET)
+ament_export_dependencies(
+  fmt
+  moveit_core
+  pluginlib
+  range-v3
+  rclcpp
+  tf2_geometry_msgs
+  tf2_kdl
+  tl_expected
+)
 ament_package()
