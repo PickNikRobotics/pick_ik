@@ -10,7 +10,7 @@ namespace pick_ik {
 
 auto make_fk_fn(std::shared_ptr<moveit::core::RobotModel const> robot_model,
                 moveit::core::JointModelGroup const* jmg,
-                std::vector<size_t> tip_link_indexes) -> FkFn {
+                std::vector<size_t> tip_link_indices) -> FkFn {
     auto robot_state = moveit::core::RobotState(robot_model);
     robot_state.setToDefaultValues();
 
@@ -22,8 +22,8 @@ auto make_fk_fn(std::shared_ptr<moveit::core::RobotModel const> robot_model,
         robot_state.updateLinkTransforms();
 
         std::vector<Eigen::Isometry3d> tip_frames;
-        std::transform(tip_link_indexes.cbegin(),
-                       tip_link_indexes.cend(),
+        std::transform(tip_link_indices.cbegin(),
+                       tip_link_indices.cend(),
                        std::back_inserter(tip_frames),
                        [&](auto index) {
                            auto const* link_model = robot_model->getLinkModel(index);

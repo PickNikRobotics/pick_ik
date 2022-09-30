@@ -25,7 +25,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
 
     std::vector<std::string> joint_names_;
     std::vector<std::string> link_names_;
-    std::vector<size_t> tip_link_indexes_;
+    std::vector<size_t> tip_link_indices_;
     Robot robot_;
 
    public:
@@ -79,11 +79,11 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         link_names_ = tip_frames_;
 
         // Create our internal Robot object from the robot model
-        tip_link_indexes_ =
-            get_link_indexes(robot_model_, tip_frames_)
+        tip_link_indices_ =
+            get_link_indices(robot_model_, tip_frames_)
                 .or_else([](auto const& error) { throw std::invalid_argument(error); })
                 .value();
-        robot_ = Robot::from(robot_model_, jmg_, tip_link_indexes_);
+        robot_ = Robot::from(robot_model_, jmg_, tip_link_indices_);
 
         return true;
     }
@@ -113,14 +113,16 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         }();
 
         // Test functions to determine if we are at our goal frame
-        auto const frame_tests = make_frame_tests(goal_frames, params.twist_threshold);
+        auto const test_rotation = (params.rotation_scale > 0.0);
+        auto const frame_tests =
+            make_frame_tests(goal_frames, params.twist_threshold, test_rotation);
 
         // Cost functions used for optimizing towards goal frames
         auto const pose_cost_functions =
             make_pose_cost_functions(goal_frames, params.rotation_scale);
 
         // forward kinematics function
-        auto const fk_fn = make_fk_fn(robot_model_, jmg_, tip_link_indexes_);
+        auto const fk_fn = make_fk_fn(robot_model_, jmg_, tip_link_indices_);
 
         // Create goals (weighted cost functions)
         auto goals = std::vector<Goal>{};
@@ -147,7 +149,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         auto const solution_fn =
             make_is_solution_test_fn(frame_tests, goals, params.cost_threshold, fk_fn);
 
-        // single function used by gradient decent to calculate cost of solution
+        // single function used by gradient descent to calculate cost of solution
         auto const cost_fn = make_cost_fn(pose_cost_functions, goals, fk_fn);
 
         // search for a solution

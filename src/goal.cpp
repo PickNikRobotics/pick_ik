@@ -20,13 +20,26 @@ auto make_frame_test_fn(Eigen::Isometry3d goal_frame, double twist_threshold) ->
     };
 }
 
-auto make_frame_tests(std::vector<Eigen::Isometry3d> goal_frames, double twist_threshold)
-    -> std::vector<FrameTestFn> {
+auto make_position_test_fn(Eigen::Isometry3d goal_frame, double twist_threshold) -> FrameTestFn {
+    return [=](Eigen::Isometry3d const& tip_frame) -> bool {
+        return goal_frame.translation().isApprox(tip_frame.translation(), twist_threshold);
+    };
+}
+
+auto make_frame_tests(std::vector<Eigen::Isometry3d> goal_frames,
+                      double twist_threshold,
+                      bool test_rotation) -> std::vector<FrameTestFn> {
     auto tests = std::vector<FrameTestFn>{};
     std::transform(goal_frames.cbegin(),
                    goal_frames.cend(),
                    std::back_inserter(tests),
-                   [&](auto const& frame) { return make_frame_test_fn(frame, twist_threshold); });
+                   [&](auto const& frame) {
+                       if (test_rotation) {
+                           return make_frame_test_fn(frame, twist_threshold);
+                       } else {
+                           return make_position_test_fn(frame, twist_threshold);
+                       }
+                   });
     return tests;
 }
 
