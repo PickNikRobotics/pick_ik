@@ -68,13 +68,57 @@ TEST_CASE("Panda model IK") {
     std::vector<double> const home_joint_angles =
         {0.0, -M_PI_4, 0.0, -3.0 * M_PI_4, 0.0, M_PI_2, M_PI_4};
 
+    // SECTION("Panda model IK at home positions.") {
+    //     auto const goal_frame = fk_fn(home_joint_angles)[0];
+    //     auto initial_guess = home_joint_angles;
+    //     MemeticIkTestParams params;
+    //     params.cost_threshold = 0.0001;
+    //     params.twist_threshold = 0.0001;
+    //     params.timeout = 10.0;
+
+    //     auto const maybe_solution = solve_memetic_ik_test(robot_model,
+    //                                                       "panda_arm",
+    //                                                       "panda_hand",
+    //                                                       goal_frame,
+    //                                                       initial_guess,
+    //                                                       params);
+
+    //     REQUIRE(maybe_solution.has_value());
+    //     auto const final_frame = fk_fn(maybe_solution.value())[0];
+    //     CHECK(goal_frame.isApprox(final_frame, params.twist_threshold));
+    // }
+
+    // SECTION("Panda model IK near home positions.") {
+    //     auto const goal_frame = fk_fn(home_joint_angles)[0];
+    //     auto initial_guess = home_joint_angles;
+    //     std::vector<double> const initial_guess_offsets = {0.1, -0.1, 0.0, 0.1, -0.1, 0.0, 0.1};
+    //     for (size_t i=0; i < initial_guess.size(); ++i) {
+    //         initial_guess[i] += initial_guess_offsets[i];
+    //     }
+    //     MemeticIkTestParams params;
+    //     params.cost_threshold = 0.0001;
+    //     params.twist_threshold = 0.0001;
+    //     params.timeout = 10.0;
+
+    //     auto const maybe_solution = solve_memetic_ik_test(robot_model,
+    //                                                       "panda_arm",
+    //                                                       "panda_hand",
+    //                                                       goal_frame,
+    //                                                       initial_guess,
+    //                                                       params);
+
+    //     REQUIRE(maybe_solution.has_value());
+    //     auto const final_frame = fk_fn(maybe_solution.value())[0];
+    //     CHECK(goal_frame.isApprox(final_frame, params.twist_threshold));
+    // }
+
     SECTION("Panda model IK at zero positions.") {
         auto const goal_frame = fk_fn(home_joint_angles)[0];
         auto const initial_guess = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         MemeticIkTestParams params;
         params.cost_threshold = 0.0001;
         params.twist_threshold = 0.0001;
-        params.timeout = 30.0;
+        params.timeout = 15.0;
 
         auto const maybe_solution = solve_memetic_ik_test(robot_model,
                                                           "panda_arm",

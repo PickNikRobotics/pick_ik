@@ -7,13 +7,70 @@
 #include <chrono>
 #include <cmath>
 #include <optional>
-#include <random>
 #include <vector>
 
 namespace pick_ik {
 
 MemeticIk MemeticIk::from(std::vector<double> const& initial_guess, CostFn const& cost_fn) {
     return MemeticIk{std::vector<double>(initial_guess.size(), 0.0), cost_fn(initial_guess)};
+}
+
+void MemeticIk::gradientDescent(size_t const i, Robot const& robot, CostFn const& cost_fn) {
+    auto local_ik = GradientIk::from(population_[i].genes, cost_fn);
+    auto constexpr timeout_local = 0.01;
+    auto const timeout_point_local =
+        std::chrono::system_clock::now() + std::chrono::duration<double>(timeout_local);
+    while (std::chrono::system_clock::now() < timeout_point_local) {
+        step(local_ik, robot, cost_fn);
+    }
+
+    population_[i].genes = local_ik.best;
+    population_[i].fitness = cost_fn(population_[i].genes);
+}
+
+void MemeticIk::initPopulation(size_t const& population_size,
+                               CostFn const& cost_fn,
+                               std::vector<double> const& initial_guess) {
+    population_.reserve(population_size);
+    for (size_t i = 0; i < population_size; ++i) {
+        auto genotype = initial_guess;
+        if (i > 0) {
+            for (auto& val : genotype) {
+                val += dist_(gen_);
+            }
+        }
+        population_.emplace_back(Individual{genotype, cost_fn(genotype)});
+    }
+}
+
+size_t MemeticIk::populationSize() const { return population_.size(); }
+
+void MemeticIk::printPopulation() const {
+    std::cout << "Fitnesses: " << std::endl;
+    for (size_t i = 0; i < populationSize(); ++i) {
+        std::cout << i << ": " << population_[i].fitness << " " << std::endl;
+    }
+    std::cout << std::endl;
+}
+
+void MemeticIk::sortPopulation() {
+    std::sort(population_.begin(), population_.end(), [](Individual const& a, Individual const& b) {
+        return a.fitness < b.fitness;
+    });
+    best_ = population_[0].genes;
+    cost_ = population_[0].fitness;
+}
+
+void MemeticIk::selectPopulation(CostFn const& cost_fn) {
+    for (size_t i = 0; i < populationSize(); ++i) {
+        if (i >= elite_count_) {
+            population_[i] = population_[i - elite_count_]; // Bad selection criteria, should sample
+            for (auto& val : population_[i].genes) {
+                val += dist_(gen_);  // Bad mutation criteria
+            }
+            population_[i].fitness = cost_fn(population_[i].genes);
+        }
+    }
 }
 
 auto ik_memetic(std::vector<double> const& initial_guess,
@@ -29,68 +86,39 @@ auto ik_memetic(std::vector<double> const& initial_guess,
     assert(robot.variables.size() == initial_guess.size());
     auto ik = MemeticIk::from(initial_guess, cost_fn);
 
-    size_t constexpr population_size = 8;  // Placeholder
-    // Randomize a population.
-    std::vector<std::vector<double>> population;
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<double> dis(-0.5, 0.5);
-    population.reserve(population_size);
-    for (size_t i = 0; i < population_size; ++i) {
-        auto genotype = initial_guess;
-        if (i > 0) {
-            for (auto& val : genotype) {
-                val += dis(gen);
-            }
-        }
-        population.emplace_back(genotype);
-    }
+    size_t constexpr pop_size = 16;
+    ik.initPopulation(pop_size, cost_fn, initial_guess);
 
     // Initialize fitness values.
     int iter = 0;
-    auto fitnesses = std::vector<double>(population.size(), 0.0);
-
     auto const timeout_point =
         std::chrono::system_clock::now() + std::chrono::duration<double>(timeout);
     while (std::chrono::system_clock::now() < timeout_point) {
-        // Evaluate fitnesses
-        std::cout << "Iteration " << iter << " Fitnesses: " << std::endl;
-        for (size_t i = 0; i < population_size; ++i) {
-
-            // Local gradient descent
-            auto local_ik = GradientIk::from(population[i], cost_fn);
-            auto constexpr timeout_local = 0.1;
-            auto const timeout_point_local =
-                std::chrono::system_clock::now() + std::chrono::duration<double>(timeout_local);
-            while (std::chrono::system_clock::now() < timeout_point_local) {
-                step(local_ik, robot, cost_fn);
-            }    
-            population[i] = local_ik.best;
-
-            fitnesses[i] = cost_fn(population[i]);
-            std::cout << i << ": " << fitnesses[i] << " " << std::endl;
+        // Do gradient descent
+        // TODO: Better selection of which ones to do gradient descent on.
+        for (size_t i = 0; i < ik.populationSize(); ++i) {
+            ik.gradientDescent(i, robot, cost_fn);
         }
-        std::cout << std::endl;
 
         // Sort fitnesses
-        for (size_t i = 0; i < population_size; ++i) {
-            if (solution_fn(population[i])) {
-                return population[i];
-            }
+        ik.sortPopulation();
+
+        // Debug print
+        std::cout << "Iteration " << iter << " ";
+        ik.printPopulation();
+
+        if (solution_fn(ik.best())) {
+            std::cout << "Found solution!" << std::endl;
+            return ik.best();
         }
 
-        // Perturb if no solution found
-        for (auto& genotype : population) {
-            for (auto& val : genotype) {
-                val += dis(gen);
-            }
-        }
-
+        ik.selectPopulation(cost_fn);
         iter++;
     }
 
     if (approx_solution) {
-        return population[0];
+        std::cout << "Returning best solution." << std::endl;
+    //     return population_[0];
     }
 
     return std::nullopt;
