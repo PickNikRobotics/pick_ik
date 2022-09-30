@@ -23,7 +23,6 @@ struct MemeticIkTestParams {
     bool return_approximate_solution = false;
 };
 
-
 auto solve_memetic_ik_test(moveit::core::RobotModelPtr robot_model,
                            std::string const group_name,
                            std::string const goal_frame_name,

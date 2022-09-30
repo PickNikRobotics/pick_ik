@@ -1,4 +1,12 @@
 pick_ik:
+  mode: {
+    type: string,
+    default_value: "global",
+    description: "IK solver mode. Set to global to allow the initial guess to be a long distance from the goal, or local if the initial guess is near the goal.",
+    validation: {
+      one_of<>: [["global", "local"]]
+    }
+  }
   twist_threshold: {
     type: double,
     default_value: 0.00001,

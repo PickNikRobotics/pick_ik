@@ -64,7 +64,8 @@ void MemeticIk::sortPopulation() {
 void MemeticIk::selectPopulation(CostFn const& cost_fn) {
     for (size_t i = 0; i < populationSize(); ++i) {
         if (i >= elite_count_) {
-            population_[i] = population_[i - elite_count_]; // Bad selection criteria, should sample
+            population_[i] =
+                population_[i - elite_count_];  // Bad selection criteria, should sample
             for (auto& val : population_[i].genes) {
                 val += dist_(gen_);  // Bad mutation criteria
             }
@@ -118,7 +119,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
 
     if (approx_solution) {
         std::cout << "Returning best solution." << std::endl;
-    //     return population_[0];
+        //     return population_[0];
     }
 
     return std::nullopt;

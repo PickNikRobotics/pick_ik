@@ -1,6 +1,7 @@
 #include <pick_ik/fk_moveit.hpp>
 #include <pick_ik/goal.hpp>
 #include <pick_ik/ik_gradient.hpp>
+#include <pick_ik/ik_memetic.hpp>
 #include <pick_ik/robot.hpp>
 
 #include <pick_ik_parameters.hpp>
@@ -152,13 +153,26 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         // single function used by gradient descent to calculate cost of solution
         auto const cost_fn = make_cost_fn(pose_cost_functions, goals, fk_fn);
 
-        // search for a solution
-        auto const maybe_solution = ik_search(ik_seed_state,
-                                              robot_,
-                                              cost_fn,
-                                              solution_fn,
-                                              timeout,
-                                              options.return_approximate_solution);
+        // Search for a solution using either the local or global solver.
+        std::optional<std::vector<double>> maybe_solution;
+        if (params.mode == "global") {
+            maybe_solution = ik_memetic(ik_seed_state,
+                                        robot_,
+                                        cost_fn,
+                                        solution_fn,
+                                        timeout,
+                                        options.return_approximate_solution);
+        } else if (params.mode == "local") {
+            maybe_solution = ik_search(ik_seed_state,
+                                       robot_,
+                                       cost_fn,
+                                       solution_fn,
+                                       timeout,
+                                       options.return_approximate_solution);
+        } else {
+            RCLCPP_ERROR(LOGGER, "Invalid solver mode: %s", params.mode.c_str());
+            return false;
+        }
 
         if (maybe_solution.has_value()) {
             // set the output parameter solution and wrap angles
