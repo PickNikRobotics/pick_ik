@@ -27,6 +27,7 @@ add_library(pick_ik_plugin SHARED
   src/forward_kinematics.cpp
   src/pick_ik_plugin.cpp
   src/goal.cpp
+  src/ik_memetic.cpp
   src/ik_gradient.cpp
   src/robot.cpp
 )
