@@ -17,6 +17,7 @@ struct Individual {
     std::vector<double> genes;  // Joint angles
     double fitness;
     double extinction;
+    std::vector<double> gradient;
 };
 
 class MemeticIk {
@@ -58,7 +59,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
                 Robot const& robot,
                 CostFn const& cost_fn,
                 SolutionTestFn const& solution_fn,
-                double timeout = 10.0,
+                double timeout = 1.0,
                 bool approx_solution = false) -> std::optional<std::vector<double>>;
 
 }  // namespace pick_ik
