@@ -16,6 +16,7 @@ namespace pick_ik {
 struct Individual {
     std::vector<double> genes;  // Joint angles
     double fitness;
+    double extinction;
 };
 
 class MemeticIk {
@@ -32,8 +33,8 @@ class MemeticIk {
     // RNG (TODO move out of here)
     std::random_device rd_;
     std::mt19937 gen_;
-    std::uniform_real_distribution<double> mutate_dist_{-0.2, 0.2};
-    std::uniform_real_distribution<double> mix_dist_{0.0, 1.0};
+    std::uniform_real_distribution<double> mutate_dist_{-0.5, 0.5};
+    std::uniform_real_distribution<double> uniform_dist_{0.0, 1.0};
 
    public:
     MemeticIk(std::vector<double> const& initial_guess, double cost)
@@ -42,6 +43,7 @@ class MemeticIk {
 
     std::vector<double> best() { return best_; };
     size_t eliteCount() const { return elite_count_; };
+    void computeExtinctions();
     void gradientDescent(size_t const i, Robot const& robot, CostFn const& cost_fn);
     void initPopulation(Robot const& robot,
                         CostFn const& cost_fn,

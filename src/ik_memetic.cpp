@@ -15,10 +15,20 @@ MemeticIk MemeticIk::from(std::vector<double> const& initial_guess, CostFn const
     return MemeticIk{std::vector<double>(initial_guess.size(), 0.0), cost_fn(initial_guess)};
 }
 
+void MemeticIk::computeExtinctions() {
+    double min_fitness = population_.front().fitness;
+    double max_fitness = population_.back().fitness;
+    for (size_t i = 0; i < population_count_; ++i) {
+        double grading = static_cast<double>(i) / static_cast<double>(population_count_ - 1);
+        population_[i].extinction =
+            (population_[i].fitness + min_fitness * (grading - 1)) / max_fitness;
+    }
+}
+
 void MemeticIk::gradientDescent(size_t const i, Robot const& robot, CostFn const& cost_fn) {
     auto local_ik = GradientIk::from(population_[i].genes, cost_fn);
-    auto constexpr timeout_local = 0.01;
-    auto constexpr max_iters_local = 25;
+    auto constexpr timeout_local = 0.02;
+    auto constexpr max_iters_local = 50;
     auto const timeout_point_local =
         std::chrono::system_clock::now() + std::chrono::duration<double>(timeout_local);
 
@@ -41,15 +51,15 @@ void MemeticIk::initPopulation(Robot const& robot,
         if (i > 0) {
             for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
                 auto const& var = robot.variables[j_idx];
-                genotype[j_idx] = mix_dist_(gen_) * var.span + var.min;
+                genotype[j_idx] = uniform_dist_(gen_) * var.span + var.min;
             }
         }
-        population_[i] = Individual{genotype, cost_fn(genotype)};
+        population_[i] = Individual{genotype, cost_fn(genotype), 1.0};
     }
 
     // Initialize children to some dummy values that will be overwritten.
     for (size_t i = elite_count_; i < population_count_; ++i) {
-        population_[i] = Individual{initial_guess, 0.0};
+        population_[i] = Individual{initial_guess, 0.0, 1.0};
     }
 }
 
@@ -73,14 +83,22 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
             auto& parentA = population_[idxA];
             auto& parentB = population_[idxB];
 
+            // Get mutation probability
+            double const extinction = 0.5 * (parentA.extinction + parentB.extinction);
+            double const inverse = 1.0 / static_cast<double>(robot.variables.size());
+            double const mutation_prob = extinction * (1.0 - inverse) + inverse;
+
             // Recombine and mutate
-            auto const mix_ratio = mix_dist_(gen_);
+            auto const mix_ratio = uniform_dist_(gen_);
             for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
                 population_[i].genes[j_idx] =
                     mix_ratio * parentA.genes[j_idx] + (1.0 - mix_ratio) * parentB.genes[j_idx];
 
-                // Mutate (TODO with extinction factor)
-                population_[i].genes[j_idx] += mutate_dist_(gen_);
+                // Mutate
+                if (uniform_dist_(gen_) < mutation_prob) {
+                    population_[i].genes[j_idx] +=
+                        extinction * robot.variables[j_idx].span * mutate_dist_(gen_);
+                }
 
                 // Clamp to valid joint values
                 population_[i].genes[j_idx] = std::clamp(population_[i].genes[j_idx],
@@ -101,7 +119,7 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
             // Roll a new population member randomly.
             for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
                 auto const& var = robot.variables[j_idx];
-                population_[i].genes[j_idx] = mix_dist_(gen_) * var.span + var.min;
+                population_[i].genes[j_idx] = uniform_dist_(gen_) * var.span + var.min;
             }
             population_[i].fitness = cost_fn(population_[i].genes);
         }
@@ -154,6 +172,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
 
         // Sort fitnesses
         ik.sortPopulation();
+        ik.computeExtinctions();
 
         // Debug print
         std::cout << "Iteration " << iter << " ";
