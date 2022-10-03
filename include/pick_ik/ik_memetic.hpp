@@ -30,7 +30,7 @@ class MemeticIk {
     // RNG (TODO move out of here)
     std::random_device rd_;
     std::mt19937 gen_;
-    std::uniform_real_distribution<double> dist_{-0.5, 0.5};
+    std::uniform_real_distribution<double> dist_{-M_PI_4, M_PI_4};  // TODO Configure
 
    public:
     MemeticIk(std::vector<double> const& initial_guess, double cost)
@@ -40,12 +40,13 @@ class MemeticIk {
     std::vector<double> best() { return best_; };
     void gradientDescent(size_t const i, Robot const& robot, CostFn const& cost_fn);
     void initPopulation(size_t const& population_size,
+                        Robot const& robot,
                         CostFn const& cost_fn,
                         std::vector<double> const& initial_guess);
     size_t populationSize() const;
     void printPopulation() const;
     void sortPopulation();
-    void selectPopulation(CostFn const& cost_fn);
+    void selectPopulation(Robot const& robot, CostFn const& cost_fn);
 };
 
 // auto step(MemeticIk& self, Robot const& robot, CostFn const& cost_fn) -> bool;

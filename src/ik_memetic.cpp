@@ -29,14 +29,17 @@ void MemeticIk::gradientDescent(size_t const i, Robot const& robot, CostFn const
 }
 
 void MemeticIk::initPopulation(size_t const& population_size,
+                               Robot const& robot,
                                CostFn const& cost_fn,
                                std::vector<double> const& initial_guess) {
     population_.reserve(population_size);
     for (size_t i = 0; i < population_size; ++i) {
         auto genotype = initial_guess;
         if (i > 0) {
-            for (auto& val : genotype) {
-                val += dist_(gen_);
+            for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
+                genotype[j_idx] = std::clamp(genotype[j_idx] + dist_(gen_),
+                                             robot.variables[j_idx].clip_min,
+                                             robot.variables[j_idx].clip_max);
             }
         }
         population_.emplace_back(Individual{genotype, cost_fn(genotype)});
@@ -61,16 +64,18 @@ void MemeticIk::sortPopulation() {
     cost_ = population_[0].fitness;
 }
 
-void MemeticIk::selectPopulation(CostFn const& cost_fn) {
+void MemeticIk::selectPopulation(Robot const& robot, CostFn const& cost_fn) {
     for (size_t i = 0; i < populationSize(); ++i) {
         if (i >= elite_count_) {
             population_[i] =
                 population_[i - elite_count_];  // Bad selection criteria, should sample
-            for (auto& val : population_[i].genes) {
-                val += dist_(gen_);  // Bad mutation criteria
+            for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
+                population_[i].genes[j_idx] = std::clamp(population_[i].genes[j_idx] + dist_(gen_),
+                                                         robot.variables[j_idx].clip_min,
+                                                         robot.variables[j_idx].clip_max);
             }
-            population_[i].fitness = cost_fn(population_[i].genes);
         }
+        population_[i].fitness = cost_fn(population_[i].genes);
     }
 }
 
@@ -88,7 +93,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
     auto ik = MemeticIk::from(initial_guess, cost_fn);
 
     size_t constexpr pop_size = 16;
-    ik.initPopulation(pop_size, cost_fn, initial_guess);
+    ik.initPopulation(pop_size, robot, cost_fn, initial_guess);
 
     // Initialize fitness values.
     int iter = 0;
@@ -113,7 +118,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
             return ik.best();
         }
 
-        ik.selectPopulation(cost_fn);
+        ik.selectPopulation(robot, cost_fn);
         iter++;
     }
 
