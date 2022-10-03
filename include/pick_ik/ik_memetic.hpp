@@ -42,7 +42,8 @@ class MemeticIk {
         : best_{initial_guess}, cost_{cost}, gen_{rd_()} {};
     static MemeticIk from(std::vector<double> const& initial_guess, CostFn const& cost_fn);
 
-    std::vector<double> best() { return best_; };
+    std::vector<double> best() const { return best_; };
+    double bestCost() const { return cost_; };
     size_t eliteCount() const { return elite_count_; };
     void computeExtinctions();
     void gradientDescent(size_t const i, Robot const& robot, CostFn const& cost_fn);

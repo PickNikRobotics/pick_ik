@@ -172,6 +172,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
 
     // Main loop
     int iter = 0;
+    std::optional<double> previous_fitness = std::nullopt;
     auto const timeout_point =
         std::chrono::system_clock::now() + std::chrono::duration<double>(timeout);
     while (std::chrono::system_clock::now() < timeout_point) {
@@ -188,6 +189,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
         ik.computeExtinctions();
 
         // Debug print
+        // TODO: Move to unit test
         std::cout << "Iteration " << iter << " ";
         ik.printPopulation();
 
@@ -195,6 +197,16 @@ auto ik_memetic(std::vector<double> const& initial_guess,
             std::cout << "Found solution!" << std::endl;
             return ik.best();
         }
+
+        // Handle wipeouts if no progress is being made.
+        if (previous_fitness) {
+            bool const improved = (ik.bestCost() < previous_fitness.value());
+            if (!improved) {
+                std::cout << "Population wipeout" << std::endl;
+                ik.initPopulation(robot, cost_fn, initial_guess);
+            }
+        }
+        previous_fitness = ik.bestCost();
 
         iter++;
     }
