@@ -23,14 +23,17 @@ class MemeticIk {
     std::vector<double> best_;
     double cost_;
     std::vector<Individual> population_;
+    std::vector<Individual> children_;
 
     // Config params
-    size_t elite_count_ = 2;
+    size_t elite_count_ = 4;
+    size_t population_count_ = 16;
 
     // RNG (TODO move out of here)
     std::random_device rd_;
     std::mt19937 gen_;
-    std::uniform_real_distribution<double> dist_{-M_PI_4, M_PI_4};  // TODO Configure
+    std::uniform_real_distribution<double> mutate_dist_{-0.2, 0.2};
+    std::uniform_real_distribution<double> mix_dist_{0.0, 1.0};
 
    public:
     MemeticIk(std::vector<double> const& initial_guess, double cost)
@@ -38,18 +41,16 @@ class MemeticIk {
     static MemeticIk from(std::vector<double> const& initial_guess, CostFn const& cost_fn);
 
     std::vector<double> best() { return best_; };
+    size_t eliteCount() const { return elite_count_; };
     void gradientDescent(size_t const i, Robot const& robot, CostFn const& cost_fn);
-    void initPopulation(size_t const& population_size,
-                        Robot const& robot,
+    void initPopulation(Robot const& robot,
                         CostFn const& cost_fn,
                         std::vector<double> const& initial_guess);
-    size_t populationSize() const;
+    void reproduce(Robot const& robot, CostFn const& cost_fn);
+    size_t populationCount() const { return population_count_; };
     void printPopulation() const;
     void sortPopulation();
-    void selectPopulation(Robot const& robot, CostFn const& cost_fn);
 };
-
-// auto step(MemeticIk& self, Robot const& robot, CostFn const& cost_fn) -> bool;
 
 auto ik_memetic(std::vector<double> const& initial_guess,
                 Robot const& robot,

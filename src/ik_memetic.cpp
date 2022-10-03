@@ -18,39 +18,99 @@ MemeticIk MemeticIk::from(std::vector<double> const& initial_guess, CostFn const
 void MemeticIk::gradientDescent(size_t const i, Robot const& robot, CostFn const& cost_fn) {
     auto local_ik = GradientIk::from(population_[i].genes, cost_fn);
     auto constexpr timeout_local = 0.01;
+    auto constexpr max_iters_local = 25;
     auto const timeout_point_local =
         std::chrono::system_clock::now() + std::chrono::duration<double>(timeout_local);
-    while (std::chrono::system_clock::now() < timeout_point_local) {
+
+    int iter = 0;
+    while (std::chrono::system_clock::now() < timeout_point_local && iter < max_iters_local) {
         step(local_ik, robot, cost_fn);
+        iter++;
     }
 
     population_[i].genes = local_ik.best;
     population_[i].fitness = cost_fn(population_[i].genes);
 }
 
-void MemeticIk::initPopulation(size_t const& population_size,
-                               Robot const& robot,
+void MemeticIk::initPopulation(Robot const& robot,
                                CostFn const& cost_fn,
                                std::vector<double> const& initial_guess) {
-    population_.reserve(population_size);
-    for (size_t i = 0; i < population_size; ++i) {
+    population_.resize(population_count_);
+    for (size_t i = 0; i < elite_count_; ++i) {
         auto genotype = initial_guess;
         if (i > 0) {
             for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
-                genotype[j_idx] = std::clamp(genotype[j_idx] + dist_(gen_),
-                                             robot.variables[j_idx].clip_min,
-                                             robot.variables[j_idx].clip_max);
+                auto const& var = robot.variables[j_idx];
+                genotype[j_idx] = mix_dist_(gen_) * var.span + var.min;
             }
         }
-        population_.emplace_back(Individual{genotype, cost_fn(genotype)});
+        population_[i] = Individual{genotype, cost_fn(genotype)};
+    }
+
+    // Initialize children to some dummy values that will be overwritten.
+    for (size_t i = elite_count_; i < population_count_; ++i) {
+        population_[i] = Individual{initial_guess, 0.0};
     }
 }
 
-size_t MemeticIk::populationSize() const { return population_.size(); }
+void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
+    std::vector<Individual*> pool;
+    pool.reserve(elite_count_);
+    for (size_t i = 0; i < elite_count_; ++i) {
+        pool.emplace_back(&population_[i]);
+    }
+
+    for (size_t i = elite_count_; i < population_count_; ++i) {
+        // Select parents
+        // TODO: Make this selection better
+        if (pool.size() > 1) {
+            std::uniform_int_distribution<size_t> int_dist(0, pool.size());
+            size_t const idxA = int_dist(gen_);
+            size_t idxB = idxA;
+            while (idxB == idxA && pool.size() > 1) {
+                idxB = int_dist(gen_);
+            }
+            auto& parentA = population_[idxA];
+            auto& parentB = population_[idxB];
+
+            // Recombine and mutate
+            auto const mix_ratio = mix_dist_(gen_);
+            for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
+                population_[i].genes[j_idx] =
+                    mix_ratio * parentA.genes[j_idx] + (1.0 - mix_ratio) * parentB.genes[j_idx];
+
+                // Mutate (TODO with extinction factor)
+                population_[i].genes[j_idx] += mutate_dist_(gen_);
+
+                // Clamp to valid joint values
+                population_[i].genes[j_idx] = std::clamp(population_[i].genes[j_idx],
+                                                         robot.variables[j_idx].clip_min,
+                                                         robot.variables[j_idx].clip_max);
+            }
+
+            // Evaluate fitness.
+            population_[i].fitness = cost_fn(population_[i].genes);
+
+            // Remove elements from the mating pool whose children have better fitness.
+            if (population_[i].fitness < parentA.fitness)
+                pool.erase(remove(pool.begin(), pool.end(), &parentA), pool.end());
+            if (population_[i].fitness < parentB.fitness)
+                pool.erase(remove(pool.begin(), pool.end(), &parentB), pool.end());
+
+        } else {
+            // Roll a new population member randomly.
+            for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
+                auto const& var = robot.variables[j_idx];
+                population_[i].genes[j_idx] = mix_dist_(gen_) * var.span + var.min;
+            }
+            population_[i].fitness = cost_fn(population_[i].genes);
+        }
+    }
+}
 
 void MemeticIk::printPopulation() const {
     std::cout << "Fitnesses: " << std::endl;
-    for (size_t i = 0; i < populationSize(); ++i) {
+    for (size_t i = 0; i < populationCount(); ++i) {
         std::cout << i << ": " << population_[i].fitness << " " << std::endl;
     }
     std::cout << std::endl;
@@ -62,21 +122,6 @@ void MemeticIk::sortPopulation() {
     });
     best_ = population_[0].genes;
     cost_ = population_[0].fitness;
-}
-
-void MemeticIk::selectPopulation(Robot const& robot, CostFn const& cost_fn) {
-    for (size_t i = 0; i < populationSize(); ++i) {
-        if (i >= elite_count_) {
-            population_[i] =
-                population_[i - elite_count_];  // Bad selection criteria, should sample
-            for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
-                population_[i].genes[j_idx] = std::clamp(population_[i].genes[j_idx] + dist_(gen_),
-                                                         robot.variables[j_idx].clip_min,
-                                                         robot.variables[j_idx].clip_max);
-            }
-        }
-        population_[i].fitness = cost_fn(population_[i].genes);
-    }
 }
 
 auto ik_memetic(std::vector<double> const& initial_guess,
@@ -92,19 +137,20 @@ auto ik_memetic(std::vector<double> const& initial_guess,
     assert(robot.variables.size() == initial_guess.size());
     auto ik = MemeticIk::from(initial_guess, cost_fn);
 
-    size_t constexpr pop_size = 16;
-    ik.initPopulation(pop_size, robot, cost_fn, initial_guess);
+    ik.initPopulation(robot, cost_fn, initial_guess);
 
-    // Initialize fitness values.
+    // Main loop
     int iter = 0;
     auto const timeout_point =
         std::chrono::system_clock::now() + std::chrono::duration<double>(timeout);
     while (std::chrono::system_clock::now() < timeout_point) {
-        // Do gradient descent
-        // TODO: Better selection of which ones to do gradient descent on.
-        for (size_t i = 0; i < ik.populationSize(); ++i) {
+        // Do gradient descent on elites.
+        for (size_t i = 0; i < ik.eliteCount(); ++i) {
             ik.gradientDescent(i, robot, cost_fn);
         }
+
+        // Perform mutation and recombination
+        ik.reproduce(robot, cost_fn);
 
         // Sort fitnesses
         ik.sortPopulation();
@@ -118,13 +164,12 @@ auto ik_memetic(std::vector<double> const& initial_guess,
             return ik.best();
         }
 
-        ik.selectPopulation(robot, cost_fn);
         iter++;
     }
 
     if (approx_solution) {
         std::cout << "Returning best solution." << std::endl;
-        //     return population_[0];
+        return ik.best();
     }
 
     return std::nullopt;

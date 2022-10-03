@@ -16,9 +16,9 @@
 
 // Helper param struct and function to test IK solution.
 struct MemeticIkTestParams {
-    double twist_threshold = 0.0001;
-    double cost_threshold = 0.0001;
-    double rotation_scale = 1.0;
+    double twist_threshold = 0.00001;
+    double cost_threshold = 0.00001;
+    double rotation_scale = 0.5;
     double timeout = 1.0;
     bool return_approximate_solution = false;
 };
@@ -71,9 +71,6 @@ TEST_CASE("Panda model IK") {
     //     auto const goal_frame = fk_fn(home_joint_angles)[0];
     //     auto initial_guess = home_joint_angles;
     //     MemeticIkTestParams params;
-    //     params.cost_threshold = 0.0001;
-    //     params.twist_threshold = 0.0001;
-    //     params.timeout = 10.0;
 
     //     auto const maybe_solution = solve_memetic_ik_test(robot_model,
     //                                                       "panda_arm",
@@ -95,9 +92,6 @@ TEST_CASE("Panda model IK") {
     //         initial_guess[i] += initial_guess_offsets[i];
     //     }
     //     MemeticIkTestParams params;
-    //     params.cost_threshold = 0.0001;
-    //     params.twist_threshold = 0.0001;
-    //     params.timeout = 10.0;
 
     //     auto const maybe_solution = solve_memetic_ik_test(robot_model,
     //                                                       "panda_arm",
@@ -115,9 +109,6 @@ TEST_CASE("Panda model IK") {
         auto const goal_frame = fk_fn(home_joint_angles)[0];
         auto const initial_guess = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         MemeticIkTestParams params;
-        params.cost_threshold = 0.0001;
-        params.twist_threshold = 0.0001;
-        params.timeout = 15.0;
 
         auto const maybe_solution = solve_memetic_ik_test(robot_model,
                                                           "panda_arm",
