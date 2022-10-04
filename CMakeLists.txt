@@ -51,6 +51,7 @@ target_link_libraries(pick_ik_plugin
     pluginlib::pluginlib
     range-v3::range-v3
     rclcpp::rclcpp
+    rsl::rsl
 )
 
 pluginlib_export_plugin_description_file(

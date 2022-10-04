@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cmath>
 #include <fmt/core.h>
+#include <rsl/queue.hpp>
 #include <optional>
 #include <vector>
 
@@ -254,6 +255,50 @@ auto ik_memetic(std::vector<double> const& initial_guess,
     if (approx_solution) {
         if (print_debug) fmt::print("Returning best solution\n");
         return ik.best().genes;
+    }
+
+    return std::nullopt;
+}
+
+auto ik_memetic_multithreaded(std::vector<double> const& initial_guess,
+                              Robot const& robot,
+                              CostFn const& cost_fn,
+                              SolutionTestFn const& solution_fn,
+                              MemeticIkParams const& params,
+                              size_t const num_threads,
+                              double const timeout,
+                              bool const approx_solution,
+                              bool const print_debug) -> std::optional<std::vector<double>> {
+    
+    rsl::Queue<std::optional<std::vector<double>>> solution_queue;
+    std::vector<std::thread> ik_threads;
+    ik_threads.reserve(num_threads);
+
+    auto ik_thread_fn = [=, &solution_queue]() {
+        auto soln = ik_memetic(initial_guess,
+                               robot,
+                               cost_fn,
+                               solution_fn,
+                               params,
+                               timeout,
+                               approx_solution,
+                               print_debug);
+        solution_queue.push(soln);
+    };
+
+    for (size_t i = 0; i < num_threads; ++i) {
+        ik_threads.push_back(std::thread(ik_thread_fn));
+    }
+
+    for (auto& t : ik_threads) {
+        t.join();
+    }
+
+    // TODO: What if we just want the first solution and not the best?
+
+    // TODO: Pick out solutions correctly, and not just the latest popped one.
+    if (!solution_queue.empty()) {
+        return solution_queue.pop().value();
     }
 
     return std::nullopt;
