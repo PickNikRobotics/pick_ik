@@ -22,10 +22,12 @@ struct Individual {
 
 class MemeticIk {
    private:
-    std::vector<double> best_;
-    double cost_;
     std::vector<Individual> population_;
-    std::vector<Individual> children_;
+
+    std::vector<double> best_;
+    double best_cost_;
+    std::vector<double> best_curr_;
+    double best_cost_curr_;
 
     // Config params
     size_t elite_count_ = 4;
@@ -39,11 +41,12 @@ class MemeticIk {
 
    public:
     MemeticIk(std::vector<double> const& initial_guess, double cost)
-        : best_{initial_guess}, cost_{cost}, gen_{rd_()} {};
+        : best_{initial_guess}, best_cost_{cost}, gen_{rd_()} {};
     static MemeticIk from(std::vector<double> const& initial_guess, CostFn const& cost_fn);
 
     std::vector<double> best() const { return best_; };
-    double bestCost() const { return cost_; };
+    double bestCost() const { return best_cost_; };
+    double bestCurrentCost() const { return best_cost_curr_; };
     size_t eliteCount() const { return elite_count_; };
     void computeExtinctions();
     void gradientDescent(size_t const i, Robot const& robot, CostFn const& cost_fn);

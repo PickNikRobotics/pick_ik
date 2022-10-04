@@ -29,8 +29,8 @@ void MemeticIk::computeExtinctions() {
 void MemeticIk::gradientDescent(size_t const i, Robot const& robot, CostFn const& cost_fn) {
     auto& individual = population_[i];
     auto local_ik = GradientIk::from(individual.genes, cost_fn);
-    auto constexpr timeout_local = 0.02;
-    auto constexpr max_iters_local = 50;
+    auto constexpr timeout_local = 0.005;
+    auto constexpr max_iters_local = 25;
     auto const timeout_point_local =
         std::chrono::system_clock::now() + std::chrono::duration<double>(timeout_local);
 
@@ -154,8 +154,12 @@ void MemeticIk::sortPopulation() {
     std::sort(population_.begin(), population_.end(), [](Individual const& a, Individual const& b) {
         return a.fitness < b.fitness;
     });
-    best_ = population_[0].genes;
-    cost_ = population_[0].fitness;
+    best_curr_ = population_[0].genes;
+    best_cost_curr_ = population_[0].fitness;
+    if (best_cost_curr_ < best_cost_) {
+        best_ = best_curr_;
+        best_cost_ = best_cost_curr_;
+    }
 }
 
 auto ik_memetic(std::vector<double> const& initial_guess,
@@ -208,17 +212,17 @@ auto ik_memetic(std::vector<double> const& initial_guess,
             #pragma GCC diagnostic push
             #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
             bool const improved =
-                (ik.bestCost() < *previous_fitness - improve_tol);
+                (ik.bestCurrentCost() < *previous_fitness - improve_tol);
             #pragma GCC diagnostic pop
             if (!improved) {
                 if (print_debug) fmt::print("Population wipeout");
                 ik.initPopulation(robot, cost_fn, initial_guess);
                 previous_fitness.reset();
             } else {
-                previous_fitness = ik.bestCost();
+                previous_fitness = ik.bestCurrentCost();
             }
         } else {
-            previous_fitness = ik.bestCost();
+            previous_fitness = ik.bestCurrentCost();
         }
         iter++;
     }
