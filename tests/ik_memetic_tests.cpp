@@ -114,7 +114,7 @@ TEST_CASE("Panda model Memetic IK") {
         auto const goal_frame = fk_fn(home_joint_angles)[0];
         auto initial_guess = home_joint_angles;
         std::vector<double> const initial_guess_offsets = {0.1, -0.1, 0.0, 0.1, -0.1, 0.0, 0.1};
-        for (size_t i=0; i < initial_guess.size(); ++i) {
+        for (size_t i = 0; i < initial_guess.size(); ++i) {
             initial_guess[i] += initial_guess_offsets[i];
         }
         MemeticIkTestParams params;

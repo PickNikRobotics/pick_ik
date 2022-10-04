@@ -209,11 +209,10 @@ auto ik_memetic(std::vector<double> const& initial_guess,
         // Handle wipeouts if no progress is being made.
         auto constexpr improve_tol = 0.00001;  // TODO Promote
         if (previous_fitness.has_value()) {
-            #pragma GCC diagnostic push
-            #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-            bool const improved =
-                (ik.bestCurrentCost() < *previous_fitness - improve_tol);
-            #pragma GCC diagnostic pop
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+            bool const improved = (ik.bestCurrentCost() < *previous_fitness - improve_tol);
+#pragma GCC diagnostic pop
             if (!improved) {
                 if (print_debug) fmt::print("Population wipeout");
                 ik.initPopulation(robot, cost_fn, initial_guess);
