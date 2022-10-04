@@ -36,7 +36,9 @@ void MemeticIk::gradientDescent(size_t const i, Robot const& robot, CostFn const
 
     int iter = 0;
     while (std::chrono::system_clock::now() < timeout_point_local && iter < max_iters_local) {
-        step(local_ik, robot, cost_fn);
+        if (!step(local_ik, robot, cost_fn)) {
+            break;
+        }
         iter++;
     }
 
