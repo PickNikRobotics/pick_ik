@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <fmt/core.h>
 #include <optional>
 #include <vector>
 
@@ -142,11 +143,11 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
 }
 
 void MemeticIk::printPopulation() const {
-    std::cout << "Fitnesses: " << std::endl;
+    fmt::print("Fitnesses:\n");
     for (size_t i = 0; i < populationCount(); ++i) {
-        std::cout << i << ": " << population_[i].fitness << " " << std::endl;
+        fmt::print("{}: {:.4f}\n", i, population_[i].fitness);
     }
-    std::cout << std::endl;
+    fmt::print("\n");
 }
 
 void MemeticIk::sortPopulation() {
@@ -161,8 +162,9 @@ auto ik_memetic(std::vector<double> const& initial_guess,
                 Robot const& robot,
                 CostFn const& cost_fn,
                 SolutionTestFn const& solution_fn,
-                double timeout,
-                bool approx_solution) -> std::optional<std::vector<double>> {
+                double const timeout,
+                bool const approx_solution,
+                bool const print_debug) -> std::optional<std::vector<double>> {
     if (solution_fn(initial_guess)) {
         return initial_guess;
     }
@@ -189,14 +191,14 @@ auto ik_memetic(std::vector<double> const& initial_guess,
         // Sort fitnesses
         ik.sortPopulation();
         ik.computeExtinctions();
+        if (print_debug) {
+            fmt::print("Iteration {}\n", iter);
+            ik.printPopulation();
+        }
 
-        // Debug print
-        // TODO: Move to unit test
-        std::cout << "Iteration " << iter << " ";
-        ik.printPopulation();
-
+        // Check for termination
         if (solution_fn(ik.best())) {
-            std::cout << "Found solution!" << std::endl;
+            if (print_debug) fmt::print("Found solution!\n");
             return ik.best();
         }
 
@@ -209,7 +211,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
                 (ik.bestCost() < *previous_fitness - improve_tol);
             #pragma GCC diagnostic pop
             if (!improved) {
-                std::cout << "Population wipeout" << std::endl;
+                if (print_debug) fmt::print("Population wipeout");
                 ik.initPopulation(robot, cost_fn, initial_guess);
                 previous_fitness.reset();
             } else {
@@ -222,7 +224,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
     }
 
     if (approx_solution) {
-        std::cout << "Returning best solution." << std::endl;
+        if (print_debug) fmt::print("Returning best solution\n");
         return ik.best();
     }
 

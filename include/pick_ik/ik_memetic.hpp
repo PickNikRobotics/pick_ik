@@ -60,7 +60,8 @@ auto ik_memetic(std::vector<double> const& initial_guess,
                 Robot const& robot,
                 CostFn const& cost_fn,
                 SolutionTestFn const& solution_fn,
-                double timeout = 1.0,
-                bool approx_solution = false) -> std::optional<std::vector<double>>;
+                double const timeout = 1.0,
+                bool const approx_solution = false,
+                bool const print_debug = false) -> std::optional<std::vector<double>>;
 
 }  // namespace pick_ik

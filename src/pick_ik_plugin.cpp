@@ -161,7 +161,8 @@ class PickIKPlugin : public kinematics::KinematicsBase {
                                         cost_fn,
                                         solution_fn,
                                         timeout,
-                                        options.return_approximate_solution);
+                                        options.return_approximate_solution,
+                                        false /* No debug print */);
         } else if (params.mode == "local") {
             maybe_solution = ik_search(ik_seed_state,
                                        robot_,

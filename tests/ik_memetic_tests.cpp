@@ -10,7 +10,6 @@
 
 #include <Eigen/Geometry>
 #include <cmath>
-#include <iostream>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/utils/robot_model_test_utils.h>
 
@@ -23,6 +22,7 @@ struct MemeticIkTestParams {
     // Solve options
     double timeout = 1.0;
     bool approximate_solution = false;
+    bool print_debug = false;
 
     // Additional costs
     double center_joints_weight = 0.0;
@@ -78,10 +78,11 @@ auto solve_memetic_ik_test(moveit::core::RobotModelPtr robot_model,
                                cost_fn,
                                solution_fn,
                                params.timeout,
-                               params.approximate_solution);
+                               params.approximate_solution,
+                               params.print_debug);
 }
 
-TEST_CASE("Panda model IK") {
+TEST_CASE("Panda model Memetic IK") {
     using moveit::core::loadTestingRobotModel;
     auto const robot_model = loadTestingRobotModel("panda");
 
@@ -156,6 +157,7 @@ TEST_CASE("Panda model IK") {
         params.avoid_joint_limits_weight = 0.01;
         params.cost_threshold = 0.01;  // Need to raise this for joint centering
         params.twist_threshold = 0.01;
+        params.print_debug = true;
 
         auto const maybe_solution = solve_memetic_ik_test(robot_model,
                                                           "panda_arm",

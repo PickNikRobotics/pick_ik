@@ -9,7 +9,6 @@
 
 #include <Eigen/Geometry>
 #include <cmath>
-#include <iostream>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/utils/robot_model_test_utils.h>
 
