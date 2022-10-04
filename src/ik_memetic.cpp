@@ -64,6 +64,8 @@ void MemeticIk::initPopulation(Robot const& robot,
     for (size_t i = elite_count_; i < population_count_; ++i) {
         population_[i] = Individual{initial_guess, 0.0, 1.0, zero_grad};
     }
+
+    computeExtinctions();
 }
 
 void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
@@ -199,15 +201,23 @@ auto ik_memetic(std::vector<double> const& initial_guess,
         }
 
         // Handle wipeouts if no progress is being made.
-        if (previous_fitness) {
-            bool const improved = (ik.bestCost() < previous_fitness.value());
+        auto constexpr improve_tol = 0.00001;  // TODO Promote
+        if (previous_fitness.has_value()) {
+            #pragma GCC diagnostic push
+            #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+            bool const improved =
+                (ik.bestCost() < *previous_fitness - improve_tol);
+            #pragma GCC diagnostic pop
             if (!improved) {
                 std::cout << "Population wipeout" << std::endl;
                 ik.initPopulation(robot, cost_fn, initial_guess);
+                previous_fitness.reset();
+            } else {
+                previous_fitness = ik.bestCost();
             }
+        } else {
+            previous_fitness = ik.bestCost();
         }
-        previous_fitness = ik.bestCost();
-
         iter++;
     }
 

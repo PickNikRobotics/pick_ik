@@ -20,7 +20,7 @@ struct MemeticIkTestParams {
     double cost_threshold = 0.00001;
     double rotation_scale = 0.5;
     double timeout = 1.0;
-    bool return_approximate_solution = false;
+    bool approximate_solution = false;
 };
 
 auto solve_memetic_ik_test(moveit::core::RobotModelPtr robot_model,
@@ -53,7 +53,12 @@ auto solve_memetic_ik_test(moveit::core::RobotModelPtr robot_model,
     // Solve IK
     auto const robot = pick_ik::Robot::from(robot_model, jmg, tip_link_indices);
     auto const cost_fn = pick_ik::make_cost_fn(pose_cost_functions, goals, fk_fn);
-    return pick_ik::ik_memetic(initial_guess, robot, cost_fn, solution_fn, params.timeout, true);
+    return pick_ik::ik_memetic(initial_guess,
+                               robot,
+                               cost_fn,
+                               solution_fn,
+                               params.timeout,
+                               params.approximate_solution);
 }
 
 TEST_CASE("Panda model IK") {
