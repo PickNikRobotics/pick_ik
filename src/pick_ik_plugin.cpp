@@ -160,6 +160,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             ik_params.population_size = static_cast<size_t>(params.memetic_population_size);
             ik_params.elite_size = static_cast<size_t>(params.memetic_elite_size);
             ik_params.wipeout_fitness_tol = params.memetic_wipeout_fitness_tol;
+            ik_params.num_threads = static_cast<size_t>(params.memetic_num_threads);
             ik_params.local_step_size = params.gd_step_size;
             ik_params.local_max_iters = static_cast<int>(params.memetic_gd_max_iters);
             ik_params.local_max_time = params.memetic_gd_max_time;

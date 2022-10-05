@@ -3,11 +3,13 @@
 #include <pick_ik/ik_memetic.hpp>
 #include <pick_ik/robot.hpp>
 
+#include <rsl/queue.hpp>
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <fmt/core.h>
-#include <rsl/queue.hpp>
+#include <limits>
 #include <optional>
 #include <vector>
 
@@ -202,18 +204,14 @@ void MemeticIk::sortPopulation() {
     }
 }
 
-auto ik_memetic(std::vector<double> const& initial_guess,
-                Robot const& robot,
-                CostFn const& cost_fn,
-                SolutionTestFn const& solution_fn,
-                MemeticIkParams const& params,
-                double const timeout,
-                bool const approx_solution,
-                bool const print_debug) -> std::optional<std::vector<double>> {
-    if (solution_fn(initial_guess)) {
-        return initial_guess;
-    }
-
+auto ik_memetic_impl(std::vector<double> const& initial_guess,
+                     Robot const& robot,
+                     CostFn const& cost_fn,
+                     SolutionTestFn const& solution_fn,
+                     MemeticIkParams const& params,
+                     double const timeout,
+                     bool const approx_solution,
+                     bool const print_debug) -> std::optional<Individual> {
     assert(robot.variables.size() == initial_guess.size());
     auto ik = MemeticIk::from(initial_guess, cost_fn, params);
 
@@ -242,7 +240,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
         // Check for termination and wipeout conditions
         if (solution_fn(ik.best().genes)) {
             if (print_debug) fmt::print("Found solution!\n");
-            return ik.best().genes;
+            return ik.best();
         }
         if (ik.checkWipeout()) {
             if (print_debug) fmt::print("Population wipeout\n");
@@ -254,53 +252,81 @@ auto ik_memetic(std::vector<double> const& initial_guess,
 
     if (approx_solution) {
         if (print_debug) fmt::print("Returning best solution\n");
-        return ik.best().genes;
+        return ik.best();
     }
 
     return std::nullopt;
 }
 
-auto ik_memetic_multithreaded(std::vector<double> const& initial_guess,
-                              Robot const& robot,
-                              CostFn const& cost_fn,
-                              SolutionTestFn const& solution_fn,
-                              MemeticIkParams const& params,
-                              size_t const num_threads,
-                              double const timeout,
-                              bool const approx_solution,
-                              bool const print_debug) -> std::optional<std::vector<double>> {
+auto ik_memetic(std::vector<double> const& initial_guess,
+                Robot const& robot,
+                CostFn const& cost_fn,
+                SolutionTestFn const& solution_fn,
+                MemeticIkParams const& params,
+                double const timeout,
+                bool const approx_solution,
+                bool const print_debug) -> std::optional<std::vector<double>> {
+    // Check whether the initial guess already meets the goal,
+    // before starting to solve.
+    if (solution_fn(initial_guess)) {
+        return initial_guess;
+    }
     
-    rsl::Queue<std::optional<std::vector<double>>> solution_queue;
-    std::vector<std::thread> ik_threads;
-    ik_threads.reserve(num_threads);
+    if (params.num_threads <= 1) {
+        // Single-threaded implementation
+        auto maybe_solution = ik_memetic_impl(initial_guess,
+                                              robot,
+                                              cost_fn,
+                                              solution_fn,
+                                              params,
+                                              timeout,
+                                              approx_solution,
+                                              print_debug);
+        if (maybe_solution.has_value()) {
+            return maybe_solution.value().genes;
+        }
+    } else {
+        // Multi-threaded implementation
+        rsl::Queue<std::optional<Individual>> solution_queue;
+        std::vector<std::thread> ik_threads;
+        ik_threads.reserve(params.num_threads);
 
-    auto ik_thread_fn = [=, &solution_queue]() {
-        auto soln = ik_memetic(initial_guess,
-                               robot,
-                               cost_fn,
-                               solution_fn,
-                               params,
-                               timeout,
-                               approx_solution,
-                               print_debug);
-        solution_queue.push(soln);
-    };
+        auto ik_thread_fn = [=, &solution_queue]() {
+            auto soln = ik_memetic_impl(initial_guess,
+                                        robot,
+                                        cost_fn,
+                                        solution_fn,
+                                        params,
+                                        timeout,
+                                        approx_solution,
+                                        print_debug);
+            solution_queue.push(soln);
+        };
 
-    for (size_t i = 0; i < num_threads; ++i) {
-        ik_threads.push_back(std::thread(ik_thread_fn));
+        for (size_t i = 0; i < params.num_threads; ++i) {
+            ik_threads.push_back(std::thread(ik_thread_fn));
+        }
+
+        for (auto& t : ik_threads) {
+            t.join();
+        }
+
+        // Get the minimum-cost solution
+        // TODO: What if we just want the first solution and not the best?
+        std::vector<double> best_solution;
+        auto min_cost = std::numeric_limits<double>::max();
+        while (!solution_queue.empty()) {
+            auto const maybe_solution = solution_queue.pop().value();
+            if (maybe_solution.has_value()) {
+                auto const cost = maybe_solution->fitness;
+                if (cost < min_cost) {
+                    best_solution = maybe_solution->genes;
+                    min_cost = cost;
+                }
+            }
+        }
+        if (!best_solution.empty()) return best_solution;
     }
-
-    for (auto& t : ik_threads) {
-        t.join();
-    }
-
-    // TODO: What if we just want the first solution and not the best?
-
-    // TODO: Pick out solutions correctly, and not just the latest popped one.
-    if (!solution_queue.empty()) {
-        return solution_queue.pop().value();
-    }
-
     return std::nullopt;
 }
 

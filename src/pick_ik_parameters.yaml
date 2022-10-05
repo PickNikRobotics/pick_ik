@@ -57,6 +57,14 @@ pick_ik:
     },
   }
   # Memetic IK specific parameters
+  memetic_num_threads: {
+    type: int,
+    default_value: 1,
+    description: "Number of threads for memetic IK",
+    validation: {
+      lower_bounds<>: [1],
+    }
+  }
   memetic_population_size: {
     type: int,
     default_value: 16,
