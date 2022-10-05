@@ -3,12 +3,13 @@
 #include <pick_ik/goal.hpp>
 #include <pick_ik/robot.hpp>
 
+#include <rsl/random.hpp>
+
 #include <chrono>
 #include <memory>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_model/robot_model.h>
 #include <optional>
-#include <rsl/random.hpp>
 #include <vector>
 
 namespace pick_ik {
@@ -35,14 +36,19 @@ struct MemeticIkParams {
 
 class MemeticIk {
    private:
+    // Evolutionary algorithm values
     std::vector<Individual> population_;
+    std::vector<Individual*> mating_pool_;
     Individual best_;       // Best solution overall.
     Individual best_curr_;  // Best solution so far.
+    std::optional<double> previous_fitness_;
 
+    // Solver parameters
     MemeticIkParams params_;
 
-    // Extinction coefficient gradings (cached since they do not change).
+    // Scaling coefficients (cached since they do not change).
     std::vector<double> extinction_grading_;
+    double inverse_gene_size_;
 
    public:
     MemeticIk(std::vector<double> const& initial_guess, double cost, MemeticIkParams const& params);
@@ -53,6 +59,7 @@ class MemeticIk {
     Individual best() const { return best_; };
     Individual bestCurrent() const { return best_curr_; };
     size_t eliteCount() const { return params_.elite_size; };
+    bool checkWipeout();
     void computeExtinctions();
     void gradientDescent(size_t const i, Robot const& robot, CostFn const& cost_fn);
     void initPopulation(Robot const& robot,
