@@ -59,7 +59,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt --mount=type=ssh \
     && rm -rf /var/lib/apt/lists/*
 RUN --mount=type=cache,target=/root/.ccache,id=ccache \
     . /opt/ros/$ROS_DISTRO/setup.sh \
-    && colcon build --mixin ccache release lld \
+    && colcon build --mixin ccache release lld shared \
     && rm -rf build src log upstream.repos \
     && ccache -s
 
@@ -94,7 +94,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt --mount=type=ssh \
     && rm -rf /var/lib/apt/lists/*
 RUN --mount=type=cache,target=/root/.ccache,id=ccache \
     . /opt/ros/$ROS_DISTRO/setup.sh \
-    && colcon build --mixin ccache rel-with-deb-info compile-commands lld \
+    && colcon build --mixin ccache rel-with-deb-info compile-commands lld shared \
     && ccache -s
 
 # install dependencies of this project
