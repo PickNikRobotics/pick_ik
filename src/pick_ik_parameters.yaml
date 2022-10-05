@@ -1,4 +1,5 @@
 pick_ik:
+  # Overall solver settings
   mode: {
     type: string,
     default_value: "global",
@@ -7,6 +8,15 @@ pick_ik:
       one_of<>: [["global", "local"]]
     }
   }
+  gd_step_size: {
+    type: double,
+    default_value: 0.0001,
+    description: "Gradient descent step size for joint perturbation",
+    validation: {
+      lower_bounds<>: [1.0e-12],
+    }
+  }
+  # Cost functions and thresholds
   twist_threshold: {
     type: double,
     default_value: 0.001,
@@ -45,4 +55,45 @@ pick_ik:
     validation: {
       lower_bounds<>: [0.0],
     },
+  }
+  # Memetic IK specific parameters
+  memetic_population_size: {
+    type: int,
+    default_value: 16,
+    description: "Population size for memetic IK",
+    validation: {
+      lower_bounds<>: [1],
+    }
+  }
+  memetic_elite_size: {
+    type: int,
+    default_value: 4,
+    description: "Number of elite members of memetic IK population",
+    validation: {
+      lower_bounds<>: [1],
+    }
+  }
+  memetic_wipeout_fitness_tol: {
+    type: double,
+    default_value: 0.00001,
+    description: "Minimum fitness must improve by this value or population will be wiped out",
+    validation: {
+      lower_bounds<>: [0.0],
+    }
+  }
+  memetic_gd_max_iters: {
+    type: int,
+    default_value: 25,
+    description: "Maximum iterations of gradient descent during memetic exploitation",
+    validation: {
+      lower_bounds<>: [0],
+    }
+  }
+  memetic_gd_max_time: {
+    type: double,
+    default_value: 0.005,
+    description: "Maximum time spent on gradient descent during memetic exploitation",
+    validation: {
+      lower_bounds<>: [0.0],
+    }
   }

@@ -156,20 +156,30 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         // Search for a solution using either the local or global solver.
         std::optional<std::vector<double>> maybe_solution;
         if (params.mode == "global") {
+            MemeticIkParams ik_params;
+            ik_params.population_size = static_cast<size_t>(params.memetic_population_size);
+            ik_params.elite_size = static_cast<size_t>(params.memetic_elite_size);
+            ik_params.wipeout_fitness_tol = params.memetic_wipeout_fitness_tol;
+            ik_params.local_step_size = params.gd_step_size;
+            ik_params.local_max_iters = static_cast<int>(params.memetic_gd_max_iters);
+            ik_params.local_max_time = params.memetic_gd_max_time;
+
             maybe_solution = ik_memetic(ik_seed_state,
                                         robot_,
                                         cost_fn,
                                         solution_fn,
+                                        ik_params,
                                         timeout,
                                         options.return_approximate_solution,
                                         false /* No debug print */);
         } else if (params.mode == "local") {
-            maybe_solution = ik_search(ik_seed_state,
-                                       robot_,
-                                       cost_fn,
-                                       solution_fn,
-                                       timeout,
-                                       options.return_approximate_solution);
+            maybe_solution = ik_gradient(ik_seed_state,
+                                         robot_,
+                                         cost_fn,
+                                         solution_fn,
+                                         timeout,
+                                         options.return_approximate_solution,
+                                         params.gd_step_size);
         } else {
             RCLCPP_ERROR(LOGGER, "Invalid solver mode: %s", params.mode.c_str());
             return false;

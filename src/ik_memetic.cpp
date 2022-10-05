@@ -12,31 +12,46 @@
 
 namespace pick_ik {
 
-MemeticIk MemeticIk::from(std::vector<double> const& initial_guess, CostFn const& cost_fn) {
-    return MemeticIk{std::vector<double>(initial_guess.size(), 0.0), cost_fn(initial_guess)};
+MemeticIk MemeticIk::from(std::vector<double> const& initial_guess,
+                          CostFn const& cost_fn,
+                          MemeticIkParams const& params) {
+    return MemeticIk{initial_guess, cost_fn(initial_guess), params};
 }
+
+MemeticIk::MemeticIk(std::vector<double> const& initial_guess,
+                     double cost,
+                     MemeticIkParams const& params)
+    : params_{params}, gen_{rd_()} {
+    best_ = Individual{initial_guess, cost, 0.0, std::vector<double>(initial_guess.size(), 0.0)};
+    best_curr_ = best_;
+
+    // Cache extinction grading coefficients to not have to recompute all the time.
+    extinction_grading_.reserve(params.population_size);
+    for (size_t i = 0; i < params.population_size; ++i) {
+        extinction_grading_.push_back(static_cast<double>(i) /
+                                      static_cast<double>(params.population_size - 1));
+    }
+};
 
 void MemeticIk::computeExtinctions() {
     double min_fitness = population_.front().fitness;
     double max_fitness = population_.back().fitness;
-    for (size_t i = 0; i < population_count_; ++i) {
-        double grading = static_cast<double>(i) / static_cast<double>(population_count_ - 1);
+    for (size_t i = 0; i < params_.population_size; ++i) {
         population_[i].extinction =
-            (population_[i].fitness + min_fitness * (grading - 1)) / max_fitness;
+            (population_[i].fitness + min_fitness * (extinction_grading_[i] - 1)) / max_fitness;
     }
 }
 
 void MemeticIk::gradientDescent(size_t const i, Robot const& robot, CostFn const& cost_fn) {
     auto& individual = population_[i];
     auto local_ik = GradientIk::from(individual.genes, cost_fn);
-    auto constexpr timeout_local = 0.005;
-    auto constexpr max_iters_local = 25;
     auto const timeout_point_local =
-        std::chrono::system_clock::now() + std::chrono::duration<double>(timeout_local);
+        std::chrono::system_clock::now() + std::chrono::duration<double>(params_.local_max_time);
 
     int iter = 0;
-    while (std::chrono::system_clock::now() < timeout_point_local && iter < max_iters_local) {
-        if (!step(local_ik, robot, cost_fn)) {
+    while (std::chrono::system_clock::now() < timeout_point_local &&
+           iter < params_.local_max_iters) {
+        if (!step(local_ik, robot, cost_fn, params_.local_step_size)) {
             break;
         }
         iter++;
@@ -51,8 +66,8 @@ void MemeticIk::initPopulation(Robot const& robot,
                                CostFn const& cost_fn,
                                std::vector<double> const& initial_guess) {
     std::vector<double> const zero_grad(robot.variables.size(), 0.0);
-    population_.resize(population_count_);
-    for (size_t i = 0; i < elite_count_; ++i) {
+    population_.resize(params_.population_size);
+    for (size_t i = 0; i < params_.elite_size; ++i) {
         auto genotype = initial_guess;
         if (i > 0) {
             for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
@@ -64,7 +79,7 @@ void MemeticIk::initPopulation(Robot const& robot,
     }
 
     // Initialize children to some dummy values that will be overwritten.
-    for (size_t i = elite_count_; i < population_count_; ++i) {
+    for (size_t i = params_.elite_size; i < params_.population_size; ++i) {
         population_[i] = Individual{initial_guess, 0.0, 1.0, zero_grad};
     }
 
@@ -73,12 +88,12 @@ void MemeticIk::initPopulation(Robot const& robot,
 
 void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
     std::vector<Individual*> pool;
-    pool.reserve(elite_count_);
-    for (size_t i = 0; i < elite_count_; ++i) {
+    pool.reserve(params_.elite_size);
+    for (size_t i = 0; i < params_.elite_size; ++i) {
         pool.emplace_back(&population_[i]);
     }
 
-    for (size_t i = elite_count_; i < population_count_; ++i) {
+    for (size_t i = params_.elite_size; i < params_.population_size; ++i) {
         // Select parents
         // TODO: Make this code better
         if (pool.size() > 1) {
@@ -156,11 +171,9 @@ void MemeticIk::sortPopulation() {
     std::sort(population_.begin(), population_.end(), [](Individual const& a, Individual const& b) {
         return a.fitness < b.fitness;
     });
-    best_curr_ = population_[0].genes;
-    best_cost_curr_ = population_[0].fitness;
-    if (best_cost_curr_ < best_cost_) {
+    best_curr_ = population_[0];
+    if (best_curr_.fitness < best_.fitness) {
         best_ = best_curr_;
-        best_cost_ = best_cost_curr_;
     }
 }
 
@@ -168,6 +181,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
                 Robot const& robot,
                 CostFn const& cost_fn,
                 SolutionTestFn const& solution_fn,
+                MemeticIkParams const& params,
                 double const timeout,
                 bool const approx_solution,
                 bool const print_debug) -> std::optional<std::vector<double>> {
@@ -176,7 +190,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
     }
 
     assert(robot.variables.size() == initial_guess.size());
-    auto ik = MemeticIk::from(initial_guess, cost_fn);
+    auto ik = MemeticIk::from(initial_guess, cost_fn, params);
 
     ik.initPopulation(robot, cost_fn, initial_guess);
 
@@ -203,34 +217,34 @@ auto ik_memetic(std::vector<double> const& initial_guess,
         }
 
         // Check for termination
-        if (solution_fn(ik.best())) {
+        if (solution_fn(ik.best().genes)) {
             if (print_debug) fmt::print("Found solution!\n");
-            return ik.best();
+            return ik.best().genes;
         }
 
         // Handle wipeouts if no progress is being made.
-        auto constexpr improve_tol = 0.00001;  // TODO Promote
         if (previous_fitness.has_value()) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-            bool const improved = (ik.bestCurrentCost() < *previous_fitness - improve_tol);
+            bool const improved =
+                (ik.bestCurrent().fitness < *previous_fitness - params.wipeout_fitness_tol);
 #pragma GCC diagnostic pop
             if (!improved) {
-                if (print_debug) fmt::print("Population wipeout");
+                if (print_debug) fmt::print("Population wipeout\n");
                 ik.initPopulation(robot, cost_fn, initial_guess);
                 previous_fitness.reset();
             } else {
-                previous_fitness = ik.bestCurrentCost();
+                previous_fitness = ik.bestCurrent().fitness;
             }
         } else {
-            previous_fitness = ik.bestCurrentCost();
+            previous_fitness = ik.bestCurrent().fitness;
         }
         iter++;
     }
 
     if (approx_solution) {
         if (print_debug) fmt::print("Returning best solution\n");
-        return ik.best();
+        return ik.best().genes;
     }
 
     return std::nullopt;

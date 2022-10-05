@@ -15,14 +15,15 @@
 
 // Helper param struct and function to test IK solution.
 struct MemeticIkTestParams {
-    double twist_threshold = 0.00001;
-    double cost_threshold = 0.00001;
+    double twist_threshold = 0.001;
+    double cost_threshold = 0.001;
     double rotation_scale = 0.5;
 
     // Solve options
     double timeout = 1.0;
     bool approximate_solution = false;
     bool print_debug = false;
+    pick_ik::MemeticIkParams memetic_params;
 
     // Additional costs
     double center_joints_weight = 0.0;
@@ -77,6 +78,7 @@ auto solve_memetic_ik_test(moveit::core::RobotModelPtr robot_model,
                                robot,
                                cost_fn,
                                solution_fn,
+                               params.memetic_params,
                                params.timeout,
                                params.approximate_solution,
                                params.print_debug);
@@ -157,7 +159,7 @@ TEST_CASE("Panda model Memetic IK") {
         params.avoid_joint_limits_weight = 0.01;
         params.cost_threshold = 0.01;  // Need to raise this for joint centering
         params.twist_threshold = 0.01;
-        params.print_debug = true;
+        params.print_debug = false;
 
         auto const maybe_solution = solve_memetic_ik_test(robot_model,
                                                           "panda_arm",
