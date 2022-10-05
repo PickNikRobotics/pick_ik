@@ -8,7 +8,7 @@
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_model/robot_model.h>
 #include <optional>
-#include <random>
+#include <rsl/random.hpp>
 #include <vector>
 
 namespace pick_ik {
@@ -43,12 +43,6 @@ class MemeticIk {
 
     // Extinction coefficient gradings (cached since they do not change).
     std::vector<double> extinction_grading_;
-
-    // RNG (TODO use RSL)
-    std::random_device rd_;
-    std::mt19937 gen_;
-    std::uniform_real_distribution<double> mutate_dist_{-0.5, 0.5};
-    std::uniform_real_distribution<double> uniform_dist_{0.0, 1.0};
 
    public:
     MemeticIk(std::vector<double> const& initial_guess, double cost, MemeticIkParams const& params);

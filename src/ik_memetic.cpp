@@ -21,7 +21,7 @@ MemeticIk MemeticIk::from(std::vector<double> const& initial_guess,
 MemeticIk::MemeticIk(std::vector<double> const& initial_guess,
                      double cost,
                      MemeticIkParams const& params)
-    : params_{params}, gen_{rd_()} {
+    : params_{params} {
     best_ = Individual{initial_guess, cost, 0.0, std::vector<double>(initial_guess.size(), 0.0)};
     best_curr_ = best_;
 
@@ -72,7 +72,7 @@ void MemeticIk::initPopulation(Robot const& robot,
         if (i > 0) {
             for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
                 auto const& var = robot.variables[j_idx];
-                genotype[j_idx] = uniform_dist_(gen_) * var.span + var.min;
+                genotype[j_idx] = rsl::uniform_real(0.0, 1.0) * var.span + var.min;
             }
         }
         population_[i] = Individual{genotype, cost_fn(genotype), 1.0, zero_grad};
@@ -97,11 +97,10 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
         // Select parents
         // TODO: Make this code better
         if (pool.size() > 1) {
-            std::uniform_int_distribution<size_t> int_dist(0, pool.size());
-            size_t const idxA = int_dist(gen_);
+            size_t const idxA = rsl::uniform_int<size_t>(0, pool.size());
             size_t idxB = idxA;
             while (idxB == idxA && pool.size() > 1) {
-                idxB = int_dist(gen_);
+                idxB = rsl::uniform_int<size_t>(0, pool.size());
             }
             auto& parentA = population_[idxA];
             auto& parentB = population_[idxB];
@@ -111,7 +110,7 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
             double const inverse = 1.0 / static_cast<double>(robot.variables.size());
             double const mutation_prob = extinction * (1.0 - inverse) + inverse;
 
-            auto const mix_ratio = uniform_dist_(gen_);
+            auto const mix_ratio = rsl::uniform_real(0.0, 1.0);
             for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
                 auto& gene = population_[i].genes[j_idx];
                 auto joint = robot.variables[j_idx];
@@ -120,13 +119,13 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
                 gene = mix_ratio * parentA.genes[j_idx] + (1.0 - mix_ratio) * parentB.genes[j_idx];
 
                 // Add in parent gradients
-                gene += uniform_dist_(gen_) * parentA.gradient[j_idx] +
-                        uniform_dist_(gen_) * parentB.gradient[j_idx];
+                gene += rsl::uniform_real(0.0, 1.0) * parentA.gradient[j_idx] +
+                        rsl::uniform_real(0.0, 1.0) * parentB.gradient[j_idx];
                 auto original_gene = gene;
 
                 // Mutate
-                if (uniform_dist_(gen_) < mutation_prob) {
-                    gene += extinction * joint.span * mutate_dist_(gen_);
+                if (rsl::uniform_real(0.0, 1.0) < mutation_prob) {
+                    gene += extinction * joint.span * rsl::uniform_real(-0.5, 0.5);
                 }
 
                 // Clamp to valid joint values
@@ -149,7 +148,7 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
             // Roll a new population member randomly.
             for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
                 auto const& var = robot.variables[j_idx];
-                population_[i].genes[j_idx] = uniform_dist_(gen_) * var.span + var.min;
+                population_[i].genes[j_idx] = rsl::uniform_real(0.0, 1.0) * var.span + var.min;
             }
             population_[i].fitness = cost_fn(population_[i].genes);
             for (auto& g : population_[i].gradient) {
