@@ -209,6 +209,7 @@ auto ik_memetic_impl(std::vector<double> const& initial_guess,
                      CostFn const& cost_fn,
                      SolutionTestFn const& solution_fn,
                      MemeticIkParams const& params,
+                     std::atomic<bool>& terminate,
                      double const timeout,
                      bool const approx_solution,
                      bool const print_debug) -> std::optional<Individual> {
@@ -247,6 +248,12 @@ auto ik_memetic_impl(std::vector<double> const& initial_guess,
             ik.initPopulation(robot, cost_fn, initial_guess);
         }
 
+        // Check termination condition from other threads finding a solution.
+        if (terminate) {
+            if (print_debug) fmt::print("Terminated\n");
+            break;
+        }
+
         iter++;
     }
 
@@ -272,6 +279,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
         return initial_guess;
     }
     
+    std::atomic<bool> terminate{false};
     if (params.num_threads <= 1) {
         // Single-threaded implementation
         auto maybe_solution = ik_memetic_impl(initial_guess,
@@ -279,6 +287,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
                                               cost_fn,
                                               solution_fn,
                                               params,
+                                              terminate,
                                               timeout,
                                               approx_solution,
                                               print_debug);
@@ -291,12 +300,13 @@ auto ik_memetic(std::vector<double> const& initial_guess,
         std::vector<std::thread> ik_threads;
         ik_threads.reserve(params.num_threads);
 
-        auto ik_thread_fn = [=, &solution_queue]() {
+        auto ik_thread_fn = [=, &terminate, &solution_queue]() {
             auto soln = ik_memetic_impl(initial_guess,
                                         robot,
                                         cost_fn,
                                         solution_fn,
                                         params,
+                                        terminate,
                                         timeout,
                                         approx_solution,
                                         print_debug);
@@ -307,14 +317,30 @@ auto ik_memetic(std::vector<double> const& initial_guess,
             ik_threads.push_back(std::thread(ik_thread_fn));
         }
 
+        // If enabled, stop on first solution and return.
+        size_t num_done = 0;
+        std::vector<double> best_solution;
+        auto min_cost = std::numeric_limits<double>::max();
+        if (params.stop_on_first_soln) {
+            while (solution_queue.empty() && !terminate && num_done < params.num_threads) {
+                std::this_thread::sleep_for(std::chrono::microseconds(100));
+            }
+            auto const maybe_solution = solution_queue.pop().value();
+            if (maybe_solution.has_value()) {
+                best_solution = maybe_solution->genes;
+                min_cost = maybe_solution->fitness;
+                terminate = true;
+            }
+            num_done++;
+        }
+
         for (auto& t : ik_threads) {
             t.join();
         }
 
-        // Get the minimum-cost solution
-        // TODO: What if we just want the first solution and not the best?
-        std::vector<double> best_solution;
-        auto min_cost = std::numeric_limits<double>::max();
+        // Get the minimum-cost solution from all threads.
+        // Note that if approximate solutions are enabled, even if we terminate threads early, we
+        // can still compare our first solution with the approximate ones from the other threads
         while (!solution_queue.empty()) {
             auto const maybe_solution = solution_queue.pop().value();
             if (maybe_solution.has_value()) {

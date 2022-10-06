@@ -5,6 +5,7 @@
 
 #include <rsl/random.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <moveit/robot_model/joint_model_group.h>
@@ -28,6 +29,8 @@ struct MemeticIkParams {
     double wipeout_fitness_tol = 0.00001;  // Min fitness must improve by at least this much or the
                                            // population is reinitialized.
     size_t num_threads = 1;                // Number of species to solve in parallel.
+    bool stop_on_first_soln = true;        // If true, returns first solution and terminates other threads.
+                                           // If false, waits for all threads to join and returns best solution.
 
     // Gradient descent parameters
     double local_step_size = 0.0001;  // Joint angle numerical perturbation step size.
@@ -78,6 +81,7 @@ auto ik_memetic_impl(std::vector<double> const& initial_guess,
                      CostFn const& cost_fn,
                      SolutionTestFn const& solution_fn,
                      MemeticIkParams const& params,
+                     std::atomic<bool>& terminate,
                      double const timeout = 1.0,
                      bool const approx_solution = false,
                      bool const print_debug = false) -> std::optional<Individual>;

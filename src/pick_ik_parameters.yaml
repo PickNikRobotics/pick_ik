@@ -65,6 +65,11 @@ pick_ik:
       lower_bounds<>: [1],
     }
   }
+  memetic_stop_on_first_solution: {
+    type: bool,
+    default_value: true,
+    description: "If true, stops on first solution and terminates other threads",
+  }
   memetic_population_size: {
     type: int,
     default_value: 16,
