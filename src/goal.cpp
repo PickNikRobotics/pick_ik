@@ -50,8 +50,9 @@ auto make_pose_cost_fn(Eigen::Isometry3d goal, size_t goal_link_index, double ro
         return [=](std::vector<Eigen::Isometry3d> const& tip_frames) -> double {
             auto const& frame = tip_frames[goal_link_index];
             auto const q_frame = Eigen::Quaterniond(frame.rotation());
+            auto const q_dot_product = std::clamp(q_goal.dot(q_frame), -1.0, 1.0);
             return (goal.translation() - frame.translation()).squaredNorm() +
-                   std::pow(2.0 * std::acos(q_goal.dot(q_frame)) * rotation_scale, 2);
+                   std::pow(2.0 * std::acos(q_dot_product) * rotation_scale, 2);
         };
     }
     return [=](std::vector<Eigen::Isometry3d> const& tip_frames) -> double {

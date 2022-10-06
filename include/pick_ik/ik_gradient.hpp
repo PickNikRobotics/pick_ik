@@ -22,13 +22,15 @@ struct GradientIk {
     static GradientIk from(std::vector<double> const& initial_guess, CostFn const& cost_fn);
 };
 
-auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn) -> bool;
+auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn, double step_size = 0.0001)
+    -> bool;
 
-auto ik_search(std::vector<double> const& initial_guess,
-               Robot const& robot,
-               CostFn const& cost_fn,
-               SolutionTestFn const& solution_fn,
-               double timeout,
-               bool approx_solution) -> std::optional<std::vector<double>>;
+auto ik_gradient(std::vector<double> const& initial_guess,
+                 Robot const& robot,
+                 CostFn const& cost_fn,
+                 SolutionTestFn const& solution_fn,
+                 double timeout,
+                 bool approx_solution,
+                 double step_size = 0.0001) -> std::optional<std::vector<double>>;
 
 }  // namespace pick_ik

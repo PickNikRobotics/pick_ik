@@ -9,7 +9,6 @@
 
 #include <Eigen/Geometry>
 #include <cmath>
-#include <iostream>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/utils/robot_model_test_utils.h>
 
@@ -81,6 +80,7 @@ struct IkTestParams {
     double rotation_scale = 1.0;
     double timeout = 1.0;
     bool return_approximate_solution = false;
+    double step_size = 0.0001;
 };
 
 auto solve_ik_test(moveit::core::RobotModelPtr robot_model,
@@ -113,12 +113,13 @@ auto solve_ik_test(moveit::core::RobotModelPtr robot_model,
     // Solve IK
     auto const robot = pick_ik::Robot::from(robot_model, jmg, tip_link_indices);
     auto const cost_fn = pick_ik::make_cost_fn(pose_cost_functions, goals, fk_fn);
-    return pick_ik::ik_search(initial_guess,
-                              robot,
-                              cost_fn,
-                              solution_fn,
-                              params.timeout,
-                              params.return_approximate_solution);
+    return pick_ik::ik_gradient(initial_guess,
+                                robot,
+                                cost_fn,
+                                solution_fn,
+                                params.timeout,
+                                params.return_approximate_solution,
+                                params.step_size);
 }
 
 TEST_CASE("RR model IK") {
@@ -249,7 +250,7 @@ TEST_CASE("Panda model IK") {
                                                   params);
 
         REQUIRE(maybe_solution.has_value());
-        for (size_t i = 0; i < 7; ++i) {
+        for (size_t i = 0; i < initial_guess.size(); ++i) {
             CHECK(maybe_solution.value()[i] == Catch::Approx(home_joint_angles[i]).margin(0.01));
         }
     }
@@ -271,8 +272,8 @@ TEST_CASE("Panda model IK") {
                                                   params);
 
         REQUIRE(maybe_solution.has_value());
-        for (size_t i = 0; i < 7; ++i) {
-            // NOTE the extra tolerance...
+        for (size_t i = 0; i < initial_guess.size(); ++i) {
+            // Note the extra tolerance...
             CHECK(maybe_solution.value()[i] == Catch::Approx(actual_joint_angles[i]).margin(0.025));
         }
     }

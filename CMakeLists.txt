@@ -14,6 +14,7 @@ find_package(moveit_core REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rsl REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_kdl REQUIRED)
 find_package(tl_expected REQUIRED)
@@ -27,6 +28,7 @@ add_library(pick_ik_plugin SHARED
   src/forward_kinematics.cpp
   src/pick_ik_plugin.cpp
   src/goal.cpp
+  src/ik_memetic.cpp
   src/ik_gradient.cpp
   src/robot.cpp
 )
@@ -40,6 +42,7 @@ target_link_libraries(pick_ik_plugin
     tf2_geometry_msgs::tf2_geometry_msgs
     tf2_kdl::tf2_kdl
     tl_expected::tl_expected
+    rsl::rsl
   PRIVATE
     fmt::fmt
     pick_ik_parameters
@@ -79,6 +82,7 @@ ament_export_dependencies(
   pluginlib
   range-v3
   rclcpp
+  rsl
   tf2_geometry_msgs
   tf2_kdl
   tl_expected

@@ -5,6 +5,7 @@ find_package(Catch2 3.1.0 REQUIRED)
 add_executable(test-pick_ik
     goal_tests.cpp
     ik_tests.cpp
+    ik_memetic_tests.cpp
     robot_tests.cpp
 )
 target_link_libraries(test-pick_ik

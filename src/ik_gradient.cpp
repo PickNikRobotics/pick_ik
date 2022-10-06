@@ -18,19 +18,18 @@ GradientIk GradientIk::from(std::vector<double> const& initial_guess, CostFn con
                       cost_fn(initial_guess)};
 }
 
-auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn) -> bool {
-    double const jd = 0.0001;
+auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn, double step_size) -> bool {
     auto const count = self.local.size();
 
     // compute gradient direction
     self.working = self.local;
     for (size_t i = 0; i < count; ++i) {
         // test negative displacement
-        self.working[i] = self.local[i] - jd;
+        self.working[i] = self.local[i] - step_size;
         double const p1 = cost_fn(self.working);
 
         // test positive displacement
-        self.working[i] = self.local[i] + jd;
+        self.working[i] = self.local[i] + step_size;
         double const p3 = cost_fn(self.working);
 
         // reset self.working
@@ -44,9 +43,9 @@ auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn) -> bool {
     // normalize gradient direction
     auto sum = std::accumulate(self.gradient.cbegin(),
                                self.gradient.cend(),
-                               0.0001,
+                               step_size,
                                [](auto acc, auto value) { return acc + std::fabs(value); });
-    double const f = 1.0 / sum * jd;
+    double const f = 1.0 / sum * step_size;
     std::transform(self.gradient.cbegin(),
                    self.gradient.cend(),
                    self.gradient.begin(),
@@ -94,12 +93,13 @@ auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn) -> bool {
     return false;
 }
 
-auto ik_search(std::vector<double> const& initial_guess,
-               Robot const& robot,
-               CostFn const& cost_fn,
-               SolutionTestFn const& solution_fn,
-               double timeout,
-               bool approx_solution) -> std::optional<std::vector<double>> {
+auto ik_gradient(std::vector<double> const& initial_guess,
+                 Robot const& robot,
+                 CostFn const& cost_fn,
+                 SolutionTestFn const& solution_fn,
+                 double timeout,
+                 bool approx_solution,
+                 double step_size) -> std::optional<std::vector<double>> {
     if (solution_fn(initial_guess)) {
         return initial_guess;
     }
@@ -109,7 +109,7 @@ auto ik_search(std::vector<double> const& initial_guess,
     auto const timeout_point =
         std::chrono::system_clock::now() + std::chrono::duration<double>(timeout);
     while (std::chrono::system_clock::now() < timeout_point) {
-        if (step(ik, robot, cost_fn)) {
+        if (step(ik, robot, cost_fn, step_size)) {
             if (solution_fn(ik.best)) {
                 return ik.best;
             }
