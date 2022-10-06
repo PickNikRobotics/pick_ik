@@ -326,7 +326,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
         auto maybe_solution = std::optional<std::optional<Individual>>{std::nullopt};
         if (params.stop_on_first_soln) {
             while (!maybe_solution && (n_threads_done < params.num_threads)) {
-                maybe_solution = solution_queue.pop(std::chrono::microseconds(10));
+                maybe_solution = solution_queue.pop(std::chrono::milliseconds(1));
             }
             if (maybe_solution.value().has_value()) {
                 auto const& solution = maybe_solution.value().value();
