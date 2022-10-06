@@ -29,8 +29,9 @@ struct MemeticIkParams {
     double wipeout_fitness_tol = 0.00001;  // Min fitness must improve by at least this much or the
                                            // population is reinitialized.
     size_t num_threads = 1;                // Number of species to solve in parallel.
-    bool stop_on_first_soln = true;        // If true, returns first solution and terminates other threads.
-                                           // If false, waits for all threads to join and returns best solution.
+    // If true, returns first solution and terminates other threads.
+    // If false, waits for all threads to join and returns best solution.
+    bool stop_on_first_soln = true;
 
     // Gradient descent parameters
     double local_step_size = 0.0001;  // Joint angle numerical perturbation step size.

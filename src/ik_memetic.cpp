@@ -278,7 +278,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
     if (solution_fn(initial_guess)) {
         return initial_guess;
     }
-    
+
     std::atomic<bool> terminate{false};
     if (params.num_threads <= 1) {
         // Single-threaded implementation
