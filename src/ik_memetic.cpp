@@ -123,13 +123,13 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
         // Note that we permit there being only one parent, which basically counts as just
         // mutations.
         if (!mating_pool_.empty()) {
-            size_t const idxA = rsl::uniform_int<size_t>(0, mating_pool_.size());
+            size_t const idxA = rsl::uniform_int<size_t>(0, mating_pool_.size() - 1);
             size_t idxB = idxA;
             while (idxB == idxA && mating_pool_.size() > 1) {
-                idxB = rsl::uniform_int<size_t>(0, mating_pool_.size());
+                idxB = rsl::uniform_int<size_t>(0, mating_pool_.size() - 1);
             }
-            auto& parentA = population_[idxA];
-            auto& parentB = population_[idxB];
+            auto& parentA = *(mating_pool_[idxA]);
+            auto& parentB = *(mating_pool_[idxB]);
 
             // Get mutation probability
             double const extinction = 0.5 * (parentA.extinction + parentB.extinction);
@@ -164,12 +164,14 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
             // Evaluate fitness and remove parents from the mating pool if a child with better
             // fitness exists.
             population_[i].fitness = cost_fn(population_[i].genes);
-            if (population_[i].fitness < parentA.fitness)
-                mating_pool_.erase(remove(mating_pool_.begin(), mating_pool_.end(), &parentA),
-                                   mating_pool_.end());
-            if (population_[i].fitness < parentB.fitness)
-                mating_pool_.erase(remove(mating_pool_.begin(), mating_pool_.end(), &parentB),
-                                   mating_pool_.end());
+            if (population_[i].fitness < parentA.fitness) {
+                auto it = std::find(mating_pool_.begin(), mating_pool_.end(), &parentA);
+                if (it != mating_pool_.end()) mating_pool_.erase(it);
+            }
+            if (population_[i].fitness < parentB.fitness) {
+                auto it = std::find(mating_pool_.begin(), mating_pool_.end(), &parentB);
+                if (it != mating_pool_.end()) mating_pool_.erase(it);
+            }
 
         } else {
             // If the mating pool is empty, roll a new population member randomly.
@@ -317,21 +319,22 @@ auto ik_memetic(std::vector<double> const& initial_guess,
             ik_threads.push_back(std::thread(ik_thread_fn));
         }
 
-        // If enabled, stop on first solution and return.
-        size_t num_done = 0;
+        // If enabled, stop all other threads once one thread finds a valid solution.
+        size_t n_threads_done = 0;
         std::vector<double> best_solution;
         auto min_cost = std::numeric_limits<double>::max();
+        auto maybe_solution = std::optional<std::optional<Individual>>{std::nullopt};
         if (params.stop_on_first_soln) {
-            while (solution_queue.empty() && !terminate && num_done < params.num_threads) {
-                std::this_thread::sleep_for(std::chrono::microseconds(100));
+            while (!maybe_solution && (n_threads_done < params.num_threads)) {
+                maybe_solution = solution_queue.pop(std::chrono::microseconds(10));
             }
-            auto const maybe_solution = solution_queue.pop().value();
-            if (maybe_solution.has_value()) {
-                best_solution = maybe_solution->genes;
-                min_cost = maybe_solution->fitness;
+            if (maybe_solution.value().has_value()) {
+                auto const& solution = maybe_solution.value().value();
+                best_solution = solution.genes;
+                min_cost = solution.fitness;
                 terminate = true;
             }
-            num_done++;
+            n_threads_done++;
         }
 
         for (auto& t : ik_threads) {
@@ -342,11 +345,12 @@ auto ik_memetic(std::vector<double> const& initial_guess,
         // Note that if approximate solutions are enabled, even if we terminate threads early, we
         // can still compare our first solution with the approximate ones from the other threads
         while (!solution_queue.empty()) {
-            auto const maybe_solution = solution_queue.pop().value();
-            if (maybe_solution.has_value()) {
-                auto const cost = maybe_solution->fitness;
+            maybe_solution = solution_queue.pop();
+            if (maybe_solution.value().has_value()) {
+                auto const& solution = maybe_solution.value().value();
+                auto const& cost = solution.fitness;
                 if (cost < min_cost) {
-                    best_solution = maybe_solution->genes;
+                    best_solution = solution.genes;
                     min_cost = cost;
                 }
             }
