@@ -3,10 +3,13 @@
 #include <pick_ik/ik_memetic.hpp>
 #include <pick_ik/robot.hpp>
 
+#include <rsl/queue.hpp>
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <fmt/core.h>
+#include <limits>
 #include <optional>
 #include <vector>
 
@@ -120,13 +123,13 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
         // Note that we permit there being only one parent, which basically counts as just
         // mutations.
         if (!mating_pool_.empty()) {
-            size_t const idxA = rsl::uniform_int<size_t>(0, mating_pool_.size());
+            size_t const idxA = rsl::uniform_int<size_t>(0, mating_pool_.size() - 1);
             size_t idxB = idxA;
             while (idxB == idxA && mating_pool_.size() > 1) {
-                idxB = rsl::uniform_int<size_t>(0, mating_pool_.size());
+                idxB = rsl::uniform_int<size_t>(0, mating_pool_.size() - 1);
             }
-            auto& parentA = population_[idxA];
-            auto& parentB = population_[idxB];
+            auto& parentA = *(mating_pool_[idxA]);
+            auto& parentB = *(mating_pool_[idxB]);
 
             // Get mutation probability
             double const extinction = 0.5 * (parentA.extinction + parentB.extinction);
@@ -161,12 +164,14 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
             // Evaluate fitness and remove parents from the mating pool if a child with better
             // fitness exists.
             population_[i].fitness = cost_fn(population_[i].genes);
-            if (population_[i].fitness < parentA.fitness)
-                mating_pool_.erase(remove(mating_pool_.begin(), mating_pool_.end(), &parentA),
-                                   mating_pool_.end());
-            if (population_[i].fitness < parentB.fitness)
-                mating_pool_.erase(remove(mating_pool_.begin(), mating_pool_.end(), &parentB),
-                                   mating_pool_.end());
+            if (population_[i].fitness < parentA.fitness) {
+                auto it = std::find(mating_pool_.begin(), mating_pool_.end(), &parentA);
+                if (it != mating_pool_.end()) mating_pool_.erase(it);
+            }
+            if (population_[i].fitness < parentB.fitness) {
+                auto it = std::find(mating_pool_.begin(), mating_pool_.end(), &parentB);
+                if (it != mating_pool_.end()) mating_pool_.erase(it);
+            }
 
         } else {
             // If the mating pool is empty, roll a new population member randomly.
@@ -201,18 +206,15 @@ void MemeticIk::sortPopulation() {
     }
 }
 
-auto ik_memetic(std::vector<double> const& initial_guess,
-                Robot const& robot,
-                CostFn const& cost_fn,
-                SolutionTestFn const& solution_fn,
-                MemeticIkParams const& params,
-                double const timeout,
-                bool const approx_solution,
-                bool const print_debug) -> std::optional<std::vector<double>> {
-    if (solution_fn(initial_guess)) {
-        return initial_guess;
-    }
-
+auto ik_memetic_impl(std::vector<double> const& initial_guess,
+                     Robot const& robot,
+                     CostFn const& cost_fn,
+                     SolutionTestFn const& solution_fn,
+                     MemeticIkParams const& params,
+                     std::atomic<bool>& terminate,
+                     double const timeout,
+                     bool const approx_solution,
+                     bool const print_debug) -> std::optional<Individual> {
     assert(robot.variables.size() == initial_guess.size());
     auto ik = MemeticIk::from(initial_guess, cost_fn, params);
 
@@ -241,11 +243,17 @@ auto ik_memetic(std::vector<double> const& initial_guess,
         // Check for termination and wipeout conditions
         if (solution_fn(ik.best().genes)) {
             if (print_debug) fmt::print("Found solution!\n");
-            return ik.best().genes;
+            return ik.best();
         }
         if (ik.checkWipeout()) {
             if (print_debug) fmt::print("Population wipeout\n");
             ik.initPopulation(robot, cost_fn, initial_guess);
+        }
+
+        // Check termination condition from other threads finding a solution.
+        if (terminate) {
+            if (print_debug) fmt::print("Terminated\n");
+            break;
         }
 
         iter++;
@@ -253,9 +261,102 @@ auto ik_memetic(std::vector<double> const& initial_guess,
 
     if (approx_solution) {
         if (print_debug) fmt::print("Returning best solution\n");
-        return ik.best().genes;
+        return ik.best();
     }
 
+    return std::nullopt;
+}
+
+auto ik_memetic(std::vector<double> const& initial_guess,
+                Robot const& robot,
+                CostFn const& cost_fn,
+                SolutionTestFn const& solution_fn,
+                MemeticIkParams const& params,
+                double const timeout,
+                bool const approx_solution,
+                bool const print_debug) -> std::optional<std::vector<double>> {
+    // Check whether the initial guess already meets the goal,
+    // before starting to solve.
+    if (solution_fn(initial_guess)) {
+        return initial_guess;
+    }
+
+    std::atomic<bool> terminate{false};
+    if (params.num_threads <= 1) {
+        // Single-threaded implementation
+        auto maybe_solution = ik_memetic_impl(initial_guess,
+                                              robot,
+                                              cost_fn,
+                                              solution_fn,
+                                              params,
+                                              terminate,
+                                              timeout,
+                                              approx_solution,
+                                              print_debug);
+        if (maybe_solution.has_value()) {
+            return maybe_solution.value().genes;
+        }
+    } else {
+        // Multi-threaded implementation
+        rsl::Queue<std::optional<Individual>> solution_queue;
+        std::vector<std::thread> ik_threads;
+        ik_threads.reserve(params.num_threads);
+
+        auto ik_thread_fn = [=, &terminate, &solution_queue]() {
+            auto soln = ik_memetic_impl(initial_guess,
+                                        robot,
+                                        cost_fn,
+                                        solution_fn,
+                                        params,
+                                        terminate,
+                                        timeout,
+                                        approx_solution,
+                                        print_debug);
+            solution_queue.push(soln);
+        };
+
+        for (size_t i = 0; i < params.num_threads; ++i) {
+            ik_threads.push_back(std::thread(ik_thread_fn));
+        }
+
+        // If enabled, stop all other threads once one thread finds a valid solution.
+        size_t n_threads_done = 0;
+        std::vector<double> best_solution;
+        auto min_cost = std::numeric_limits<double>::max();
+        auto maybe_solution = std::optional<std::optional<Individual>>{std::nullopt};
+        if (params.stop_on_first_soln) {
+            while (!maybe_solution && (n_threads_done < params.num_threads)) {
+                maybe_solution = solution_queue.pop(std::chrono::milliseconds(1));
+            }
+            if (maybe_solution.value().has_value()) {
+                auto const& solution = maybe_solution.value().value();
+                best_solution = solution.genes;
+                min_cost = solution.fitness;
+                terminate = true;
+            }
+            n_threads_done++;
+        }
+
+        for (auto& t : ik_threads) {
+            t.join();
+        }
+
+        // Get the minimum-cost solution from all threads.
+        // Note that if approximate solutions are enabled, even if we terminate threads early, we
+        // can still compare our first solution with the approximate ones from the other threads
+        while (!solution_queue.empty()) {
+            maybe_solution = solution_queue.pop();
+            if (maybe_solution.value().has_value()) {
+                auto const& solution = maybe_solution.value().value();
+                auto const& cost = solution.fitness;
+                if (cost < min_cost) {
+                    best_solution = solution.genes;
+                    min_cost = cost;
+                }
+            }
+        }
+        if (!best_solution.empty()) return best_solution;
+    }
     return std::nullopt;
 }
 

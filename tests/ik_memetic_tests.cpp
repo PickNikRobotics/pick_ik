@@ -44,11 +44,6 @@ auto solve_memetic_ik_test(moveit::core::RobotModelPtr robot_model,
     auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, tip_link_indices);
     auto const robot = pick_ik::Robot::from(robot_model, jmg, tip_link_indices);
 
-    // Make pose cost function
-    auto const pose_cost_functions =
-        pick_ik::make_pose_cost_functions({goal_frame}, params.rotation_scale);
-    CHECK(pose_cost_functions.size() == 1);
-
     // Make goal function(s)
     std::vector<pick_ik::Goal> goals = {};
     if (params.center_joints_weight > 0) {
@@ -65,6 +60,12 @@ auto solve_memetic_ik_test(moveit::core::RobotModelPtr robot_model,
                           params.center_joints_weight});
     }
 
+    // Make pose cost function
+    auto const pose_cost_functions =
+        pick_ik::make_pose_cost_functions({goal_frame}, params.rotation_scale);
+    CHECK(pose_cost_functions.size() == 1);
+    auto const cost_fn = pick_ik::make_cost_fn(pose_cost_functions, goals, fk_fn);
+
     // Make solution function
     auto const test_rotation = (params.rotation_scale > 0.0);
     auto const frame_tests =
@@ -72,8 +73,7 @@ auto solve_memetic_ik_test(moveit::core::RobotModelPtr robot_model,
     auto const solution_fn =
         pick_ik::make_is_solution_test_fn(frame_tests, goals, params.cost_threshold, fk_fn);
 
-    // Solve IK
-    auto const cost_fn = pick_ik::make_cost_fn(pose_cost_functions, goals, fk_fn);
+    // Solve memetic IK
     return pick_ik::ik_memetic(initial_guess,
                                robot,
                                cost_fn,
@@ -133,10 +133,30 @@ TEST_CASE("Panda model Memetic IK") {
         CHECK(goal_frame.isApprox(final_frame, params.twist_threshold));
     }
 
-    SECTION("Panda model IK at zero positions.") {
+    SECTION("Panda model IK at zero positions -- single threaded") {
         auto const goal_frame = fk_fn(home_joint_angles)[0];
         auto const initial_guess = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         MemeticIkTestParams params;
+        params.print_debug = false;
+
+        auto const maybe_solution = solve_memetic_ik_test(robot_model,
+                                                          "panda_arm",
+                                                          "panda_hand",
+                                                          goal_frame,
+                                                          initial_guess,
+                                                          params);
+
+        REQUIRE(maybe_solution.has_value());
+        auto const final_frame = fk_fn(maybe_solution.value())[0];
+        CHECK(goal_frame.isApprox(final_frame, params.twist_threshold));
+    }
+
+    SECTION("Panda model IK at zero positions -- multithreaded") {
+        auto const goal_frame = fk_fn(home_joint_angles)[0];
+        auto const initial_guess = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        MemeticIkTestParams params;
+        params.memetic_params.num_threads = 4;
+        params.print_debug = true;
 
         auto const maybe_solution = solve_memetic_ik_test(robot_model,
                                                           "panda_arm",
