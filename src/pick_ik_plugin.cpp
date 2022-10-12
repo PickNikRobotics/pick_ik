@@ -23,6 +23,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
     rclcpp::Node::SharedPtr node_;
     std::shared_ptr<ParamListener> parameter_listener_;
     moveit::core::JointModelGroup const* jmg_;
+    moveit::core::JointModelGroup* jmg_nonconst_;  // Resolved in humble as of 10/11/2022.
 
     std::vector<std::string> joint_names_;
     std::vector<std::string> link_names_;
@@ -54,6 +55,8 @@ class PickIKPlugin : public kinematics::KinematicsBase {
 
         // Initialize internal state
         jmg_ = robot_model_->getJointModelGroup(group_name);
+        jmg_nonconst_ = const_cast<moveit::core::JointModelGroup*>(
+            jmg_);  // Resolved in humble as of 10/11/2022.
         if (!jmg_) {
             RCLCPP_ERROR(LOGGER, "failed to get joint model group %s", group_name.c_str());
             return false;
@@ -140,9 +143,12 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         }
         if (cost_function) {
             for (auto const& pose : ik_poses) {
-                goals.push_back(
-                    Goal{make_ik_cost_fn(pose, cost_function, robot_model_, jmg_, ik_seed_state),
-                         1.0});
+                goals.push_back(Goal{make_ik_cost_fn(pose,
+                                                     cost_function,
+                                                     robot_model_,
+                                                     jmg_nonconst_,
+                                                     ik_seed_state),
+                                     1.0});
             }
         }
 
