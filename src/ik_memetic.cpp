@@ -96,7 +96,7 @@ void MemeticIk::initPopulation(Robot const& robot,
         if (i > 0) {
             for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
                 auto const& var = robot.variables[j_idx];
-                genotype[j_idx] = rsl::uniform_real(0.0, 1.0) * var.span + var.min;
+                genotype[j_idx] = rsl::uniform_real(var.clip_min, var.clip_max);
             }
         }
         population_[i] = Individual{genotype, cost_fn(genotype), 1.0, zero_grad};
@@ -177,7 +177,7 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
             // If the mating pool is empty, roll a new population member randomly.
             for (size_t j_idx = 0; j_idx < robot.variables.size(); ++j_idx) {
                 auto const& var = robot.variables[j_idx];
-                population_[i].genes[j_idx] = rsl::uniform_real(0.0, 1.0) * var.span + var.min;
+                population_[i].genes[j_idx] = rsl::uniform_real(var.clip_min, var.clip_max);
             }
             population_[i].fitness = cost_fn(population_[i].genes);
             for (auto& g : population_[i].gradient) {

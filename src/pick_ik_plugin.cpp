@@ -188,10 +188,14 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         }
 
         if (maybe_solution.has_value()) {
-            // set the output parameter solution and wrap angles
+            // Set the output parameter solution.
+            // Assumes that the angles were already wrapped by the solver.
             error_code.val = error_code.SUCCESS;
             solution = maybe_solution.value();
-            jmg_->enforcePositionBounds(solution.data());
+            if (jmg_->enforcePositionBounds(solution.data())) {
+                error_code.val = error_code.NO_IK_SOLUTION;
+                solution = ik_seed_state;
+            }
         } else {
             error_code.val = error_code.NO_IK_SOLUTION;
             solution = ik_seed_state;
