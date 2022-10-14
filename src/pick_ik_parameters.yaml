@@ -16,6 +16,22 @@ pick_ik:
       lower_bounds<>: [1.0e-12],
     }
   }
+  gd_max_iters: {
+    type: int,
+    default_value: 100,
+    description: "Maximum iterations for local gradient descent",
+    validation: {
+      lower_bounds<>: [0],
+    }
+  }
+  gd_min_cost_delta: {
+    type: double,
+    default_value: 1.0e-12,
+    description: "Minimum change in cost function value for gradient descent",
+    validation: {
+      lower_bounds<>: [1.0e-64],
+    }
+  }
   # Cost functions and thresholds
   twist_threshold: {
     type: double,
@@ -92,6 +108,14 @@ pick_ik:
     description: "Minimum fitness must improve by this value or population will be wiped out",
     validation: {
       lower_bounds<>: [0.0],
+    }
+  }
+  memetic_max_generations: {
+    type: int,
+    default_value: 100,
+    description: "Maximum iterations of evolutionary algorithm",
+    validation: {
+      lower_bounds<>: [0],
     }
   }
   memetic_gd_max_iters: {
