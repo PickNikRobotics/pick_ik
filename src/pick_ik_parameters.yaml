@@ -21,7 +21,7 @@ pick_ik:
     default_value: 100,
     description: "Maximum iterations for local gradient descent",
     validation: {
-      lower_bounds<>: [0],
+      lower_bounds<>: [1],
     }
   }
   gd_min_cost_delta: {
@@ -115,7 +115,7 @@ pick_ik:
     default_value: 100,
     description: "Maximum iterations of evolutionary algorithm",
     validation: {
-      lower_bounds<>: [0],
+      lower_bounds<>: [1],
     }
   }
   memetic_gd_max_iters: {
@@ -123,7 +123,7 @@ pick_ik:
     default_value: 25,
     description: "Maximum iterations of gradient descent during memetic exploitation",
     validation: {
-      lower_bounds<>: [0],
+      lower_bounds<>: [1],
     }
   }
   memetic_gd_max_time: {
