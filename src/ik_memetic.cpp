@@ -66,19 +66,26 @@ void MemeticIk::computeExtinctions() {
     }
 }
 
-void MemeticIk::gradientDescent(size_t const i, Robot const& robot, CostFn const& cost_fn) {
+void MemeticIk::gradientDescent(size_t const i,
+                                Robot const& robot,
+                                CostFn const& cost_fn,
+                                GradientIkParams const& gd_params) {
     auto& individual = population_[i];
     auto local_ik = GradientIk::from(individual.genes, cost_fn);
-    auto const timeout_point_local =
-        std::chrono::system_clock::now() + std::chrono::duration<double>(params_.local_max_time);
 
-    int iter = 0;
-    while (std::chrono::system_clock::now() < timeout_point_local &&
-           iter < params_.local_max_iters) {
-        if (!step(local_ik, robot, cost_fn, params_.local_step_size)) {
+    int num_iterations = 0;
+    double previous_cost = 0;
+    auto const timeout_point_local =
+        std::chrono::system_clock::now() + std::chrono::duration<double>(gd_params.max_time);
+
+    while ((std::chrono::system_clock::now() < timeout_point_local) &&
+           (num_iterations < gd_params.max_iterations)) {
+        step(local_ik, robot, cost_fn, gd_params.step_size);
+        if (abs(local_ik.local_cost - previous_cost) <= gd_params.min_cost_delta) {
             break;
         }
-        iter++;
+        previous_cost = local_ik.local_cost;
+        num_iterations++;
     }
 
     individual.genes = local_ik.best;
@@ -212,9 +219,8 @@ auto ik_memetic_impl(std::vector<double> const& initial_guess,
                      SolutionTestFn const& solution_fn,
                      MemeticIkParams const& params,
                      std::atomic<bool>& terminate,
-                     double const timeout,
-                     bool const approx_solution,
-                     bool const print_debug) -> std::optional<Individual> {
+                     bool approx_solution,
+                     bool print_debug) -> std::optional<Individual> {
     assert(robot.variables.size() == initial_guess.size());
     auto ik = MemeticIk::from(initial_guess, cost_fn, params);
 
@@ -223,11 +229,11 @@ auto ik_memetic_impl(std::vector<double> const& initial_guess,
     // Main loop
     int iter = 0;
     auto const timeout_point =
-        std::chrono::system_clock::now() + std::chrono::duration<double>(timeout);
-    while (std::chrono::system_clock::now() < timeout_point) {
+        std::chrono::system_clock::now() + std::chrono::duration<double>(params.max_time);
+    while ((std::chrono::system_clock::now() < timeout_point) && (iter < params.max_generations)) {
         // Do gradient descent on elites.
         for (size_t i = 0; i < ik.eliteCount(); ++i) {
-            ik.gradientDescent(i, robot, cost_fn);
+            ik.gradientDescent(i, robot, cost_fn, params.gd_params);
         }
 
         // Perform mutation and recombination
@@ -272,9 +278,8 @@ auto ik_memetic(std::vector<double> const& initial_guess,
                 CostFn const& cost_fn,
                 SolutionTestFn const& solution_fn,
                 MemeticIkParams const& params,
-                double const timeout,
-                bool const approx_solution,
-                bool const print_debug) -> std::optional<std::vector<double>> {
+                bool approx_solution,
+                bool print_debug) -> std::optional<std::vector<double>> {
     // Check whether the initial guess already meets the goal,
     // before starting to solve.
     if (solution_fn(initial_guess)) {
@@ -290,7 +295,6 @@ auto ik_memetic(std::vector<double> const& initial_guess,
                                               solution_fn,
                                               params,
                                               terminate,
-                                              timeout,
                                               approx_solution,
                                               print_debug);
         if (maybe_solution.has_value()) {
@@ -309,7 +313,6 @@ auto ik_memetic(std::vector<double> const& initial_guess,
                                         solution_fn,
                                         params,
                                         terminate,
-                                        timeout,
                                         approx_solution,
                                         print_debug);
             solution_queue.push(soln);

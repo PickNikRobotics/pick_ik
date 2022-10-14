@@ -162,26 +162,34 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             ik_params.wipeout_fitness_tol = params.memetic_wipeout_fitness_tol;
             ik_params.num_threads = static_cast<size_t>(params.memetic_num_threads);
             ik_params.stop_on_first_soln = params.memetic_stop_on_first_solution;
-            ik_params.local_step_size = params.gd_step_size;
-            ik_params.local_max_iters = static_cast<int>(params.memetic_gd_max_iters);
-            ik_params.local_max_time = params.memetic_gd_max_time;
+            ik_params.max_generations = static_cast<int>(params.memetic_max_generations);
+            ik_params.max_time = timeout;
+
+            ik_params.gd_params.step_size = params.gd_step_size;
+            ik_params.gd_params.min_cost_delta = params.gd_min_cost_delta;
+            ik_params.gd_params.max_iterations = static_cast<int>(params.memetic_gd_max_iters);
+            ik_params.gd_params.max_time = params.memetic_gd_max_time;
 
             maybe_solution = ik_memetic(ik_seed_state,
                                         robot_,
                                         cost_fn,
                                         solution_fn,
                                         ik_params,
-                                        timeout,
                                         options.return_approximate_solution,
                                         false /* No debug print */);
         } else if (params.mode == "local") {
+            GradientIkParams gd_params;
+            gd_params.step_size = params.gd_step_size;
+            gd_params.min_cost_delta = params.gd_min_cost_delta;
+            gd_params.max_time = timeout;
+            gd_params.max_iterations = static_cast<int>(params.gd_max_iters);
+
             maybe_solution = ik_gradient(ik_seed_state,
                                          robot_,
                                          cost_fn,
                                          solution_fn,
-                                         timeout,
-                                         options.return_approximate_solution,
-                                         params.gd_step_size);
+                                         gd_params,
+                                         options.return_approximate_solution);
         } else {
             RCLCPP_ERROR(LOGGER, "Invalid solver mode: %s", params.mode.c_str());
             return false;

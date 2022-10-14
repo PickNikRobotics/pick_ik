@@ -20,7 +20,6 @@ struct MemeticIkTestParams {
     double rotation_scale = 0.5;
 
     // Solve options
-    double timeout = 1.0;
     bool approximate_solution = false;
     bool print_debug = false;
     pick_ik::MemeticIkParams memetic_params;
@@ -79,7 +78,6 @@ auto solve_memetic_ik_test(moveit::core::RobotModelPtr robot_model,
                                cost_fn,
                                solution_fn,
                                params.memetic_params,
-                               params.timeout,
                                params.approximate_solution,
                                params.print_debug);
 }

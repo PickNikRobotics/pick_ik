@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pick_ik/goal.hpp>
+#include <pick_ik/ik_gradient.hpp>
 #include <pick_ik/robot.hpp>
 
 #include <rsl/random.hpp>
@@ -28,15 +29,16 @@ struct MemeticIkParams {
     size_t population_size = 16;           // Number of total population members.
     double wipeout_fitness_tol = 0.00001;  // Min fitness must improve by at least this much or the
                                            // population is reinitialized.
-    size_t num_threads = 1;                // Number of species to solve in parallel.
+    int max_generations = 100;             // Maximum iterations for evolutionary algorithm.
+    double max_time = 1.0;                 // Maximum time for evolutionary algorithm.
+
+    size_t num_threads = 1;  // Number of species to solve in parallel.
     // If true, returns first solution and terminates other threads.
     // If false, waits for all threads to join and returns best solution.
     bool stop_on_first_soln = true;
 
-    // Gradient descent parameters
-    double local_step_size = 0.0001;  // Joint angle numerical perturbation step size.
-    int local_max_iters = 25;         // Max iterations per memetic exploitation step.
-    double local_max_time = 0.005;    // Max wall time per memetic exploitation step, in seconds.
+    // Gradient descent parameters for memetic exploitation.
+    GradientIkParams gd_params;
 };
 
 class MemeticIk {
@@ -66,7 +68,10 @@ class MemeticIk {
     size_t eliteCount() const { return params_.elite_size; };
     bool checkWipeout();
     void computeExtinctions();
-    void gradientDescent(size_t const i, Robot const& robot, CostFn const& cost_fn);
+    void gradientDescent(size_t const i,
+                         Robot const& robot,
+                         CostFn const& cost_fn,
+                         GradientIkParams const& gd_params);
     void initPopulation(Robot const& robot,
                         CostFn const& cost_fn,
                         std::vector<double> const& initial_guess);
@@ -83,9 +88,8 @@ auto ik_memetic_impl(std::vector<double> const& initial_guess,
                      SolutionTestFn const& solution_fn,
                      MemeticIkParams const& params,
                      std::atomic<bool>& terminate,
-                     double const timeout = 1.0,
-                     bool const approx_solution = false,
-                     bool const print_debug = false) -> std::optional<Individual>;
+                     bool approx_solution = false,
+                     bool print_debug = false) -> std::optional<Individual>;
 
 // Top-level IK solution implementation that handles single vs. multithreading.
 auto ik_memetic(std::vector<double> const& initial_guess,
@@ -93,8 +97,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
                 CostFn const& cost_fn,
                 SolutionTestFn const& solution_fn,
                 MemeticIkParams const& params,
-                double const timeout = 1.0,
-                bool const approx_solution = false,
-                bool const print_debug = false) -> std::optional<std::vector<double>>;
+                bool approx_solution = false,
+                bool print_debug = false) -> std::optional<std::vector<double>>;
 
 }  // namespace pick_ik

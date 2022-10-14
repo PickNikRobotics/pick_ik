@@ -78,9 +78,8 @@ struct IkTestParams {
     double twist_threshold = 0.0001;
     double cost_threshold = 0.0001;
     double rotation_scale = 1.0;
-    double timeout = 1.0;
     bool return_approximate_solution = false;
-    double step_size = 0.0001;
+    pick_ik::GradientIkParams gd_params;
 };
 
 auto solve_ik_test(moveit::core::RobotModelPtr robot_model,
@@ -117,9 +116,8 @@ auto solve_ik_test(moveit::core::RobotModelPtr robot_model,
                                 robot,
                                 cost_fn,
                                 solution_fn,
-                                params.timeout,
-                                params.return_approximate_solution,
-                                params.step_size);
+                                params.gd_params,
+                                params.return_approximate_solution);
 }
 
 TEST_CASE("RR model IK") {

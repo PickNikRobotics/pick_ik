@@ -5,17 +5,20 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <fmt/core.h>
 #include <optional>
 #include <vector>
 
 namespace pick_ik {
 
 GradientIk GradientIk::from(std::vector<double> const& initial_guess, CostFn const& cost_fn) {
+    auto const initial_cost = cost_fn(initial_guess);
     return GradientIk{std::vector<double>(initial_guess.size(), 0.0),
                       initial_guess,
                       initial_guess,
                       initial_guess,
-                      cost_fn(initial_guess)};
+                      initial_cost,
+                      initial_cost};
 }
 
 auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn, double step_size) -> bool {
@@ -82,12 +85,12 @@ auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn, double st
 
     // Always accept the solution and continue
     self.local = self.working;
+    self.local_cost = cost_fn(self.local);
 
-    // update best solution
-    auto const local_cost = cost_fn(self.local);
-    if (local_cost < self.cost) {
+    // Update best solution
+    if (self.local_cost < self.best_cost) {
         self.best = self.local;
-        self.cost = local_cost;
+        self.best_cost = self.local_cost;
         return true;
     }
     return false;
@@ -97,29 +100,40 @@ auto ik_gradient(std::vector<double> const& initial_guess,
                  Robot const& robot,
                  CostFn const& cost_fn,
                  SolutionTestFn const& solution_fn,
-                 double timeout,
-                 bool approx_solution,
-                 double step_size) -> std::optional<std::vector<double>> {
+                 GradientIkParams const& params,
+                 bool approx_solution) -> std::optional<std::vector<double>> {
     if (solution_fn(initial_guess)) {
         return initial_guess;
     }
 
     assert(robot.variables.size() == initial_guess.size());
     auto ik = GradientIk::from(initial_guess, cost_fn);
+
+    // Main loop
+    int num_iterations = 0;
+    double previous_cost = 0.0;
     auto const timeout_point =
-        std::chrono::system_clock::now() + std::chrono::duration<double>(timeout);
-    while (std::chrono::system_clock::now() < timeout_point) {
-        if (step(ik, robot, cost_fn, step_size)) {
+        std::chrono::system_clock::now() + std::chrono::duration<double>(params.max_time);
+
+    while ((std::chrono::system_clock::now() < timeout_point) &&
+           (num_iterations < params.max_iterations)) {
+        if (step(ik, robot, cost_fn, params.step_size)) {
             if (solution_fn(ik.best)) {
                 return ik.best;
             }
         }
+
+        if (abs(ik.local_cost - previous_cost) <= params.min_cost_delta) {
+            break;
+        }
+        previous_cost = ik.local_cost;
+        num_iterations++;
     }
 
+    // If no solution was found, either return the approximate solution or nothing.
     if (approx_solution) {
         return ik.best;
     }
-
     return std::nullopt;
 }
 
