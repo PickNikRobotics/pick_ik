@@ -35,14 +35,6 @@ auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
 
         bool bounded = bounds.position_bounded_;
 
-        auto const* joint_model =
-            model->getJointOfVariable(static_cast<int>(robot.variables.size()));
-        if (dynamic_cast<moveit::core::RevoluteJointModel const*>(joint_model)) {
-            if (bounds.max_position_ - bounds.min_position_ >= 2 * M_PI * 0.9999) {
-                bounded = false;
-            }
-        }
-
         var.min = bounds.min_position_;
         var.max = bounds.max_position_;
 
