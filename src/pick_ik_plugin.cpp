@@ -208,14 +208,14 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             error_code.val = error_code.NO_IK_SOLUTION;
             solution = ik_seed_state;
         }
+        auto const found_solution = error_code.val == error_code.SUCCESS;
 
-        // callback?
-        if (solution_callback) {
-            // run callback
+        // Execute solution callback only on successful solution.
+        if (solution_callback && found_solution) {
             solution_callback(ik_poses.front(), solution, error_code);
         }
 
-        return error_code.val == error_code.SUCCESS;
+        return found_solution;
     }
 
     virtual std::vector<std::string> const& getJointNames() const { return joint_names_; }
