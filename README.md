@@ -1,23 +1,20 @@
 # pick_ik
 
-## Local development in devcontainer
+`pick_ik` is an inverse kinematics (IK) solver compatible with [MoveIt 2](https://github.com/ros-planning/moveit2).
 
-0. Install docker and add yourself to the docker group.
+The solver is a reimplementation of [`bio_ik`](https://github.com/PickNikRobotics/bio_ik), which combines
+* A local optimizer which solves inverse kinematics via gradient descent
+* A global optimizer based on evolutionary algorithms
 
-```shell
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
+Critically, `pick_ik` allows you to specify custom cost functions as discussed in  [this paper](https://ieeexplore.ieee.org/document/8460799), so you can prioritize additional objectives than simply solving inverse kinematics at a specific frame. For example, you can minimize joint displacement from the initial guess, enforce that joints are close to a particular pose, or even pass custom cost functions to the plugin.
 
-sudo groupadd docker
-sudo usermod -aG docker $USER
-newgrp docker
-```
+For more details on the implementation, take a look at the [paper](https://ieeexplore.ieee.org/document/8449979) or the [full thesis](https://d-nb.info/1221720910/34).
 
-1. Run these commands to create a directory to mount for ccache and another to mount for the ros directory containing log files.
+---
 
-```bash
-mkdir -p ~/.local/.pick_ik/ccache
-mkdir -p ~/.local/.pick_ik/ros
-```
+## Getting Started
 
-2. Open project in VSCode and follow prompts to open project in devcontainer.
+To get started using `pick_ik`, refer to the following README files:
+
+* [Installation](doc/INSTALL.md)
+* [Usage](doc/USAGE.md)
