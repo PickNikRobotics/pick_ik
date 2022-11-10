@@ -2,7 +2,7 @@
 
 ## Using pick_ik as a Kinematics Plugin
 
-As discussed in the MoveIt2 documentation, you can use the [MoveIt Setup Assistant](https://moveit.picknik.ai/humble/doc/examples/setup_assistant/setup_assistant_tutorial.html) or change the [`kinematics.yaml` file](https://moveit.picknik.ai/main/doc/examples/kinematics_configuration/kinematics_configuration_tutorial.html?highlight=kinematics%20yaml#kinematics-configuration) for your robot setup to use `pick_ik` as the IK solver.
+As discussed in the MoveIt 2 documentation, you can use the [MoveIt Setup Assistant](https://moveit.picknik.ai/humble/doc/examples/setup_assistant/setup_assistant_tutorial.html) or change the [`kinematics.yaml` file](https://moveit.picknik.ai/main/doc/examples/kinematics_configuration/kinematics_configuration_tutorial.html?highlight=kinematics%20yaml#kinematics-configuration) for your robot setup to use `pick_ik` as the IK solver.
 
 An example `kinematics.yaml` file might look as follows:
 
@@ -36,7 +36,7 @@ Some key parameters you may want to start with are:
 * `rotation_scale`: If you want position-only IK, set this to 0.0. If you want to treat position and orientation equally, set this to 1.0. You can also use any value in between; it's part of the cost function. Note that the exit condition on `twist_threshold` will ignore orientation if you use `rotation_scale = 0.0`.
 * `minimal_displacement_weight`: This is one of the standard cost functions that checks for the joint angle difference between the initial guess and the solution. If you're solving for far-away goals, leave it to zero or it will hike up your cost function for no reason. Have this to a small non-zero value (e.g., 0.001) if you're doing things like Cartesian interpolation along a path, or endpoint jogging for servoing.
 
-You can test out this solver live in RViz, as this plugin is programmed to respond to parameter changes at every solve. This means that you can change values on the fly using the ROS 2 command-line interface, e.g.,
+You can test out this solver live in RViz, as this plugin uses the [`generate_parameter_library`](https://github.com/PickNikRobotics/generate_parameter_library) package to respond to parameter changes at every solve. This means that you can change values on the fly using the ROS 2 command-line interface, e.g.,
 
 ```shell
 ros2 param set /rviz2 robot_description_kinematics.panda_arm.mode global
@@ -50,4 +50,4 @@ ros2 param set /rviz2 robot_description_kinematics.panda_arm.minimal_displacemen
 
 The [kinematics plugin](../src/pick_ik_plugin.cpp) allows you to pass in an additional argument of type `IkCostFn`, which can be passed in from common entrypoints such as `RobotState::setFromIK()`. See [this page](https://moveit.picknik.ai/humble/doc/examples/robot_model_and_robot_state/robot_model_and_robot_state_tutorial.html?highlight=setfromik#inverse-kinematics) for a usage example.
 
-Alternatively, feel free to add your own cost functions to the `pick_ik` source code itself (specifically, in [`goal.hpp`](../include/goal.hpp) and [`goal.cpp`](../src/goal.cpp) and submit a pull request with the new functionality you add.
+Alternatively, consider adding your own cost functions to the `pick_ik` source code (specifically, in [`goal.hpp`](../include/goal.hpp) and [`goal.cpp`](../src/goal.cpp) and submit a pull request with the new functionality you add.

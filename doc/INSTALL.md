@@ -12,21 +12,28 @@ sudo apt install ros-humble-pick-ik
 
 ## Install from source
 
-1. Clone this repository in a Colcon workspace.
+1. Create a colcon workspace:
 
 ```shell
-cd /path/to/your/workspace/src
+export COLCON_WS=~/ws_moveit2/
+mkdir -p $COLCON_WS/src
+```
+
+2. Clone this repository in the `src` directory of your workspace.
+
+```shell
+cd $COLCON_WS/src
 git clone -b main https://github.com/PickNikRobotics/pick_ik.git
 ```
 
-2. Import dependencies.
+3. Import dependencies.
 
 ```shell
 sudo apt install python3-vcstool
-vcs import src < upstream.repos
+vcs import src < pick_ik/upstream.repos
 ```
 
-3. Set up colcon mixins.
+4. Set up colcon mixins.
 
 ```shell
 sudo apt install python3-colcon-common-extensions
@@ -35,9 +42,9 @@ colcon mixin add default https://raw.githubusercontent.com/colcon/colcon-mixin-r
 colcon mixin update default
 ```
 
-4. Build the workspace.
+5. Build the workspace.
 
-NOTE: For now, there is no binary release for [RSL](https://github.com/PickNikRobotics/RSL), so you must add the `shared` Colcon mixin as follows:
+NOTE: To correctly build [RSL](https://github.com/PickNikRobotics/RSL), so you must add the `shared` Colcon mixin as follows:
 
 ```shell
 cd /path/to/your/workspace
