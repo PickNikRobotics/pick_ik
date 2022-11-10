@@ -1,8 +1,4 @@
 repositories:
-  RSL:
-    type: git
-    url: https://github.com/PickNikRobotics/RSL.git
-    version: main
   cpp_polyfills:
     type: git
     url: https://github.com/PickNikRobotics/cpp_polyfills.git
