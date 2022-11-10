@@ -8,6 +8,9 @@ RUN rm /ros_entrypoint.sh
 # prevent interactive messages in apt install
 ARG DEBIAN_FRONTEND=noninteractive
 
+# Switch to ros-testing
+RUN echo "deb http://packages.ros.org/ros2-testing/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/ros2-latest.list
+
 # install build dependencies
 RUN --mount=type=cache,target=/var/cache/apt,id=apt \
     apt-get update && apt-get upgrade -y \

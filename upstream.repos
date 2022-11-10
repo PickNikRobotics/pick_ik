@@ -1,17 +1,9 @@
 repositories:
-  cpp_polyfills:
-    type: git
-    url: https://github.com/PickNikRobotics/cpp_polyfills.git
-    version: main
-  generate_parameter_library:
-    type: git
-    url: https://github.com/PickNikRobotics/generate_parameter_library.git
-    version: main
   moveit2:
     type: git
-    url: https://github.com/ros-planning/moveit2.git
-    version: main
-  moveit_resources:
+    url: https://github.com/ros-planning/moveit2
+    version: 2.6.0
+  rsl:
     type: git
-    url: https://github.com/ros-planning/moveit_resources
-    version: ros2
+    url: https://github.com/PickNikRobotics/rsl
+    version: b0854f16aa333974423ee619cc2a010ad618f4ab
