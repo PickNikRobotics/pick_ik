@@ -8,6 +8,9 @@ RUN rm /ros_entrypoint.sh
 # prevent interactive messages in apt install
 ARG DEBIAN_FRONTEND=noninteractive
 
+# Switch to ros-testing
+RUN echo "deb http://packages.ros.org/ros2-testing/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/ros2-latest.list
+
 # install build dependencies
 RUN --mount=type=cache,target=/var/cache/apt,id=apt \
     apt-get update && apt-get upgrade -y \
@@ -59,7 +62,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt --mount=type=ssh \
     && rm -rf /var/lib/apt/lists/*
 RUN --mount=type=cache,target=/root/.ccache,id=ccache \
     . /opt/ros/$ROS_DISTRO/setup.sh \
-    && colcon build --mixin ccache release lld shared \
+    && colcon build --mixin ccache release lld \
     && rm -rf build src log upstream.repos \
     && ccache -s
 
@@ -94,7 +97,7 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt --mount=type=ssh \
     && rm -rf /var/lib/apt/lists/*
 RUN --mount=type=cache,target=/root/.ccache,id=ccache \
     . /opt/ros/$ROS_DISTRO/setup.sh \
-    && colcon build --mixin ccache rel-with-deb-info compile-commands lld shared \
+    && colcon build --mixin ccache rel-with-deb-info compile-commands lld \
     && ccache -s
 
 # install dependencies of this project
