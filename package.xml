@@ -21,6 +21,8 @@
   <depend>tf2_kdl</depend>
   <depend>tl_expected</depend>
 
+  <test_depend>moveit_resources_panda_moveit_config</test_depend>
+
   <export>
     <build_type>ament_cmake</build_type>
     <moveit_core plugin="${prefix}/pick_ik_kinematics_description.xml"/>
