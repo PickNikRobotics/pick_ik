@@ -25,7 +25,6 @@ jobs:
       - name: Source ROS Workspaces
         run: |
           . /opt/ros/rolling/setup.sh
-          . /opt/upstream/install/setup.sh
           echo "$(env)" >> $GITHUB_ENV
       - name: Configure
         run: cmake --preset relwithdebinfo

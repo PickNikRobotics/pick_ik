@@ -26,14 +26,7 @@ cd $COLCON_WS/src
 git clone -b main https://github.com/PickNikRobotics/pick_ik.git
 ```
 
-3. Import dependencies.
-
-```shell
-sudo apt install python3-vcstool
-vcs import src < pick_ik/upstream.repos
-```
-
-4. Set up colcon mixins.
+3. Set up colcon mixins.
 
 ```shell
 sudo apt install python3-colcon-common-extensions
@@ -42,13 +35,11 @@ colcon mixin add default https://raw.githubusercontent.com/colcon/colcon-mixin-r
 colcon mixin update default
 ```
 
-5. Build the workspace.
-
-NOTE: To correctly build [RSL](https://github.com/PickNikRobotics/RSL), so you must add the `shared` Colcon mixin as follows:
+4. Build the workspace.
 
 ```shell
 cd /path/to/your/workspace
-colcon build --mixin release shared
+colcon build --mixin release
 ```
 
 ---

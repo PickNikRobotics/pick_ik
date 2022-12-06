@@ -1,5 +1,0 @@
-repositories:
-  rsl:
-    type: git
-    url: https://github.com/PickNikRobotics/rsl
-    version: b0854f16aa333974423ee619cc2a010ad618f4ab
