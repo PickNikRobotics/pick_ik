@@ -208,9 +208,31 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             error_code.val = error_code.NO_IK_SOLUTION;
             solution = ik_seed_state;
         }
-        auto const found_solution = error_code.val == error_code.SUCCESS;
+
+        // If using an approximate solution, check against the maximum allowable pose threshold.
+        // If the approximate solution is too far from the goal frame, fall back to the initial
+        // state.
+        if (options.return_approximate_solution) {
+            auto const approx_frame_tests =
+                make_frame_tests(goal_frames,
+                                 params.approximate_solution_twist_threshold,
+                                 test_rotation);
+            auto const tip_frames = fk_fn(solution);
+            bool approx_solution_valid = true;
+            for (size_t i = 0; i < approx_frame_tests.size(); ++i) {
+                if (!approx_frame_tests[i](tip_frames[i])) {
+                    approx_solution_valid = false;
+                    break;
+                }
+            }
+            if (!approx_solution_valid) {
+                error_code.val = error_code.NO_IK_SOLUTION;
+                solution = ik_seed_state;
+            }
+        }
 
         // Execute solution callback only on successful solution.
+        auto const found_solution = error_code.val == error_code.SUCCESS;
         if (solution_callback && found_solution) {
             solution_callback(ik_poses.front(), solution, error_code);
         }
