@@ -37,21 +37,33 @@ pick_ik:
     type: double,
     default_value: 0.001,
     description: "Twist threshold for solving IK, epsilon",
+    validation: {
+      lower_bounds<>: [0.0],
+    },
   }
   approximate_solution_twist_threshold: {
     type: double,
     default_value: 0.05,
     description: "Twist threshold for approximate IK solutions. If displacement is larger than this, the approximate solution will fall back to the initial guess",
+    validation: {
+      lower_bounds<>: [0.0],
+    },
   }
   cost_threshold: {
     type: double,
     default_value: 0.001,
-    description: "Scalar value for comparing to result of cost functions. IK is considered solved when all position/rotation/twist thresholds are satisfied and all cost functions return a value lower than this value."
+    description: "Scalar value for comparing to result of cost functions. IK is considered solved when all position/rotation/twist thresholds are satisfied and all cost functions return a value lower than this value.",
+    validation: {
+      lower_bounds<>: [0.0],
+    },
   }
   rotation_scale: {
     type: double,
     default_value: 0.5,
     description: "The rotation scale for the pose cost function. Set to 0.0 to solve for only position",
+    validation: {
+      lower_bounds<>: [0.0],
+    },
   }
   center_joints_weight: {
     type: double,
