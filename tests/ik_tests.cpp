@@ -75,7 +75,8 @@ TEST_CASE("RR model FK") {
 
 // Helper param struct and function to test IK solution.
 struct IkTestParams {
-    double twist_threshold = 0.0001;
+    double position_threshold = 0.0001;
+    double orientation_threshold = 0.001;
     double cost_threshold = 0.0001;
     double rotation_scale = 1.0;
     bool return_approximate_solution = false;
@@ -96,8 +97,12 @@ auto solve_ik_test(moveit::core::RobotModelPtr robot_model,
 
     // Make solution function
     auto const test_rotation = (params.rotation_scale > 0.0);
+    std::optional<double> orientation_threshold = std::nullopt;
+    if (test_rotation) {
+        orientation_threshold = params.orientation_threshold;
+    }
     auto const frame_tests =
-        pick_ik::make_frame_tests({goal_frame}, params.twist_threshold, test_rotation);
+        pick_ik::make_frame_tests({goal_frame}, params.position_threshold, orientation_threshold);
     auto const cost_function =
         kinematics::KinematicsBase::IKCostFn();  // What should be instantiated here?
     std::vector<pick_ik::Goal> goals = {};       // TODO: Only works if empty.

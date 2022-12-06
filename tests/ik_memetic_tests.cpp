@@ -15,7 +15,8 @@
 
 // Helper param struct and function to test IK solution.
 struct MemeticIkTestParams {
-    double twist_threshold = 0.001;
+    double position_threshold = 0.001;
+    double orientation_threshold = 0.01;
     double cost_threshold = 0.001;
     double rotation_scale = 0.5;
 
@@ -67,8 +68,12 @@ auto solve_memetic_ik_test(moveit::core::RobotModelPtr robot_model,
 
     // Make solution function
     auto const test_rotation = (params.rotation_scale > 0.0);
+    std::optional<double> orientation_threshold = std::nullopt;
+    if (test_rotation) {
+        orientation_threshold = params.orientation_threshold;
+    }
     auto const frame_tests =
-        pick_ik::make_frame_tests({goal_frame}, params.twist_threshold, test_rotation);
+        pick_ik::make_frame_tests({goal_frame}, params.position_threshold, orientation_threshold);
     auto const solution_fn =
         pick_ik::make_is_solution_test_fn(frame_tests, goals, params.cost_threshold, fk_fn);
 
@@ -107,7 +112,7 @@ TEST_CASE("Panda model Memetic IK") {
 
         REQUIRE(maybe_solution.has_value());
         auto const final_frame = fk_fn(maybe_solution.value())[0];
-        CHECK(goal_frame.isApprox(final_frame, params.twist_threshold));
+        CHECK(goal_frame.isApprox(final_frame, params.position_threshold));
     }
 
     SECTION("Panda model IK near home positions.") {
@@ -128,7 +133,7 @@ TEST_CASE("Panda model Memetic IK") {
 
         REQUIRE(maybe_solution.has_value());
         auto const final_frame = fk_fn(maybe_solution.value())[0];
-        CHECK(goal_frame.isApprox(final_frame, params.twist_threshold));
+        CHECK(goal_frame.isApprox(final_frame, params.position_threshold));
     }
 
     SECTION("Panda model IK at zero positions -- single threaded") {
@@ -146,7 +151,7 @@ TEST_CASE("Panda model Memetic IK") {
 
         REQUIRE(maybe_solution.has_value());
         auto const final_frame = fk_fn(maybe_solution.value())[0];
-        CHECK(goal_frame.isApprox(final_frame, params.twist_threshold));
+        CHECK(goal_frame.isApprox(final_frame, params.position_threshold));
     }
 
     SECTION("Panda model IK at zero positions -- multithreaded") {
@@ -165,7 +170,7 @@ TEST_CASE("Panda model Memetic IK") {
 
         REQUIRE(maybe_solution.has_value());
         auto const final_frame = fk_fn(maybe_solution.value())[0];
-        CHECK(goal_frame.isApprox(final_frame, params.twist_threshold));
+        CHECK(goal_frame.isApprox(final_frame, params.position_threshold));
     }
 
     SECTION("Panda model IK, with joint centering and limits avoiding.") {
@@ -176,7 +181,7 @@ TEST_CASE("Panda model Memetic IK") {
         params.center_joints_weight = 0.01;
         params.avoid_joint_limits_weight = 0.01;
         params.cost_threshold = 0.01;  // Need to raise this for joint centering
-        params.twist_threshold = 0.01;
+        params.position_threshold = 0.01;
         params.print_debug = false;
 
         auto const maybe_solution = solve_memetic_ik_test(robot_model,
@@ -188,6 +193,6 @@ TEST_CASE("Panda model Memetic IK") {
 
         REQUIRE(maybe_solution.has_value());
         auto const final_frame = fk_fn(maybe_solution.value())[0];
-        CHECK(goal_frame.isApprox(final_frame, params.twist_threshold));
+        CHECK(goal_frame.isApprox(final_frame, params.position_threshold));
     }
 }

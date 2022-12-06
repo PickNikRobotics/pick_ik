@@ -33,18 +33,34 @@ pick_ik:
     }
   }
   # Cost functions and thresholds
-  twist_threshold: {
+  position_threshold: {
     type: double,
     default_value: 0.001,
-    description: "Twist threshold for solving IK, epsilon",
+    description: "Position threshold for solving IK, in meters",
     validation: {
       lower_bounds<>: [0.0],
     },
   }
-  approximate_solution_twist_threshold: {
+  orientation_threshold: {
+    type: double,
+    default_value: 0.001,
+    description: "Orientation threshold for solving IK, in radians",
+    validation: {
+      lower_bounds<>: [0.0],
+    },
+  }
+  approximate_solution_position_threshold: {
     type: double,
     default_value: 0.05,
-    description: "Twist threshold for approximate IK solutions. If displacement is larger than this, the approximate solution will fall back to the initial guess",
+    description: "Position threshold for approximate IK solutions, in meters. If displacement is larger than this, the approximate solution will fall back to the initial guess",
+    validation: {
+      lower_bounds<>: [0.0],
+    },
+  }
+  approximate_solution_orientation_threshold: {
+    type: double,
+    default_value: 0.05,
+    description: "Orientation threshold for approximate IK solutions, in radians. If displacement is larger than this, the approximate solution will fall back to the initial guess",
     validation: {
       lower_bounds<>: [0.0],
     },
