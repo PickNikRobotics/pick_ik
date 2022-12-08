@@ -2,8 +2,8 @@
 Changelog for package pick_ik
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.0 (2022-12-08)
+------------------
 * pick_ik inverse kinematics plugin compatible with MoveIt 2
 * Numeric gradient descent (local) solver
 * Memetic algorithm (global solver), configurable for single or multi-threading
