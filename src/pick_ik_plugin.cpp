@@ -114,9 +114,13 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         }();
 
         // Test functions to determine if we are at our goal frame
-        auto const test_rotation = (params.rotation_scale > 0.0);
+        auto const test_rotation = (params.rotation_scale > 0);
+        std::optional<double> orientation_threshold = std::nullopt;
+        if (test_rotation) {
+            orientation_threshold = params.orientation_threshold;
+        }
         auto const frame_tests =
-            make_frame_tests(goal_frames, params.twist_threshold, test_rotation);
+            make_frame_tests(goal_frames, params.position_threshold, orientation_threshold);
 
         // Cost functions used for optimizing towards goal frames
         auto const pose_cost_functions =
@@ -213,10 +217,15 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         // If the approximate solution is too far from the goal frame, fall back to the initial
         // state.
         if (options.return_approximate_solution) {
+            std::optional<double> approximate_solution_orientation_threshold = std::nullopt;
+            if (test_rotation) {
+                approximate_solution_orientation_threshold =
+                    params.approximate_solution_orientation_threshold;
+            }
             auto const approx_frame_tests =
                 make_frame_tests(goal_frames,
-                                 params.approximate_solution_twist_threshold,
-                                 test_rotation);
+                                 params.approximate_solution_position_threshold,
+                                 approximate_solution_orientation_threshold);
             auto const tip_frames = fk_fn(solution);
             bool approx_solution_valid = true;
             for (size_t i = 0; i < approx_frame_tests.size(); ++i) {

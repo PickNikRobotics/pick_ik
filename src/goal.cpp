@@ -14,31 +14,30 @@
 
 namespace pick_ik {
 
-auto make_frame_test_fn(Eigen::Isometry3d goal_frame, double twist_threshold) -> FrameTestFn {
+auto make_frame_test_fn(Eigen::Isometry3d goal_frame,
+                        double position_threshold,
+                        std::optional<double> orientation_threshold = std::nullopt) -> FrameTestFn {
     return [=](Eigen::Isometry3d const& tip_frame) -> bool {
-        return goal_frame.isApprox(tip_frame, twist_threshold);
-    };
-}
-
-auto make_position_test_fn(Eigen::Isometry3d goal_frame, double twist_threshold) -> FrameTestFn {
-    return [=](Eigen::Isometry3d const& tip_frame) -> bool {
-        return goal_frame.translation().isApprox(tip_frame.translation(), twist_threshold);
+        auto const q_goal = Eigen::Quaterniond(goal_frame.rotation());
+        auto const q_frame = Eigen::Quaterniond(tip_frame.rotation());
+        auto const q_dot_product = std::clamp(q_goal.dot(q_frame), -1.0, 1.0);
+        auto const angular_distance = 2.0 * std::acos(q_dot_product);
+        return ((goal_frame.translation() - tip_frame.translation()).norm() <=
+                position_threshold) &&
+               (!orientation_threshold.has_value() ||
+                std::abs(angular_distance) <= orientation_threshold.value());
     };
 }
 
 auto make_frame_tests(std::vector<Eigen::Isometry3d> goal_frames,
-                      double twist_threshold,
-                      bool test_rotation) -> std::vector<FrameTestFn> {
+                      double position_threshold,
+                      std::optional<double> orientation_threshold) -> std::vector<FrameTestFn> {
     auto tests = std::vector<FrameTestFn>{};
     std::transform(goal_frames.cbegin(),
                    goal_frames.cend(),
                    std::back_inserter(tests),
                    [&](auto const& frame) {
-                       if (test_rotation) {
-                           return make_frame_test_fn(frame, twist_threshold);
-                       } else {
-                           return make_position_test_fn(frame, twist_threshold);
-                       }
+                       return make_frame_test_fn(frame, position_threshold, orientation_threshold);
                    });
     return tests;
 }
@@ -51,8 +50,9 @@ auto make_pose_cost_fn(Eigen::Isometry3d goal, size_t goal_link_index, double ro
             auto const& frame = tip_frames[goal_link_index];
             auto const q_frame = Eigen::Quaterniond(frame.rotation());
             auto const q_dot_product = std::clamp(q_goal.dot(q_frame), -1.0, 1.0);
+            auto const angular_distance = 2.0 * std::acos(q_dot_product);
             return (goal.translation() - frame.translation()).squaredNorm() +
-                   std::pow(2.0 * std::acos(q_dot_product) * rotation_scale, 2);
+                   std::pow(angular_distance * rotation_scale, 2);
         };
     }
     return [=](std::vector<Eigen::Isometry3d> const& tip_frames) -> double {
