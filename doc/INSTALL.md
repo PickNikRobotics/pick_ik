@@ -44,11 +44,11 @@ colcon build --mixin release
 
 ---
 
-## Local development in devcontainer
+## Local development in Dev Containers
 
-This repo is also set up for VSCode dev containers, so you can develop directly in a Docker container.
+This repo is also set up for VSCode Dev Containers, so you can develop directly in a Docker container.
 
-1. Install docker and add yourself to the docker group.
+1. Install Docker and add yourself to the Docker group.
 
 ```shell
 curl -fsSL https://get.docker.com -o get-docker.sh
@@ -66,4 +66,4 @@ mkdir -p ~/.local/.pick_ik/ccache
 mkdir -p ~/.local/.pick_ik/ros
 ```
 
-3. Open project in VSCode and follow prompts to open project in devcontainer.
+3. Open the project in VSCode and follow the prompts to open the project in a Dev Container.
