@@ -52,7 +52,7 @@ auto make_pose_cost_fn(Eigen::Isometry3d goal, size_t goal_link_index, double ro
             auto const q_dot_product = std::clamp(q_goal.dot(q_frame), -1.0, 1.0);
             auto const angular_distance = 2.0 * std::acos(q_dot_product);
             return (goal.translation() - frame.translation()).squaredNorm() +
-                   std::pow(angular_distance * rotation_scale, 2);
+                   std::pow(angular_distance * rotation_scale, 2.0);
         };
     }
     return [=](std::vector<Eigen::Isometry3d> const& tip_frames) -> double {
