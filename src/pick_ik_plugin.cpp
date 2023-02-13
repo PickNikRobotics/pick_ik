@@ -246,7 +246,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             solution_callback(ik_poses.front(), solution, error_code);
         }
 
-        return found_solution;
+        return error_code.val == error_code.SUCCESS;
     }
 
     virtual std::vector<std::string> const& getJointNames() const { return joint_names_; }
