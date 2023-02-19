@@ -1,6 +1,6 @@
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
-find_package(Catch2 3.1.0 REQUIRED)
+find_package(Catch2 3.3.0 REQUIRED)
 
 add_executable(test-pick_ik
     goal_tests.cpp
