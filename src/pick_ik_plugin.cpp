@@ -204,10 +204,6 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             // Assumes that the angles were already wrapped by the solver.
             error_code.val = error_code.SUCCESS;
             solution = maybe_solution.value();
-            if (jmg_->enforcePositionBounds(solution.data())) {
-                error_code.val = error_code.NO_IK_SOLUTION;
-                solution = ik_seed_state;
-            }
         } else {
             error_code.val = error_code.NO_IK_SOLUTION;
             solution = ik_seed_state;
@@ -246,7 +242,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             solution_callback(ik_poses.front(), solution, error_code);
         }
 
-        return found_solution;
+        return error_code.val == error_code.SUCCESS;
     }
 
     virtual std::vector<std::string> const& getJointNames() const { return joint_names_; }

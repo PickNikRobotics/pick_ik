@@ -20,8 +20,7 @@ auto make_frame_test_fn(Eigen::Isometry3d goal_frame,
     return [=](Eigen::Isometry3d const& tip_frame) -> bool {
         auto const q_goal = Eigen::Quaterniond(goal_frame.rotation());
         auto const q_frame = Eigen::Quaterniond(tip_frame.rotation());
-        auto const q_dot_product = std::clamp(q_goal.dot(q_frame), -1.0, 1.0);
-        auto const angular_distance = 2.0 * std::acos(q_dot_product);
+        auto const angular_distance = q_frame.angularDistance(q_goal);
         return ((goal_frame.translation() - tip_frame.translation()).norm() <=
                 position_threshold) &&
                (!orientation_threshold.has_value() ||
@@ -49,8 +48,7 @@ auto make_pose_cost_fn(Eigen::Isometry3d goal, size_t goal_link_index, double ro
         return [=](std::vector<Eigen::Isometry3d> const& tip_frames) -> double {
             auto const& frame = tip_frames[goal_link_index];
             auto const q_frame = Eigen::Quaterniond(frame.rotation());
-            auto const q_dot_product = std::clamp(q_goal.dot(q_frame), -1.0, 1.0);
-            auto const angular_distance = 2.0 * std::acos(q_dot_product);
+            auto const angular_distance = q_frame.angularDistance(q_goal);
             return (goal.translation() - frame.translation()).squaredNorm() +
                    std::pow(angular_distance * rotation_scale, 2);
         };

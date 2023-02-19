@@ -43,7 +43,7 @@ auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
 
         var.span = var.max - var.min;
 
-        if (!(var.span >= 0 && var.span < FLT_MAX)) var.span = 1;
+        if (!(var.span >= 0 && var.span < std::numeric_limits<double>::max())) var.span = 1;
 
         auto const max_velocity = bounds.max_velocity_;
         var.max_velocity_rcp = max_velocity > 0.0 ? 1.0 / max_velocity : 0.0;
