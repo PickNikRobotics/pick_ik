@@ -64,7 +64,7 @@ endif()
 
 install(
   DIRECTORY include/
-  DESTINATION include
+  DESTINATION include/pick_ik
 )
 install(
   TARGETS pick_ik_plugin pick_ik_parameters
@@ -72,7 +72,6 @@ install(
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
 )
 
 ament_export_targets(export_pick_ik HAS_LIBRARY_TARGET)
