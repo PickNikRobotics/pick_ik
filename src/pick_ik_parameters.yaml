@@ -13,7 +13,7 @@ pick_ik:
     default_value: 0.0001,
     description: "Gradient descent step size for joint perturbation",
     validation: {
-      lower_bounds<>: [1.0e-12],
+      gt_eq<>: [1.0e-12],
     }
   }
   gd_max_iters: {
@@ -21,7 +21,7 @@ pick_ik:
     default_value: 100,
     description: "Maximum iterations for local gradient descent",
     validation: {
-      lower_bounds<>: [1],
+      gt_eq<>: [1],
     }
   }
   gd_min_cost_delta: {
@@ -29,7 +29,7 @@ pick_ik:
     default_value: 1.0e-12,
     description: "Minimum change in cost function value for gradient descent",
     validation: {
-      lower_bounds<>: [1.0e-64],
+      gt_eq<>: [1.0e-64],
     }
   }
   # Cost functions and thresholds
@@ -38,7 +38,7 @@ pick_ik:
     default_value: 0.001,
     description: "Position threshold for solving IK, in meters",
     validation: {
-      lower_bounds<>: [0.0],
+      gt_eq<>: [0.0],
     },
   }
   orientation_threshold: {
@@ -46,7 +46,7 @@ pick_ik:
     default_value: 0.001,
     description: "Orientation threshold for solving IK, in radians",
     validation: {
-      lower_bounds<>: [0.0],
+      gt_eq<>: [0.0],
     },
   }
   approximate_solution_position_threshold: {
@@ -54,7 +54,7 @@ pick_ik:
     default_value: 0.05,
     description: "Position threshold for approximate IK solutions, in meters. If displacement is larger than this, the approximate solution will fall back to the initial guess",
     validation: {
-      lower_bounds<>: [0.0],
+      gt_eq<>: [0.0],
     },
   }
   approximate_solution_orientation_threshold: {
@@ -62,7 +62,7 @@ pick_ik:
     default_value: 0.05,
     description: "Orientation threshold for approximate IK solutions, in radians. If displacement is larger than this, the approximate solution will fall back to the initial guess",
     validation: {
-      lower_bounds<>: [0.0],
+      gt_eq<>: [0.0],
     },
   }
   cost_threshold: {
@@ -70,7 +70,7 @@ pick_ik:
     default_value: 0.001,
     description: "Scalar value for comparing to result of cost functions. IK is considered solved when all position/rotation/twist thresholds are satisfied and all cost functions return a value lower than this value.",
     validation: {
-      lower_bounds<>: [0.0],
+      gt_eq<>: [0.0],
     },
   }
   rotation_scale: {
@@ -78,7 +78,7 @@ pick_ik:
     default_value: 0.5,
     description: "The rotation scale for the pose cost function. Set to 0.0 to solve for only position",
     validation: {
-      lower_bounds<>: [0.0],
+      gt_eq<>: [0.0],
     },
   }
   center_joints_weight: {
@@ -86,7 +86,7 @@ pick_ik:
     default_value: 0.0,
     description: "Weight for centering cost function, >0.0 enables const function",
     validation: {
-      lower_bounds<>: [0.0],
+      gt_eq<>: [0.0],
     },
   }
   avoid_joint_limits_weight: {
@@ -94,7 +94,7 @@ pick_ik:
     default_value: 0.0,
     description: "Weight for avoiding joint limits cost function, >0.0 enables const function",
     validation: {
-      lower_bounds<>: [0.0],
+      gt_eq<>: [0.0],
     },
   }
   minimal_displacement_weight: {
@@ -102,7 +102,7 @@ pick_ik:
     default_value: 0.0,
     description: "Weight for minimal displacement cost function, >0.0 enables const function",
     validation: {
-      lower_bounds<>: [0.0],
+      gt_eq<>: [0.0],
     },
   }
   # Memetic IK specific parameters
@@ -111,7 +111,7 @@ pick_ik:
     default_value: 1,
     description: "Number of threads for memetic IK",
     validation: {
-      lower_bounds<>: [1],
+      gt_eq<>: [1],
     }
   }
   memetic_stop_on_first_solution: {
@@ -124,7 +124,7 @@ pick_ik:
     default_value: 16,
     description: "Population size for memetic IK",
     validation: {
-      lower_bounds<>: [1],
+      gt_eq<>: [1],
     }
   }
   memetic_elite_size: {
@@ -132,7 +132,7 @@ pick_ik:
     default_value: 4,
     description: "Number of elite members of memetic IK population",
     validation: {
-      lower_bounds<>: [1],
+      gt_eq<>: [1],
     }
   }
   memetic_wipeout_fitness_tol: {
@@ -140,7 +140,7 @@ pick_ik:
     default_value: 0.00001,
     description: "Minimum fitness must improve by this value or population will be wiped out",
     validation: {
-      lower_bounds<>: [0.0],
+      gt_eq<>: [0.0],
     }
   }
   memetic_max_generations: {
@@ -148,7 +148,7 @@ pick_ik:
     default_value: 100,
     description: "Maximum iterations of evolutionary algorithm",
     validation: {
-      lower_bounds<>: [1],
+      gt_eq<>: [1],
     }
   }
   memetic_gd_max_iters: {
@@ -156,7 +156,7 @@ pick_ik:
     default_value: 25,
     description: "Maximum iterations of gradient descent during memetic exploitation",
     validation: {
-      lower_bounds<>: [1],
+      gt_eq<>: [1],
     }
   }
   memetic_gd_max_time: {
@@ -164,6 +164,6 @@ pick_ik:
     default_value: 0.005,
     description: "Maximum time spent on gradient descent during memetic exploitation",
     validation: {
-      lower_bounds<>: [0.0],
+      gt_eq<>: [0.0],
     }
   }
