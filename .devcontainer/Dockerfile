@@ -13,7 +13,7 @@ RUN echo "deb http://packages.ros.org/ros2-testing/ubuntu $(lsb_release -cs) mai
 
 # install build dependencies
 RUN --mount=type=cache,target=/var/cache/apt,id=apt \
-    apt-get update && apt-get upgrade -y \
+    apt-get update && apt-get upgrade -y --with-new-pkgs \
     && apt-get install -q -y --no-install-recommends \
     build-essential \
     ccache \
