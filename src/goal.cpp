@@ -21,8 +21,8 @@ auto make_frame_test_fn(Eigen::Isometry3d goal_frame,
         auto const q_goal = Eigen::Quaterniond(goal_frame.rotation());
         auto const q_frame = Eigen::Quaterniond(tip_frame.rotation());
         auto const angular_distance = q_frame.angularDistance(q_goal);
-        return ((goal_frame.translation() - tip_frame.translation()).norm() <=
-                position_threshold) &&
+        auto const linear_distance = (goal_frame.translation() - tip_frame.translation()).norm();
+        return (linear_distance <= position_threshold) &&
                (!orientation_threshold.has_value() ||
                 std::abs(angular_distance) <= orientation_threshold.value());
     };

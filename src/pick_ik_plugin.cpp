@@ -209,10 +209,11 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             solution = ik_seed_state;
         }
 
-        // If using an approximate solution, check against the maximum allowable pose threshold.
-        // If the approximate solution is too far from the goal frame, fall back to the initial
-        // state.
+        // If using an approximate solution, check against the maximum allowable pose and joint
+        // thresholds. If the approximate solution is too far from the goal frame,
+        // fall back to the initial state.
         if (options.return_approximate_solution) {
+            // Check pose thresholds
             std::optional<double> approximate_solution_orientation_threshold = std::nullopt;
             if (test_rotation) {
                 approximate_solution_orientation_threshold =
@@ -230,6 +231,18 @@ class PickIKPlugin : public kinematics::KinematicsBase {
                     break;
                 }
             }
+
+            // Check joint thresholds
+            if (approx_solution_valid && params.approximate_solution_joint_threshold > 0.0) {
+                for (size_t i = 0; i < solution.size(); ++i) {
+                    if (std::abs(solution[i] - ik_seed_state[i]) >
+                        params.approximate_solution_joint_threshold) {
+                        approx_solution_valid = false;
+                        break;
+                    }
+                }
+            }
+
             if (!approx_solution_valid) {
                 error_code.val = error_code.NO_IK_SOLUTION;
                 solution = ik_seed_state;
@@ -242,7 +255,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             solution_callback(ik_poses.front(), solution, error_code);
         }
 
-        return error_code.val == error_code.SUCCESS;
+        return found_solution;
     }
 
     virtual std::vector<std::string> const& getJointNames() const { return joint_names_; }

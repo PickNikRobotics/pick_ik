@@ -19,7 +19,6 @@ auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
                  std::vector<size_t> tip_link_indices) -> Robot {
     auto robot = Robot{};
 
-    // jmg_->getKinematicsSolverJointBijection();
     auto const active_variable_indices = get_active_variable_indices(model, jmg, tip_link_indices);
     auto const variable_count = active_variable_indices.size();
 
