@@ -53,7 +53,8 @@ TEST_CASE("RR model FK") {
     auto const jmg = robot_model->getJointModelGroup("group");
     auto const tip_link_indices = pick_ik::get_link_indices(robot_model, {"ee"}).value();
 
-    auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, tip_link_indices);
+    std::mutex mx;
+    auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, mx, tip_link_indices);
 
     SECTION("Zero joint position") {
         std::vector<double> const joint_vals = {0.0, 0.0};
@@ -93,7 +94,8 @@ auto solve_ik_test(moveit::core::RobotModelPtr robot_model,
     // Make forward kinematics function
     auto const jmg = robot_model->getJointModelGroup(group_name);
     auto const tip_link_indices = pick_ik::get_link_indices(robot_model, {goal_frame_name}).value();
-    auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, tip_link_indices);
+    std::mutex mx;
+    auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, mx, tip_link_indices);
 
     // Make solution function
     auto const test_rotation = (params.rotation_scale > 0.0);
@@ -234,7 +236,8 @@ TEST_CASE("Panda model IK") {
 
     auto const jmg = robot_model->getJointModelGroup("panda_arm");
     auto const tip_link_indices = pick_ik::get_link_indices(robot_model, {"panda_hand"}).value();
-    auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, tip_link_indices);
+    std::mutex mx;
+    auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, mx, tip_link_indices);
 
     std::vector<double> const home_joint_angles =
         {0.0, -M_PI_4, 0.0, -3.0 * M_PI_4, 0.0, M_PI_2, M_PI_4};

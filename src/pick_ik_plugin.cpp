@@ -29,6 +29,8 @@ class PickIKPlugin : public kinematics::KinematicsBase {
     std::vector<size_t> tip_link_indices_;
     Robot robot_;
 
+    mutable std::mutex fk_mutex_;
+
    public:
     virtual bool initialize(rclcpp::Node::SharedPtr const& node,
                             moveit::core::RobotModel const& robot_model,
@@ -127,7 +129,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             make_pose_cost_functions(goal_frames, params.rotation_scale);
 
         // forward kinematics function
-        auto const fk_fn = make_fk_fn(robot_model_, jmg_, tip_link_indices_);
+        auto const fk_fn = make_fk_fn(robot_model_, jmg_, fk_mutex_, tip_link_indices_);
 
         // Create goals (weighted cost functions)
         auto goals = std::vector<Goal>{};
