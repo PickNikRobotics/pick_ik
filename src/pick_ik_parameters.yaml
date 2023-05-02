@@ -70,7 +70,7 @@ pick_ik:
     default_value: 0.0,
     description: "Joint threshold for approximate IK solutions, in radians. If displacement is larger than this, the approximate solution will fall back to the initial guess",
     validation: {
-      lower_bounds<>: [0.0],
+      gt_eq<>: [0.0],
     },
   }
   cost_threshold: {
