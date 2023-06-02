@@ -98,7 +98,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         std::vector<double> const&,
         std::vector<double>& solution,
         IKCallbackFn const& solution_callback,
-        IKCostFn cost_function,
+        IKCostFn const& cost_function,
         moveit_msgs::msg::MoveItErrorCodes& error_code,
         kinematics::KinematicsQueryOptions const& options = kinematics::KinematicsQueryOptions(),
         moveit::core::RobotState const* context_state = nullptr) const {
