@@ -14,17 +14,26 @@
 
 namespace pick_ik {
 
+auto linear_distance(Eigen::Isometry3d frame_1,
+                     Eigen::Isometry3d frame_2) {
+    return (frame_1.translation() - frame_2.translation()).norm();
+}
+
+auto angular_distance(Eigen::Isometry3d frame_1,
+                      Eigen::Isometry3d frame_2) {
+    auto const q_1 = Eigen::Quaterniond(frame_1.rotation());
+    auto const q_2 = Eigen::Quaterniond(frame_2.rotation());
+    return q_2.angularDistance(q_1);
+}
+
 auto make_frame_test_fn(Eigen::Isometry3d goal_frame,
                         std::optional<double> position_threshold = std::nullopt,
                         std::optional<double> orientation_threshold = std::nullopt) -> FrameTestFn {
     return [=](Eigen::Isometry3d const& tip_frame) -> bool {
-        auto const q_goal = Eigen::Quaterniond(goal_frame.rotation());
-        auto const q_frame = Eigen::Quaterniond(tip_frame.rotation());
-        auto const angular_distance = q_frame.angularDistance(q_goal);
-        auto const linear_distance = (goal_frame.translation() - tip_frame.translation()).norm();
-        return (!position_threshold.has_value() || linear_distance <= position_threshold) &&
+        return (!position_threshold.has_value() ||
+                linear_distance(goal_frame, tip_frame) <= position_threshold) &&
                (!orientation_threshold.has_value() ||
-                std::abs(angular_distance) <= orientation_threshold.value());
+                std::abs(angular_distance(goal_frame, tip_frame)) <= orientation_threshold.value());
     };
 }
 
@@ -47,29 +56,21 @@ auto make_pose_cost_fn(Eigen::Isometry3d goal,
                        double rotation_scale) -> PoseCostFn {
     if (position_scale > 0.0) {
         if (rotation_scale > 0.0) {
-            auto const q_goal = Eigen::Quaterniond(goal.rotation());
             return [=](std::vector<Eigen::Isometry3d> const& tip_frames) -> double {
                 auto const& frame = tip_frames[goal_link_index];
-                auto const q_frame = Eigen::Quaterniond(frame.rotation());
-                auto const angular_distance = q_frame.angularDistance(q_goal);
-                auto const linear_distance = (goal.translation() - frame.translation()).norm();
-                return std::pow(linear_distance * position_scale, 2) +
-                       std::pow(angular_distance * rotation_scale, 2);
+                return std::pow(linear_distance(goal, frame) * position_scale, 2) +
+                       std::pow(angular_distance(goal, frame) * rotation_scale, 2);
             };
         }
         return [=](std::vector<Eigen::Isometry3d> const& tip_frames) -> double {
             auto const& frame = tip_frames[goal_link_index];
-            auto const linear_distance = (goal.translation() - frame.translation()).norm();
-            return std::pow(linear_distance * position_scale, 2);
+            return std::pow(linear_distance(goal, frame) * position_scale, 2);
         };
     }
     if (rotation_scale > 0.0) {
-        auto const q_goal = Eigen::Quaterniond(goal.rotation());
         return [=](std::vector<Eigen::Isometry3d> const& tip_frames) -> double {
             auto const& frame = tip_frames[goal_link_index];
-            auto const q_frame = Eigen::Quaterniond(frame.rotation());
-            auto const angular_distance = q_frame.angularDistance(q_goal);
-            return std::pow(angular_distance * rotation_scale, 2);
+            return std::pow(angular_distance(goal, frame) * rotation_scale, 2);
         };
     }
     return [=](std::vector<Eigen::Isometry3d> const&) -> double { return 0.0; };
