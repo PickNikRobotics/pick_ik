@@ -14,13 +14,11 @@
 
 namespace pick_ik {
 
-auto linear_distance(Eigen::Isometry3d frame_1,
-                     Eigen::Isometry3d frame_2) {
+auto linear_distance(Eigen::Isometry3d frame_1, Eigen::Isometry3d frame_2) {
     return (frame_1.translation() - frame_2.translation()).norm();
 }
 
-auto angular_distance(Eigen::Isometry3d frame_1,
-                      Eigen::Isometry3d frame_2) {
+auto angular_distance(Eigen::Isometry3d frame_1, Eigen::Isometry3d frame_2) {
     auto const q_1 = Eigen::Quaterniond(frame_1.rotation());
     auto const q_2 = Eigen::Quaterniond(frame_2.rotation());
     return q_2.angularDistance(q_1);
