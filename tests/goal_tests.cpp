@@ -85,6 +85,11 @@ TEST_CASE("pick_ik::make_pose_cost_fn") {
         Eigen::Translation3d(0.0, 0.0, 0.0) * Eigen::AngleAxisd(2.0, Eigen::Vector3d::UnitY());
 
     SECTION("Goal is frame") {
+        auto const cost_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 0.0, 0.0);
+        CHECK(cost_fn({zero_frame}) == Catch::Approx(0.0));
+    }
+
+    SECTION("Goal is frame, with position scale") {
         auto const cost_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 1.0, 0.0);
         CHECK(cost_fn({zero_frame}) == Catch::Approx(0.0));
     }
@@ -118,9 +123,20 @@ TEST_CASE("pick_ik::make_pose_cost_fn") {
         CHECK(const_fn({translate_xyz1_frame}) == Catch::Approx(3.0));
     }
 
+    SECTION("Zero position scale with translation") {
+        auto const cost_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 0.0, 0.5);
+        CHECK(cost_fn({translate_xyz1_frame}) == Catch::Approx(0.0));
+    }
+
     SECTION("Zero rotation scale with rotation") {
         auto const cost_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 1.0, 0.0);
         CHECK(cost_fn({rotate_x1_frame}) == Catch::Approx(0.0));
+    }
+
+    SECTION("Negative position scale same as zero position scale") {
+        auto const cost_fn_zero = pick_ik::make_pose_cost_fn(zero_frame, 0, 0.0, 0.5);
+        auto const cost_fn_neg = pick_ik::make_pose_cost_fn(zero_frame, 0, -1.0, 0.5);
+        CHECK(cost_fn_zero({translate_xyz1_frame}) == cost_fn_neg({translate_xyz1_frame}));
     }
 
     SECTION("Negative rotation scale same as zero rotation scale") {
