@@ -166,7 +166,8 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             ik_params.population_size = static_cast<size_t>(params.memetic_population_size);
             ik_params.elite_size = static_cast<size_t>(params.memetic_elite_size);
             ik_params.wipeout_fitness_tol = params.memetic_wipeout_fitness_tol;
-            ik_params.optimize_solution = params.optimize_solution;
+            ik_params.stop_optimization_on_valid_solution =
+                params.stop_optimization_on_valid_solution;
             ik_params.num_threads = static_cast<size_t>(params.memetic_num_threads);
             ik_params.stop_on_first_soln = params.memetic_stop_on_first_solution;
             ik_params.max_generations = static_cast<int>(params.memetic_max_generations);
@@ -190,7 +191,8 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             gd_params.min_cost_delta = params.gd_min_cost_delta;
             gd_params.max_time = timeout;
             gd_params.max_iterations = static_cast<int>(params.gd_max_iters);
-            gd_params.optimize_solution = params.optimize_solution;
+            gd_params.stop_optimization_on_valid_solution =
+                params.stop_optimization_on_valid_solution;
 
             maybe_solution = ik_gradient(ik_seed_state,
                                          robot_,
