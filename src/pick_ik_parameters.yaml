@@ -113,6 +113,11 @@ pick_ik:
       gt_eq<>: [0.0],
     },
   }
+  stop_optimization_on_valid_solution : {
+    type: bool,
+    default_value: true,
+    description: "If false, keeps running after finding a solution to further optimize the solution until a time or iteration limit is reached",
+  }
   # Memetic IK specific parameters
   memetic_num_threads: {
     type: int,
