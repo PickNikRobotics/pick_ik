@@ -244,7 +244,7 @@ auto ik_memetic_impl(std::vector<double> const& initial_guess,
         }
 
         // Check for termination and wipeout conditions
-        if (solution_fn(ik.best().genes)) {
+        if (!params.optimize_solution && solution_fn(ik.best().genes)) {
             if (print_debug) fmt::print("Found solution!\n");
             return ik.best();
         }
@@ -260,6 +260,12 @@ auto ik_memetic_impl(std::vector<double> const& initial_guess,
         }
 
         iter++;
+    }
+
+    // If we kept optimizing, we need to check if we found a valid solution
+    if (params.optimize_solution && solution_fn(ik.best().genes)) {
+        if (print_debug) fmt::print("Found solution!\n");
+        return ik.best();
     }
 
     if (approx_solution) {
@@ -279,7 +285,7 @@ auto ik_memetic(std::vector<double> const& initial_guess,
                 bool print_debug) -> std::optional<std::vector<double>> {
     // Check whether the initial guess already meets the goal,
     // before starting to solve.
-    if (solution_fn(initial_guess)) {
+    if (!params.optimize_solution && solution_fn(initial_guess)) {
         return initial_guess;
     }
 

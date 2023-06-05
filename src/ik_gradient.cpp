@@ -102,7 +102,7 @@ auto ik_gradient(std::vector<double> const& initial_guess,
                  SolutionTestFn const& solution_fn,
                  GradientIkParams const& params,
                  bool approx_solution) -> std::optional<std::vector<double>> {
-    if (solution_fn(initial_guess)) {
+    if (!params.optimize_solution && solution_fn(initial_guess)) {
         return initial_guess;
     }
 
@@ -118,7 +118,7 @@ auto ik_gradient(std::vector<double> const& initial_guess,
     while ((std::chrono::system_clock::now() < timeout_point) &&
            (num_iterations < params.max_iterations)) {
         if (step(ik, robot, cost_fn, params.step_size)) {
-            if (solution_fn(ik.best)) {
+            if (!params.optimize_solution && solution_fn(ik.best)) {
                 return ik.best;
             }
         }
@@ -128,6 +128,10 @@ auto ik_gradient(std::vector<double> const& initial_guess,
         }
         previous_cost = ik.local_cost;
         num_iterations++;
+    }
+
+    if(params.optimize_solution && solution_fn(ik.best)){
+        return ik.best;
     }
 
     // If no solution was found, either return the approximate solution or nothing.

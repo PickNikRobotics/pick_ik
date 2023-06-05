@@ -33,6 +33,9 @@ struct MemeticIkParams {
     double max_time = 1.0;                 // Maximum time for evolutionary algorithm.
 
     size_t num_threads = 1;  // Number of species to solve in parallel.
+    // If true, keeps running after finding a solution to further optimize the solution until a time or iteration limit is reached
+    // If false, stop thread on finding a valid solution
+    bool optimize_solution = false;
     // If true, returns first solution and terminates other threads.
     // If false, waits for all threads to join and returns best solution.
     bool stop_on_first_soln = true;
