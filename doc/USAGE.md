@@ -12,6 +12,7 @@ panda_arm:
   kinematics_solver_timeout: 0.05
   kinematics_solver_attempts: 3
   mode: global
+  stop_optimization_on_valid_solution: true
   position_scale: 1.0
   rotation_scale: 0.5
   position_threshold: 0.001
@@ -32,6 +33,7 @@ For an exhaustive list of parameters, refer to the [parameters YAML file](../src
 Some key parameters you may want to start with are:
 
 * `mode`: If you choose `local`, this solver will only do local gradient descent; if you choose `global`, it will also enable the evolutionary algorithm. Using the global solver will be less performant, but if you're having trouble getting out of local minima, this could help you. We recommend using `local` for things like relative motion / Cartesian interpolation / endpoint jogging, and `global` if you need to solve for goals with a far-away initial conditions.
+* `stop_optimization_on_valid_solution`: The default mode of pick_ik is to give you the first valid solution (which satisfies all thresholds) to make IK calls quick. Set this parameter to true if you rather want to use your complete computational budget (based on `kinematics_solver_timeout` and the maximum number of iterations of the solvers) to try to find a solution with a low cost value.
 * `memetic_<property>`: All the properties that only kick in if you use the `global` solver. The key one is `memetic_num_threads`, as we have enabled the evolutionary algorithm to solve on multiple threads.
 * `cost_threshold`: This solver works by setting up cost functions based on how far away your pose is, how much your joints move relative to the initial guess, and custom cost functions you can add. Optimization succeeds only if the cost is less than `cost_threshold`. Note that if you're adding custom cost functions, you may want to set this threshold fairly high and rely on `position_threshold` and `orientation_threshold` to be your deciding factors, whereas this is more of a guideline.
 * `position_threshold`/`orientation_threshold`: Optimization succeeds only if the pose difference is less than these thresholds in meters and radians respectively. A `position_threshold` of 0.001 would mean a 1 mm accuracy and an `orientation_threshold` of 0.01 would mean a 0.01 radian accuracy.
