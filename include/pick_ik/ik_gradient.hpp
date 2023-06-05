@@ -17,8 +17,8 @@ struct GradientIkParams {
     double min_cost_delta = 1.0e-12;  // Minimum cost difference for termination.
     double max_time = 0.05;           // Maximum time elapsed for termination.
     int max_iterations = 100;         // Maximum iterations for termination.
-    // If true, keeps running after finding a solution to further optimize the solution until a time or iteration limit is reached
-    // If false, stop thread on finding a valid solution
+    // If true, keeps running after finding a solution to further optimize the solution until a time
+    // or iteration limit is reached If false, stop thread on finding a valid solution
     bool optimize_solution = false;
 };
 

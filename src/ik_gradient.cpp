@@ -130,7 +130,7 @@ auto ik_gradient(std::vector<double> const& initial_guess,
         num_iterations++;
     }
 
-    if(params.optimize_solution && solution_fn(ik.best)){
+    if (params.optimize_solution && solution_fn(ik.best)) {
         return ik.best;
     }
 
