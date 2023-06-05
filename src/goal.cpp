@@ -15,7 +15,7 @@
 namespace pick_ik {
 
 auto make_frame_test_fn(Eigen::Isometry3d goal_frame,
-                        std::optional<double> position_threshold  = std::nullopt,
+                        std::optional<double> position_threshold = std::nullopt,
                         std::optional<double> orientation_threshold = std::nullopt) -> FrameTestFn {
     return [=](Eigen::Isometry3d const& tip_frame) -> bool {
         auto const q_goal = Eigen::Quaterniond(goal_frame.rotation());
