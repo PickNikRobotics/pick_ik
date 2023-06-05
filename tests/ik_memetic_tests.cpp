@@ -18,6 +18,7 @@ struct MemeticIkTestParams {
     double position_threshold = 0.001;
     double orientation_threshold = 0.01;
     double cost_threshold = 0.001;
+    double position_scale = 1.0;
     double rotation_scale = 0.5;
 
     // Solve options
@@ -62,19 +63,25 @@ auto solve_memetic_ik_test(moveit::core::RobotModelPtr robot_model,
     }
 
     // Make pose cost function
-    auto const pose_cost_functions =
-        pick_ik::make_pose_cost_functions({goal_frame}, params.rotation_scale);
+    auto const pose_cost_functions = pick_ik::make_pose_cost_functions({goal_frame},
+                                                                       params.position_scale,
+                                                                       params.rotation_scale);
     CHECK(pose_cost_functions.size() == 1);
     auto const cost_fn = pick_ik::make_cost_fn(pose_cost_functions, goals, fk_fn);
 
     // Make solution function
+    auto const test_position = (params.position_scale > 0);
+    std::optional<double> position_threshold = std::nullopt;
+    if (test_position) {
+        position_threshold = params.position_threshold;
+    }
     auto const test_rotation = (params.rotation_scale > 0.0);
     std::optional<double> orientation_threshold = std::nullopt;
     if (test_rotation) {
         orientation_threshold = params.orientation_threshold;
     }
     auto const frame_tests =
-        pick_ik::make_frame_tests({goal_frame}, params.position_threshold, orientation_threshold);
+        pick_ik::make_frame_tests({goal_frame}, position_threshold, orientation_threshold);
     auto const solution_fn =
         pick_ik::make_is_solution_test_fn(frame_tests, goals, params.cost_threshold, fk_fn);
 

@@ -79,6 +79,7 @@ struct IkTestParams {
     double position_threshold = 0.0001;
     double orientation_threshold = 0.001;
     double cost_threshold = 0.0001;
+    double position_scale = 1.0;
     double rotation_scale = 1.0;
     bool return_approximate_solution = false;
     pick_ik::GradientIkParams gd_params;
@@ -98,13 +99,18 @@ auto solve_ik_test(moveit::core::RobotModelPtr robot_model,
     auto const fk_fn = pick_ik::make_fk_fn(robot_model, jmg, mx, tip_link_indices);
 
     // Make solution function
+    auto const test_position = (params.position_scale > 0);
+    std::optional<double> position_threshold = std::nullopt;
+    if (test_position) {
+        position_threshold = params.position_threshold;
+    }
     auto const test_rotation = (params.rotation_scale > 0.0);
     std::optional<double> orientation_threshold = std::nullopt;
     if (test_rotation) {
         orientation_threshold = params.orientation_threshold;
     }
     auto const frame_tests =
-        pick_ik::make_frame_tests({goal_frame}, params.position_threshold, orientation_threshold);
+        pick_ik::make_frame_tests({goal_frame}, position_threshold, orientation_threshold);
     auto const cost_function =
         kinematics::KinematicsBase::IKCostFn();  // What should be instantiated here?
     std::vector<pick_ik::Goal> goals = {};       // TODO: Only works if empty.
@@ -112,8 +118,9 @@ auto solve_ik_test(moveit::core::RobotModelPtr robot_model,
         pick_ik::make_is_solution_test_fn(frame_tests, goals, params.cost_threshold, fk_fn);
 
     // Make pose cost function
-    auto const pose_cost_functions =
-        pick_ik::make_pose_cost_functions({goal_frame}, params.rotation_scale);
+    auto const pose_cost_functions = pick_ik::make_pose_cost_functions({goal_frame},
+                                                                       params.position_scale,
+                                                                       params.rotation_scale);
     CHECK(pose_cost_functions.size() == 1);
 
     // Solve IK

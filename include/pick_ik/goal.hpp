@@ -16,17 +16,20 @@ namespace pick_ik {
 // Frame equality tests
 using FrameTestFn = std::function<bool(Eigen::Isometry3d const& tip_frame)>;
 auto make_frame_tests(std::vector<Eigen::Isometry3d> goal_frames,
-                      double position_threshold,
+                      std::optional<double> position_threshold = std::nullopt,
                       std::optional<double> orientation_threshold = std::nullopt)
     -> std::vector<FrameTestFn>;
 
 // Pose cost functions
 using PoseCostFn = std::function<double(std::vector<Eigen::Isometry3d> const& tip_frames)>;
-auto make_pose_cost_fn(Eigen::Isometry3d goal, size_t goal_link_index, double rotation_scale)
-    -> PoseCostFn;
+auto make_pose_cost_fn(Eigen::Isometry3d goal,
+                       size_t goal_link_index,
+                       double position_scale,
+                       double rotation_scale) -> PoseCostFn;
 
-auto make_pose_cost_functions(std::vector<Eigen::Isometry3d> goal_frames, double rotation_scale)
-    -> std::vector<PoseCostFn>;
+auto make_pose_cost_functions(std::vector<Eigen::Isometry3d> goal_frames,
+                              double position_scale,
+                              double rotation_scale) -> std::vector<PoseCostFn>;
 
 // Goal Function type
 using CostFn = std::function<double(std::vector<double> const& active_positions)>;

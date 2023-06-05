@@ -81,6 +81,14 @@ pick_ik:
       gt_eq<>: [0.0],
     },
   }
+  position_scale: {
+    type: double,
+    default_value: 1.0,
+    description: "The position scale for the pose cost function. Set to 0.0 to solve for only rotation or other goals",
+    validation: {
+      gt_eq<>: [0.0],
+    },
+  }
   rotation_scale: {
     type: double,
     default_value: 0.5,
