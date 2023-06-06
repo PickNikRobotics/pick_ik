@@ -14,22 +14,29 @@
 
 namespace pick_ik {
 
+double linear_distance(Eigen::Isometry3d const& frame_1, Eigen::Isometry3d const& frame_2) {
+    return (frame_1.translation() - frame_2.translation()).norm();
+}
+
+double angular_distance(Eigen::Isometry3d const& frame_1, Eigen::Isometry3d const& frame_2) {
+    auto const q_1 = Eigen::Quaterniond(frame_1.rotation());
+    auto const q_2 = Eigen::Quaterniond(frame_2.rotation());
+    return q_2.angularDistance(q_1);
+}
+
 auto make_frame_test_fn(Eigen::Isometry3d goal_frame,
-                        double position_threshold,
+                        std::optional<double> position_threshold = std::nullopt,
                         std::optional<double> orientation_threshold = std::nullopt) -> FrameTestFn {
     return [=](Eigen::Isometry3d const& tip_frame) -> bool {
-        auto const q_goal = Eigen::Quaterniond(goal_frame.rotation());
-        auto const q_frame = Eigen::Quaterniond(tip_frame.rotation());
-        auto const angular_distance = q_frame.angularDistance(q_goal);
-        auto const linear_distance = (goal_frame.translation() - tip_frame.translation()).norm();
-        return (linear_distance <= position_threshold) &&
+        return (!position_threshold.has_value() ||
+                linear_distance(goal_frame, tip_frame) <= position_threshold) &&
                (!orientation_threshold.has_value() ||
-                std::abs(angular_distance) <= orientation_threshold.value());
+                std::abs(angular_distance(goal_frame, tip_frame)) <= orientation_threshold.value());
     };
 }
 
 auto make_frame_tests(std::vector<Eigen::Isometry3d> goal_frames,
-                      double position_threshold,
+                      std::optional<double> position_threshold,
                       std::optional<double> orientation_threshold) -> std::vector<FrameTestFn> {
     auto tests = std::vector<FrameTestFn>{};
     std::transform(goal_frames.cbegin(),
@@ -41,29 +48,42 @@ auto make_frame_tests(std::vector<Eigen::Isometry3d> goal_frames,
     return tests;
 }
 
-auto make_pose_cost_fn(Eigen::Isometry3d goal, size_t goal_link_index, double rotation_scale)
-    -> PoseCostFn {
-    if (rotation_scale > 0.0) {
-        auto const q_goal = Eigen::Quaterniond(goal.rotation());
-        return [=](std::vector<Eigen::Isometry3d> const& tip_frames) -> double {
-            auto const& frame = tip_frames[goal_link_index];
-            auto const q_frame = Eigen::Quaterniond(frame.rotation());
-            auto const angular_distance = q_frame.angularDistance(q_goal);
-            return (goal.translation() - frame.translation()).squaredNorm() +
-                   std::pow(angular_distance * rotation_scale, 2);
-        };
+auto make_pose_cost_fn(Eigen::Isometry3d goal,
+                       size_t goal_link_index,
+                       double position_scale,
+                       double rotation_scale) -> PoseCostFn {
+    if (position_scale > 0.0) {
+        if (rotation_scale > 0.0) {
+            return [=](std::vector<Eigen::Isometry3d> const& tip_frames) -> double {
+                auto const& frame = tip_frames[goal_link_index];
+                return std::pow(linear_distance(goal, frame) * position_scale, 2) +
+                       std::pow(angular_distance(goal, frame) * rotation_scale, 2);
+            };
+        } else {
+            return [=](std::vector<Eigen::Isometry3d> const& tip_frames) -> double {
+                auto const& frame = tip_frames[goal_link_index];
+                return std::pow(linear_distance(goal, frame) * position_scale, 2);
+            };
+        }
+    } else {
+        if (rotation_scale > 0.0) {
+            return [=](std::vector<Eigen::Isometry3d> const& tip_frames) -> double {
+                auto const& frame = tip_frames[goal_link_index];
+                return std::pow(angular_distance(goal, frame) * rotation_scale, 2);
+            };
+        } else {
+            return [=](std::vector<Eigen::Isometry3d> const&) -> double { return 0.0; };
+        }
     }
-    return [=](std::vector<Eigen::Isometry3d> const& tip_frames) -> double {
-        auto const& frame = tip_frames[goal_link_index];
-        return (goal.translation() - frame.translation()).squaredNorm();
-    };
 }
 
-auto make_pose_cost_functions(std::vector<Eigen::Isometry3d> goal_frames, double rotation_scale)
-    -> std::vector<PoseCostFn> {
+auto make_pose_cost_functions(std::vector<Eigen::Isometry3d> goal_frames,
+                              double position_scale,
+                              double rotation_scale) -> std::vector<PoseCostFn> {
     auto cost_functions = std::vector<PoseCostFn>{};
     for (size_t i = 0; i < goal_frames.size(); ++i) {
-        cost_functions.push_back(make_pose_cost_fn(goal_frames[i], i, rotation_scale));
+        cost_functions.push_back(
+            make_pose_cost_fn(goal_frames[i], i, position_scale, rotation_scale));
     }
     return cost_functions;
 }

@@ -13,6 +13,7 @@ panda_arm:
   kinematics_solver_attempts: 3
   mode: global
   stop_optimization_on_valid_solution: true
+  position_scale: 1.0
   rotation_scale: 0.5
   position_threshold: 0.001
   orientation_threshold: 0.01
@@ -37,6 +38,7 @@ Some key parameters you may want to start with are:
 * `cost_threshold`: This solver works by setting up cost functions based on how far away your pose is, how much your joints move relative to the initial guess, and custom cost functions you can add. Optimization succeeds only if the cost is less than `cost_threshold`. Note that if you're adding custom cost functions, you may want to set this threshold fairly high and rely on `position_threshold` and `orientation_threshold` to be your deciding factors, whereas this is more of a guideline.
 * `position_threshold`/`orientation_threshold`: Optimization succeeds only if the pose difference is less than these thresholds in meters and radians respectively. A `position_threshold` of 0.001 would mean a 1 mm accuracy and an `orientation_threshold` of 0.01 would mean a 0.01 radian accuracy.
 * `approximate_solution_position_threshold`/`approximate_solution_orientation_threshold`: When using approximate IK solutions for applications such as endpoint servoing, `pick_ik` may sometimes return solutions that are significantly far from the goal frame. To prevent issues with such jumps in solutions, these parameters define maximum translational and rotation displacement. We recommend setting this to values around a few centimeters and a few degrees for most applications.
+* `position_scale`: If you want rotation-only IK, set this to 0.0. If you want to solve for a custom `IKCostFn` (which you provide in your `setFromIK()` call) set this and `rotation_scale` to 0.0. You can also use any value other value to weight the position goal; it's part of the cost function. Note that any checks using `position_threshold` will be ignored if you use `position_scale = 0.0`.
 * `rotation_scale`: If you want position-only IK, set this to 0.0. If you want to treat position and orientation equally, set this to 1.0. You can also use any value in between; it's part of the cost function. Note that any checks using `orientation_threshold` will be ignored if you use `rotation_scale = 0.0`.
 * `minimal_displacement_weight`: This is one of the standard cost functions that checks for the joint angle difference between the initial guess and the solution. If you're solving for far-away goals, leave it to zero or it will hike up your cost function for no reason. Have this to a small non-zero value (e.g., 0.001) if you're doing things like Cartesian interpolation along a path, or endpoint jogging for servoing.
 
@@ -53,5 +55,7 @@ ros2 param set /rviz2 robot_description_kinematics.panda_arm.minimal_displacemen
 ## Custom Cost Functions
 
 The [kinematics plugin](../src/pick_ik_plugin.cpp) allows you to pass in an additional argument of type `IkCostFn`, which can be passed in from common entrypoints such as `RobotState::setFromIK()`. See [this page](https://moveit.picknik.ai/humble/doc/examples/robot_model_and_robot_state/robot_model_and_robot_state_tutorial.html?highlight=setfromik#inverse-kinematics) for a usage example.
+Keep in mind that you need to set `position_scale = 0.0` and `rotation_scale = 0.0` if you want to calculate the costs solely based on your `IkCostFn`.
+If these parameters are non-zero, the target pose will still be part of the overall cost function.
 
 Alternatively, consider adding your own cost functions to the `pick_ik` source code (specifically, in [`goal.hpp`](../include/goal.hpp) and [`goal.cpp`](../src/goal.cpp) and submit a pull request with the new functionality you add.

@@ -116,17 +116,22 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         }();
 
         // Test functions to determine if we are at our goal frame
+        auto const test_position = (params.position_scale > 0);
+        std::optional<double> position_threshold = std::nullopt;
+        if (test_position) {
+            position_threshold = params.position_threshold;
+        }
         auto const test_rotation = (params.rotation_scale > 0);
         std::optional<double> orientation_threshold = std::nullopt;
         if (test_rotation) {
             orientation_threshold = params.orientation_threshold;
         }
         auto const frame_tests =
-            make_frame_tests(goal_frames, params.position_threshold, orientation_threshold);
+            make_frame_tests(goal_frames, position_threshold, orientation_threshold);
 
         // Cost functions used for optimizing towards goal frames
         auto const pose_cost_functions =
-            make_pose_cost_functions(goal_frames, params.rotation_scale);
+            make_pose_cost_functions(goal_frames, params.position_scale, params.rotation_scale);
 
         // forward kinematics function
         auto const fk_fn = make_fk_fn(robot_model_, jmg_, fk_mutex_, tip_link_indices_);
