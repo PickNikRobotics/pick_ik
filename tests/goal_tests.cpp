@@ -157,9 +157,11 @@ TEST_CASE("pick_ik::make_pose_cost_fn") {
         // Since we specified an angle of 2 radians about the Y axis, the
         // squared angle should be 4.0.
         auto const rotational_distance = 2.0;
+        auto const position_scale = 1.0;
         auto const rotation_scale = 0.5;
 
-        auto const cost_fn = pick_ik::make_pose_cost_fn(zero_frame, 0, 1.0, rotation_scale);
+        auto const cost_fn =
+            pick_ik::make_pose_cost_fn(zero_frame, 0, position_scale, rotation_scale);
 
         // The rotation scale is squared in addition to the square of the distance
         CHECK(cost_fn({rotate_y2_frame}) ==
@@ -183,12 +185,13 @@ TEST_CASE("pick_ik::make_pose_cost_fn") {
             Eigen::Translation3d(0.3363926217416014, -0.043807946580255344, 0.5864240526436293) *
             q_frame;
 
+        auto const position_scale = 1.0;
         auto const rotation_scale = 0.5;
         auto const expected_cost =
             (goal.translation() - frame.translation()).squaredNorm() +
             std::pow(2.0 * std::acos(q_goal.dot(q_frame)) * rotation_scale, 2);
 
-        auto const cost_fn = pick_ik::make_pose_cost_fn(goal, 0, 1.0, rotation_scale);
+        auto const cost_fn = pick_ik::make_pose_cost_fn(goal, 0, position_scale, rotation_scale);
         auto const cost = cost_fn({frame});
         CHECK(cost == Catch::Approx(expected_cost));
     }
@@ -210,12 +213,13 @@ TEST_CASE("pick_ik::make_pose_cost_fn") {
             Eigen::Translation3d(0.3327318727877646, -0.02570328270961634, 0.5900141633600922) *
             q_frame;
 
+        auto const position_scale = 1.0;
         auto const rotation_scale = 0.5;
         auto const expected_cost =
             (goal.translation() - frame.translation()).squaredNorm() +
             std::pow(2.0 * std::acos(q_goal.dot(q_frame)) * rotation_scale, 2);
 
-        auto const cost_fn = pick_ik::make_pose_cost_fn(goal, 0, 1.0, rotation_scale);
+        auto const cost_fn = pick_ik::make_pose_cost_fn(goal, 0, position_scale, rotation_scale);
         auto const cost = cost_fn({frame});
         CHECK(cost == Catch::Approx(expected_cost));
     }
@@ -234,32 +238,38 @@ TEST_CASE("pick_ik::make_pose_cost_functions") {
                            0.9239554647443051,
                            -0.38250006378889556,
                            1.925047999919496e-05);
+    auto const position_scale = 1.0;
     auto const rotation_scale = 0.5;
 
     SECTION("Function is same as pick_ik::make_pose_cost_fn") {
-        auto const cost_fn = pick_ik::make_pose_cost_fn(goal, 0, 1.0, rotation_scale);
-        auto const cost_fns = pick_ik::make_pose_cost_functions({goal}, 1.0, rotation_scale);
+        auto const cost_fn = pick_ik::make_pose_cost_fn(goal, 0, position_scale, rotation_scale);
+        auto const cost_fns =
+            pick_ik::make_pose_cost_functions({goal}, position_scale, rotation_scale);
 
         CHECK(cost_fn({frame}) == cost_fns.at(0)({frame}));
     }
 
     SECTION("One goal, one function") {
-        auto const cost_fns = pick_ik::make_pose_cost_functions({goal}, 1.0, rotation_scale);
+        auto const cost_fns =
+            pick_ik::make_pose_cost_functions({goal}, position_scale, rotation_scale);
         CHECK(cost_fns.size() == 1);
     }
 
     SECTION("Two goals, two functions") {
-        auto const cost_fns = pick_ik::make_pose_cost_functions({goal, frame}, 1.0, rotation_scale);
+        auto const cost_fns =
+            pick_ik::make_pose_cost_functions({goal, frame}, position_scale, rotation_scale);
         CHECK(cost_fns.size() == 2);
     }
 
     SECTION("First goal, tests first frame") {
-        auto const cost_fns = pick_ik::make_pose_cost_functions({goal, frame}, 1.0, rotation_scale);
+        auto const cost_fns =
+            pick_ik::make_pose_cost_functions({goal, frame}, position_scale, rotation_scale);
         CHECK(cost_fns.at(0)({goal, frame}) == Catch::Approx(0.0).margin(1e-15));
     }
 
     SECTION("Second goal, tests second frame") {
-        auto const cost_fns = pick_ik::make_pose_cost_functions({goal, frame}, 1.0, rotation_scale);
+        auto const cost_fns =
+            pick_ik::make_pose_cost_functions({goal, frame}, position_scale, rotation_scale);
         CHECK(cost_fns.at(1)({goal, frame}) == Catch::Approx(0.0).margin(1e-15));
     }
 }

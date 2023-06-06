@@ -54,6 +54,8 @@ ros2 param set /rviz2 robot_description_kinematics.panda_arm.minimal_displacemen
 
 ## Custom Cost Functions
 
-The [kinematics plugin](../src/pick_ik_plugin.cpp) allows you to pass in an additional argument of type `IkCostFn`, which can be passed in from common entrypoints such as `RobotState::setFromIK()`. See [this page](https://moveit.picknik.ai/humble/doc/examples/robot_model_and_robot_state/robot_model_and_robot_state_tutorial.html?highlight=setfromik#inverse-kinematics) for a usage example. Keep in mind that you need to set `position_scale = 0.0` and `rotation_scale = 0.0` if you want to calculate the costs solely based on your `IkCostFn`. If these parameters are non-zero, the target pose will still be part of the overall cost function.
+The [kinematics plugin](../src/pick_ik_plugin.cpp) allows you to pass in an additional argument of type `IkCostFn`, which can be passed in from common entrypoints such as `RobotState::setFromIK()`. See [this page](https://moveit.picknik.ai/humble/doc/examples/robot_model_and_robot_state/robot_model_and_robot_state_tutorial.html?highlight=setfromik#inverse-kinematics) for a usage example.
+Keep in mind that you need to set `position_scale = 0.0` and `rotation_scale = 0.0` if you want to calculate the costs solely based on your `IkCostFn`.
+If these parameters are non-zero, the target pose will still be part of the overall cost function.
 
 Alternatively, consider adding your own cost functions to the `pick_ik` source code (specifically, in [`goal.hpp`](../include/goal.hpp) and [`goal.cpp`](../src/goal.cpp) and submit a pull request with the new functionality you add.
