@@ -246,7 +246,10 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             }
 
             auto const approx_solution_fn =
-                make_is_solution_test_fn(frame_tests, goals, params.approximate_solution_cost_threshold, fk_fn);
+                make_is_solution_test_fn(frame_tests,
+                                         goals,
+                                         params.approximate_solution_cost_threshold,
+                                         fk_fn);
 
             bool approx_solution_valid = approx_solution_fn(solution);
 
