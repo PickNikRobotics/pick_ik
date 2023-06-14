@@ -57,5 +57,6 @@ ros2 param set /rviz2 robot_description_kinematics.panda_arm.minimal_displacemen
 The [kinematics plugin](../src/pick_ik_plugin.cpp) allows you to pass in an additional argument of type `IkCostFn`, which can be passed in from common entrypoints such as `RobotState::setFromIK()`. See [this page](https://moveit.picknik.ai/humble/doc/examples/robot_model_and_robot_state/robot_model_and_robot_state_tutorial.html?highlight=setfromik#inverse-kinematics) for a usage example.
 Keep in mind that you need to set `position_scale = 0.0` and `rotation_scale = 0.0` if you want to calculate the costs solely based on your `IkCostFn`.
 If these parameters are non-zero, the target pose will still be part of the overall cost function.
+Additionally, you might want to define values for the `cost_threshold`, `approximate_solution_cost_threshold`, and `stop_optimization_on_valid_solution` parameters to decide when pick_ik will stop optimizing for your cost function and which solutions it should accept.
 
 Alternatively, consider adding your own cost functions to the `pick_ik` source code (specifically, in [`goal.hpp`](../include/goal.hpp) and [`goal.cpp`](../src/goal.cpp) and submit a pull request with the new functionality you add.
