@@ -225,6 +225,11 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         // fall back to the initial state.
         if (options.return_approximate_solution) {
             // Check pose thresholds
+            std::optional<double> approximate_solution_position_threshold = std::nullopt;
+            if (test_position) {
+                approximate_solution_position_threshold =
+                    params.approximate_solution_position_threshold;
+            }
             std::optional<double> approximate_solution_orientation_threshold = std::nullopt;
             if (test_rotation) {
                 approximate_solution_orientation_threshold =
@@ -232,7 +237,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             }
             auto const approx_frame_tests =
                 make_frame_tests(goal_frames,
-                                 params.approximate_solution_position_threshold,
+                                 approximate_solution_position_threshold,
                                  approximate_solution_orientation_threshold);
             auto const tip_frames = fk_fn(solution);
             bool approx_solution_valid = true;
