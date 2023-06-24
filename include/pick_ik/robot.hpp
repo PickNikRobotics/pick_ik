@@ -29,6 +29,9 @@ struct Robot {
 
     /** @brief Returns a random valid configuration. */
     auto get_random_valid_configuration() const -> std::vector<double>;
+
+    /** @brief Check is a configuration is valid. */
+    auto is_valid_configuration(std::vector<double> const& config) const -> bool;
 };
 
 auto get_link_indices(std::shared_ptr<moveit::core::RobotModel const> const& model,

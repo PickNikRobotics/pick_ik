@@ -75,6 +75,17 @@ auto Robot::get_random_valid_configuration() const -> std::vector<double> {
     return config;
 }
 
+auto Robot::is_valid_configuration(std::vector<double> const& config) const -> bool {
+    auto const num_vars = variables.size();
+    for (size_t idx = 0; idx < num_vars; ++idx) {
+        auto const var = variables[idx];
+        if (config[idx] > var.clip_max || config[idx] < var.clip_min) {
+            return false;
+        }
+    }
+    return true;
+}
+
 auto get_link_indices(std::shared_ptr<moveit::core::RobotModel const> const& model,
                       std::vector<std::string> const& names)
     -> tl::expected<std::vector<size_t>, std::string> {
@@ -111,11 +122,11 @@ auto get_active_variable_indices(std::shared_ptr<moveit::core::RobotModel const>
     // For each of the active joints in the joint model group
     // If those are in the ones we are using and the joint is not a mimic
     // Then get all the variable names from the joint moodel
-    auto active_variable_names = std::set<std::string>{};
+    auto active_variable_names = std::vector<std::string>{};
     for (auto const* joint_model : jmg->getActiveJointModels()) {
         if (joint_usage[joint_model->getJointIndex()] && !joint_model->getMimic()) {
             for (auto& name : joint_model->getVariableNames()) {
-                active_variable_names.insert(name);
+                active_variable_names.push_back(name);
             }
         }
     }

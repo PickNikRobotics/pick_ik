@@ -168,11 +168,19 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         // Set up initial optimization variables
         bool done_optimizing = false;
         bool found_valid_solution = false;
-        auto init_state = ik_seed_state;
         double remaining_timeout = timeout;
         std::chrono::duration<double> total_optim_time{0.0};
         std::chrono::duration<double> const total_timeout{timeout};
         auto last_optim_time = std::chrono::system_clock::now();
+
+        // If the initial state is not valid, restart from a random valid state.
+        auto init_state = ik_seed_state;
+        if (!robot_.is_valid_configuration(init_state)) {
+            RCLCPP_WARN(
+                LOGGER,
+                "Initial guess exceeds joint limits. Regenerating a random valid configuration.");
+            init_state = robot_.get_random_valid_configuration();
+        }
 
         // Optimize until a valid solution is found or we have timed out.
         while (!done_optimizing) {
@@ -299,6 +307,10 @@ class PickIKPlugin : public kinematics::KinematicsBase {
                 init_state = robot_.get_random_valid_configuration();
                 remaining_timeout -= total_optim_time.count();
             }
+        }
+
+        if (!robot_.is_valid_configuration(solution)) {
+            std::cout << "INVALID SOLUTION!" << std::endl;
         }
 
         return found_valid_solution;
