@@ -239,14 +239,19 @@ class PickIKPlugin : public kinematics::KinematicsBase {
                 make_frame_tests(goal_frames,
                                  approximate_solution_position_threshold,
                                  approximate_solution_orientation_threshold);
-            auto const tip_frames = fk_fn(solution);
-            bool approx_solution_valid = true;
-            for (size_t i = 0; i < approx_frame_tests.size(); ++i) {
-                if (!approx_frame_tests[i](tip_frames[i])) {
-                    approx_solution_valid = false;
-                    break;
-                }
+
+            // If we have no cost threshold, we don't need to check the goals
+            if (params.approximate_solution_cost_threshold <= 0.0) {
+                goals.clear();
             }
+
+            auto const approx_solution_fn =
+                make_is_solution_test_fn(frame_tests,
+                                         goals,
+                                         params.approximate_solution_cost_threshold,
+                                         fk_fn);
+
+            bool approx_solution_valid = approx_solution_fn(solution);
 
             // Check joint thresholds
             if (approx_solution_valid && params.approximate_solution_joint_threshold > 0.0) {
