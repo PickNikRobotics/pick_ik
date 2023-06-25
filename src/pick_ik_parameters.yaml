@@ -73,6 +73,14 @@ pick_ik:
       gt_eq<>: [0.0],
     },
   }
+  approximate_solution_cost_threshold: {
+    type: double,
+    default_value: 0.0,
+    description: "Cost threshold for approximate IK solutions. If the result of the cost function is larger than this, the approximate solution will fall back to the initial guess.",
+    validation: {
+      gt_eq<>: [0.0],
+    },
+  }
   cost_threshold: {
     type: double,
     default_value: 0.001,
