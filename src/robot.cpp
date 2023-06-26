@@ -99,11 +99,11 @@ auto get_active_variable_indices(std::shared_ptr<moveit::core::RobotModel const>
     // For each of the active joints in the joint model group
     // If those are in the ones we are using and the joint is not a mimic
     // Then get all the variable names from the joint moodel
-    auto active_variable_names = std::set<std::string>{};
+    auto active_variable_names = std::vector<std::string>{};
     for (auto const* joint_model : jmg->getActiveJointModels()) {
         if (joint_usage[joint_model->getJointIndex()] && !joint_model->getMimic()) {
             for (auto& name : joint_model->getVariableNames()) {
-                active_variable_names.insert(name);
+                active_variable_names.push_back(name);
             }
         }
     }
