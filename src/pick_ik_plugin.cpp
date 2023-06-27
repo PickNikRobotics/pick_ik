@@ -8,6 +8,7 @@
 #include <pluginlib/class_list_macros.hpp>
 #include <rclcpp/rclcpp.hpp>
 
+#include <chrono>
 #include <moveit/kinematics_base/kinematics_base.h>
 #include <moveit/robot_model/joint_model_group.h>
 #include <moveit/robot_state/robot_state.h>
@@ -164,119 +165,160 @@ class PickIKPlugin : public kinematics::KinematicsBase {
         // single function used by gradient descent to calculate cost of solution
         auto const cost_fn = make_cost_fn(pose_cost_functions, goals, fk_fn);
 
-        // Search for a solution using either the local or global solver.
-        std::optional<std::vector<double>> maybe_solution;
-        if (params.mode == "global") {
-            MemeticIkParams ik_params;
-            ik_params.population_size = static_cast<size_t>(params.memetic_population_size);
-            ik_params.elite_size = static_cast<size_t>(params.memetic_elite_size);
-            ik_params.wipeout_fitness_tol = params.memetic_wipeout_fitness_tol;
-            ik_params.stop_optimization_on_valid_solution =
-                params.stop_optimization_on_valid_solution;
-            ik_params.num_threads = static_cast<size_t>(params.memetic_num_threads);
-            ik_params.stop_on_first_soln = params.memetic_stop_on_first_solution;
-            ik_params.max_generations = static_cast<int>(params.memetic_max_generations);
-            ik_params.max_time = timeout;
+        // Set up initial optimization variables
+        bool done_optimizing = false;
+        bool found_valid_solution = false;
+        double remaining_timeout = timeout;
+        std::chrono::duration<double> total_optim_time{0.0};
+        std::chrono::duration<double> const total_timeout{timeout};
+        auto last_optim_time = std::chrono::system_clock::now();
 
-            ik_params.gd_params.step_size = params.gd_step_size;
-            ik_params.gd_params.min_cost_delta = params.gd_min_cost_delta;
-            ik_params.gd_params.max_iterations = static_cast<int>(params.memetic_gd_max_iters);
-            ik_params.gd_params.max_time = params.memetic_gd_max_time;
-
-            maybe_solution = ik_memetic(ik_seed_state,
-                                        robot_,
-                                        cost_fn,
-                                        solution_fn,
-                                        ik_params,
-                                        options.return_approximate_solution,
-                                        false /* No debug print */);
-        } else if (params.mode == "local") {
-            GradientIkParams gd_params;
-            gd_params.step_size = params.gd_step_size;
-            gd_params.min_cost_delta = params.gd_min_cost_delta;
-            gd_params.max_time = timeout;
-            gd_params.max_iterations = static_cast<int>(params.gd_max_iters);
-            gd_params.stop_optimization_on_valid_solution =
-                params.stop_optimization_on_valid_solution;
-
-            maybe_solution = ik_gradient(ik_seed_state,
-                                         robot_,
-                                         cost_fn,
-                                         solution_fn,
-                                         gd_params,
-                                         options.return_approximate_solution);
-        } else {
-            RCLCPP_ERROR(LOGGER, "Invalid solver mode: %s", params.mode.c_str());
-            return false;
+        // If the initial state is not valid, restart from a random valid state.
+        auto init_state = ik_seed_state;
+        if (!robot_.is_valid_configuration(init_state)) {
+            RCLCPP_WARN(
+                LOGGER,
+                "Initial guess exceeds joint limits. Regenerating a random valid configuration.");
+            init_state = robot_.get_random_valid_configuration();
         }
 
-        if (maybe_solution.has_value()) {
-            // Set the output parameter solution.
-            // Assumes that the angles were already wrapped by the solver.
-            error_code.val = error_code.SUCCESS;
-            solution = maybe_solution.value();
-        } else {
-            error_code.val = error_code.NO_IK_SOLUTION;
-            solution = ik_seed_state;
-        }
+        // Optimize until a valid solution is found or we have timed out.
+        while (!done_optimizing) {
+            // Search for a solution using either the local or global solver.
+            std::optional<std::vector<double>> maybe_solution;
+            if (params.mode == "global") {
+                MemeticIkParams ik_params;
+                ik_params.population_size = static_cast<size_t>(params.memetic_population_size);
+                ik_params.elite_size = static_cast<size_t>(params.memetic_elite_size);
+                ik_params.wipeout_fitness_tol = params.memetic_wipeout_fitness_tol;
+                ik_params.stop_optimization_on_valid_solution =
+                    params.stop_optimization_on_valid_solution;
+                ik_params.num_threads = static_cast<size_t>(params.memetic_num_threads);
+                ik_params.stop_on_first_soln = params.memetic_stop_on_first_solution;
+                ik_params.max_generations = static_cast<int>(params.memetic_max_generations);
+                ik_params.max_time = remaining_timeout;
 
-        // If using an approximate solution, check against the maximum allowable pose and joint
-        // thresholds. If the approximate solution is too far from the goal frame,
-        // fall back to the initial state.
-        if (options.return_approximate_solution) {
-            // Check pose thresholds
-            std::optional<double> approximate_solution_position_threshold = std::nullopt;
-            if (test_position) {
-                approximate_solution_position_threshold =
-                    params.approximate_solution_position_threshold;
-            }
-            std::optional<double> approximate_solution_orientation_threshold = std::nullopt;
-            if (test_rotation) {
-                approximate_solution_orientation_threshold =
-                    params.approximate_solution_orientation_threshold;
-            }
-            auto const approx_frame_tests =
-                make_frame_tests(goal_frames,
-                                 approximate_solution_position_threshold,
-                                 approximate_solution_orientation_threshold);
+                ik_params.gd_params.step_size = params.gd_step_size;
+                ik_params.gd_params.min_cost_delta = params.gd_min_cost_delta;
+                ik_params.gd_params.max_iterations = static_cast<int>(params.memetic_gd_max_iters);
+                ik_params.gd_params.max_time = params.memetic_gd_max_time;
 
-            // If we have no cost threshold, we don't need to check the goals
-            if (params.approximate_solution_cost_threshold <= 0.0) {
-                goals.clear();
-            }
+                maybe_solution = ik_memetic(ik_seed_state,
+                                            robot_,
+                                            cost_fn,
+                                            solution_fn,
+                                            ik_params,
+                                            options.return_approximate_solution,
+                                            false /* No debug print */);
+            } else if (params.mode == "local") {
+                GradientIkParams gd_params;
+                gd_params.step_size = params.gd_step_size;
+                gd_params.min_cost_delta = params.gd_min_cost_delta;
+                gd_params.max_time = remaining_timeout;
+                gd_params.max_iterations = static_cast<int>(params.gd_max_iters);
+                gd_params.stop_optimization_on_valid_solution =
+                    params.stop_optimization_on_valid_solution;
 
-            auto const approx_solution_fn =
-                make_is_solution_test_fn(frame_tests,
-                                         goals,
-                                         params.approximate_solution_cost_threshold,
-                                         fk_fn);
-
-            bool approx_solution_valid = approx_solution_fn(solution);
-
-            // Check joint thresholds
-            if (approx_solution_valid && params.approximate_solution_joint_threshold > 0.0) {
-                for (size_t i = 0; i < solution.size(); ++i) {
-                    if (std::abs(solution[i] - ik_seed_state[i]) >
-                        params.approximate_solution_joint_threshold) {
-                        approx_solution_valid = false;
-                        break;
-                    }
-                }
+                maybe_solution = ik_gradient(ik_seed_state,
+                                             robot_,
+                                             cost_fn,
+                                             solution_fn,
+                                             gd_params,
+                                             options.return_approximate_solution);
+            } else {
+                RCLCPP_ERROR(LOGGER, "Invalid solver mode: %s", params.mode.c_str());
+                return false;
             }
 
-            if (!approx_solution_valid) {
+            if (maybe_solution.has_value()) {
+                // Set the output parameter solution.
+                // Assumes that the angles were already wrapped by the solver.
+                error_code.val = error_code.SUCCESS;
+                solution = maybe_solution.value();
+            } else {
                 error_code.val = error_code.NO_IK_SOLUTION;
                 solution = ik_seed_state;
             }
+
+            // If using an approximate solution, check against the maximum allowable pose and joint
+            // thresholds. If the approximate solution is too far from the goal frame,
+            // fall back to the initial state.
+            if (options.return_approximate_solution) {
+                // Check pose thresholds
+                std::optional<double> approximate_solution_position_threshold = std::nullopt;
+                if (test_position) {
+                    approximate_solution_position_threshold =
+                        params.approximate_solution_position_threshold;
+                }
+                std::optional<double> approximate_solution_orientation_threshold = std::nullopt;
+                if (test_rotation) {
+                    approximate_solution_orientation_threshold =
+                        params.approximate_solution_orientation_threshold;
+                }
+                auto const approx_frame_tests =
+                    make_frame_tests(goal_frames,
+                                     approximate_solution_position_threshold,
+                                     approximate_solution_orientation_threshold);
+
+                // If we have no cost threshold, we don't need to check the goals
+                if (params.approximate_solution_cost_threshold <= 0.0) {
+                    goals.clear();
+                }
+
+                auto const approx_solution_fn =
+                    make_is_solution_test_fn(frame_tests,
+                                             goals,
+                                             params.approximate_solution_cost_threshold,
+                                             fk_fn);
+
+                bool approx_solution_valid = approx_solution_fn(solution);
+
+                // Check joint thresholds
+                if (approx_solution_valid && params.approximate_solution_joint_threshold > 0.0) {
+                    for (size_t i = 0; i < solution.size(); ++i) {
+                        if (std::abs(solution[i] - ik_seed_state[i]) >
+                            params.approximate_solution_joint_threshold) {
+                            approx_solution_valid = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (!approx_solution_valid) {
+                    error_code.val = error_code.NO_IK_SOLUTION;
+                    solution = ik_seed_state;
+                }
+            }
+
+            // Execute solution callback only on successful solution.
+            auto const found_solution = error_code.val == error_code.SUCCESS;
+            if (solution_callback && found_solution) {
+                solution_callback(ik_poses.front(), solution, error_code);
+            }
+            found_valid_solution = error_code.val == error_code.SUCCESS;
+
+            // Check for timeout.
+            auto const current_time = std::chrono::system_clock::now();
+            total_optim_time += (current_time - last_optim_time);
+            last_optim_time = current_time;
+            bool const timeout_elapsed = (total_optim_time >= total_timeout);
+
+            // If we found a valid solution or hit the timeout, we are done optimizing.
+            // Otherwise, pick a random new initial seed and keep optimizing with the remaining
+            // time.
+            if (found_valid_solution || timeout_elapsed) {
+                done_optimizing = true;
+            } else {
+                init_state = robot_.get_random_valid_configuration();
+                remaining_timeout -= total_optim_time.count();
+            }
         }
 
-        // Execute solution callback only on successful solution.
-        auto const found_solution = error_code.val == error_code.SUCCESS;
-        if (solution_callback && found_solution) {
-            solution_callback(ik_poses.front(), solution, error_code);
+        if (!robot_.is_valid_configuration(solution)) {
+            std::cout << "INVALID SOLUTION!" << std::endl;
         }
 
-        return error_code.val == error_code.SUCCESS;
+        return found_valid_solution;
     }
 
     virtual std::vector<std::string> const& getJointNames() const { return joint_names_; }

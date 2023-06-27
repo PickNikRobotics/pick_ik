@@ -22,10 +22,16 @@ struct Robot {
     };
     std::vector<Variable> variables;
 
-    // Create new Robot from a RobotModel
+    /** @brief Create new Robot from a RobotModel. */
     static auto from(std::shared_ptr<moveit::core::RobotModel const> const& model,
                      moveit::core::JointModelGroup const* jmg,
                      std::vector<size_t> tip_link_indices) -> Robot;
+
+    /** @brief Returns a random valid configuration. */
+    auto get_random_valid_configuration() const -> std::vector<double>;
+
+    /** @brief Check is a configuration is valid. */
+    auto is_valid_configuration(std::vector<double> const& config) const -> bool;
 };
 
 auto get_link_indices(std::shared_ptr<moveit::core::RobotModel const> const& model,

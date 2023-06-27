@@ -1,5 +1,6 @@
 #include <pick_ik/robot.hpp>
 
+#include <rsl/random.hpp>
 #include <tf2_eigen/tf2_eigen.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tl_expected/expected.hpp>
@@ -61,6 +62,28 @@ auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
     }
 
     return robot;
+}
+
+auto Robot::get_random_valid_configuration() const -> std::vector<double> {
+    std::vector<double> config;
+    auto const num_vars = variables.size();
+    config.reserve(num_vars);
+    for (size_t idx = 0; idx < num_vars; ++idx) {
+        auto const var = variables[idx];
+        config.push_back(rsl::uniform_real(var.clip_min, var.clip_max));
+    }
+    return config;
+}
+
+auto Robot::is_valid_configuration(std::vector<double> const& config) const -> bool {
+    auto const num_vars = variables.size();
+    for (size_t idx = 0; idx < num_vars; ++idx) {
+        auto const var = variables[idx];
+        if (config[idx] > var.clip_max || config[idx] < var.clip_min) {
+            return false;
+        }
+    }
+    return true;
 }
 
 auto get_link_indices(std::shared_ptr<moveit::core::RobotModel const> const& model,
