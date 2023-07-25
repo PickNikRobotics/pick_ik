@@ -43,11 +43,15 @@ MemeticIk::MemeticIk(std::vector<double> const& initial_guess,
 bool MemeticIk::checkWipeout() {
     // Handle wipeouts if no progress is being made.
     if (previous_fitness_.has_value()) {
+#if !defined(__has_warning) || __has_warning("-Wmaybe-uninitialized")
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
         bool const improved =
             (best_curr_.fitness < *previous_fitness_ - params_.wipeout_fitness_tol);
+#if !defined(__has_warning) || __has_warning("-Wmaybe-uninitialized")
 #pragma GCC diagnostic pop
+#endif
         if (!improved) {
             return true;
         }
