@@ -2,6 +2,18 @@
 Changelog for package pick_ik
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.2 (2023-07-25)
+------------------
+* New options to control solution quality and performance
+  * Option to rerun optimization until valid solution or timeout (`#53 <https://github.com/PickNikRobotics/pick_ik/pull/53>`_)
+  * Option to keep optimizing after a valid solution was found (`#46 <https://github.com/PickNikRobotics/pick_ik/pull/46>`_)
+  * Approximate solution cost threshold (`#51 <https://github.com/PickNikRobotics/pick_ik/pull/51>`_) and joint jump threshold parameters (`#42 <https://github.com/PickNikRobotics/pick_ik/pull/42>`_)
+  * Position scale parameter (`#47 <https://github.com/PickNikRobotics/pick_ik/pull/47>`_)
+* Fix ordering of joint limits when loading robot model (`#54 <https://github.com/PickNikRobotics/pick_ik/pull/54>`_)
+* Fix use of solution callback (`#48 <https://github.com/PickNikRobotics/pick_ik/pull/48>`_)
+* Remove unnecessary preprocessor macro (`#40 <https://github.com/PickNikRobotics/pick_ik/pull/40>`_)
+* Contributors: Marc Bestmann, Sebastian Castro, Erik Holum
+
 1.0.1 (2023-03-28)
 ------------------
 * Set Werror through CMake presets (`#39 <https://github.com/PickNikRobotics/pick_ik/issues/39>`_)

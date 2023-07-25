@@ -24,3 +24,4 @@ To get started using `pick_ik`, refer to the following README files:
 
 * [Installation](doc/INSTALL.md)
 * [Usage](doc/USAGE.md)
+* [MoveIt Tutorial](https://moveit.picknik.ai/main/doc/how_to_guides/pick_ik/pick_ik_tutorial.html)
