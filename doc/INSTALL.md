@@ -2,11 +2,13 @@
 
 ## Install from binaries
 
-COMING SOON! Once a release of `pick_ik` is available, you should be able to get this package with, e.g.,:
+You can install the latest release of `pick_ik` from binaries using:
 
 ```
-sudo apt install ros-humble-pick-ik
+sudo apt install ros-${ROS_DISTRO}-pick-ik
 ```
+
+where `${ROS_DISTRO}` refers to your ROS distribution (`humble`, `rolling`, etc.).
 
 ---
 

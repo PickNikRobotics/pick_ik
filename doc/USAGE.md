@@ -59,4 +59,4 @@ Keep in mind that you need to set `position_scale = 0.0` and `rotation_scale = 0
 If these parameters are non-zero, the target pose will still be part of the overall cost function.
 Additionally, you might want to define values for the `cost_threshold`, `approximate_solution_cost_threshold`, and `stop_optimization_on_valid_solution` parameters to decide when pick_ik will stop optimizing for your cost function and which solutions it should accept.
 
-Alternatively, consider adding your own cost functions to the `pick_ik` source code (specifically, in [`goal.hpp`](../include/goal.hpp) and [`goal.cpp`](../src/goal.cpp) and submit a pull request with the new functionality you add.
+Alternatively, consider adding your own cost functions to the `pick_ik` source code (specifically, in [`goal.hpp`](../include/goal.hpp) and [`goal.cpp`](../src/goal.cpp)) and submit a pull request with the new functionality you add.
