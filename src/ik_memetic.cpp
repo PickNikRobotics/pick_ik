@@ -96,7 +96,10 @@ void MemeticIk::initPopulation(Robot const& robot,
     std::vector<double> const zero_grad(robot.variables.size(), 0.0);
     population_.resize(params_.population_size);
     for (size_t i = 0; i < params_.elite_size; ++i) {
-        auto const genotype = (i == 0) ? initial_guess : robot.get_random_valid_configuration();
+        auto genotype = initial_guess;
+        if (i > 0) {
+            robot.set_random_valid_configuration(genotype);
+        }
         population_[i] = Individual{genotype, cost_fn(genotype), 1.0, zero_grad};
     }
 
@@ -153,7 +156,9 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
                 }
 
                 // Clamp to valid joint values
-                gene = std::clamp(gene, joint.clip_min, joint.clip_max);
+                if (joint.bounded) {
+                    gene = std::clamp(gene, joint.min, joint.max);
+                }
 
                 // Approximate gradient
                 population_[i].gradient[j_idx] = gene - original_gene;
@@ -173,7 +178,7 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
 
         } else {
             // If the mating pool is empty, roll a new population member randomly.
-            population_[i].genes = robot.get_random_valid_configuration();
+            robot.set_random_valid_configuration(population_[i].genes);
             population_[i].fitness = cost_fn(population_[i].genes);
             for (auto& g : population_[i].gradient) {
                 g = 0.0;

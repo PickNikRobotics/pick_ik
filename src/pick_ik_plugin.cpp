@@ -179,7 +179,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             RCLCPP_WARN(
                 LOGGER,
                 "Initial guess exceeds joint limits. Regenerating a random valid configuration.");
-            init_state = robot_.get_random_valid_configuration();
+            robot_.set_random_valid_configuration(init_state);
         }
 
         // Optimize until a valid solution is found or we have timed out.
@@ -309,13 +309,9 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             if (found_valid_solution || timeout_elapsed) {
                 done_optimizing = true;
             } else {
-                init_state = robot_.get_random_valid_configuration();
+                robot_.set_random_valid_configuration(init_state);
                 remaining_timeout -= total_optim_time.count();
             }
-        }
-
-        if (!robot_.is_valid_configuration(solution)) {
-            std::cout << "INVALID SOLUTION!" << std::endl;
         }
 
         return found_valid_solution;

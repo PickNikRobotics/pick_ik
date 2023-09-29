@@ -13,6 +13,11 @@
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
 
+namespace {
+constexpr double kUnboundedVariableSpan = 1.0;
+constexpr double kUnboundedJointSampleSpread = M_PI;
+}  // namespace
+
 namespace pick_ik {
 
 auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
@@ -33,17 +38,11 @@ auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
 
         auto var = Variable{};
 
-        bool bounded = bounds.position_bounded_;
-
+        var.bounded = bounds.position_bounded_;
         var.min = bounds.min_position_;
         var.max = bounds.max_position_;
 
-        var.clip_min = bounded ? var.min : std::numeric_limits<double>::lowest();
-        var.clip_max = bounded ? var.max : std::numeric_limits<double>::max();
-
-        var.span = var.max - var.min;
-
-        if (!(var.span >= 0 && var.span < std::numeric_limits<double>::max())) var.span = 1;
+        var.span = var.bounded ? var.max - var.min : kUnboundedVariableSpan;
 
         auto const max_velocity = bounds.max_velocity_;
         var.max_velocity_rcp = max_velocity > 0.0 ? 1.0 / max_velocity : 0.0;
@@ -64,22 +63,30 @@ auto Robot::from(std::shared_ptr<moveit::core::RobotModel const> const& model,
     return robot;
 }
 
-auto Robot::get_random_valid_configuration() const -> std::vector<double> {
-    std::vector<double> config;
+auto Robot::set_random_valid_configuration(std::vector<double>& config) const -> void {
     auto const num_vars = variables.size();
-    config.reserve(num_vars);
-    for (size_t idx = 0; idx < num_vars; ++idx) {
-        auto const var = variables[idx];
-        config.push_back(rsl::uniform_real(var.clip_min, var.clip_max));
+    if (config.size() != num_vars) {
+        config.resize(num_vars);
     }
-    return config;
+    for (size_t idx = 0; idx < num_vars; ++idx) {
+        auto const& var = variables[idx];
+        if (var.bounded) {
+            config[idx] = rsl::uniform_real(var.min, var.max);
+        } else {
+            config[idx] = rsl::uniform_real(config[idx] - kUnboundedJointSampleSpread,
+                                            config[idx] + kUnboundedJointSampleSpread);
+        }
+    }
 }
 
 auto Robot::is_valid_configuration(std::vector<double> const& config) const -> bool {
     auto const num_vars = variables.size();
     for (size_t idx = 0; idx < num_vars; ++idx) {
         auto const var = variables[idx];
-        if (config[idx] > var.clip_max || config[idx] < var.clip_min) {
+        if (!var.bounded) {
+            continue;
+        }
+        if (config[idx] > var.max || config[idx] < var.min) {
             return false;
         }
     }

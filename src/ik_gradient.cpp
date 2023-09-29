@@ -78,9 +78,11 @@ auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn, double st
     // apply optimization step
     // (move along gradient direction by estimated step size)
     for (size_t i = 0; i < count; ++i) {
-        self.working[i] = std::clamp(self.local[i] - self.gradient[i] * joint_diff,
-                                     robot.variables[i].clip_min,
-                                     robot.variables[i].clip_max);
+        auto const& var = robot.variables[i];
+        if (var.bounded) {
+            self.working[i] =
+                std::clamp(self.local[i] - self.gradient[i] * joint_diff, var.min, var.max);
+        }
     }
 
     // Always accept the solution and continue

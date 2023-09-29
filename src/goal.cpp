@@ -94,7 +94,7 @@ auto make_center_joints_cost_fn(Robot robot) -> CostFn {
         assert(robot.variables.size() == active_positions.size());
         for (size_t i = 0; i < active_positions.size(); ++i) {
             auto const& variable = robot.variables[i];
-            if (variable.clip_max == std::numeric_limits<double>::max()) {
+            if (!variable.bounded) {
                 continue;
             }
 
@@ -113,7 +113,7 @@ auto make_avoid_joint_limits_cost_fn(Robot robot) -> CostFn {
         assert(robot.variables.size() == active_positions.size());
         for (size_t i = 0; i < active_positions.size(); ++i) {
             auto const& variable = robot.variables[i];
-            if (variable.clip_max == std::numeric_limits<double>::max()) {
+            if (!variable.bounded) {
                 continue;
             }
 

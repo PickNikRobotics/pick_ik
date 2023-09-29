@@ -13,10 +13,15 @@ namespace pick_ik {
 
 struct Robot {
     struct Variable {
-        double clip_min, clip_max;
+        /// @brief Min and max position values of the variable.
+        double min, max;
+
+        /// @brief Whether the variable's position is bounded.
+        bool bounded;
+
+        /// @brief The span (min - max) of the variable, or a default value if unbounded.
         double span;
-        double min;
-        double max;
+
         double max_velocity_rcp;
         double minimal_displacement_factor;
     };
@@ -27,8 +32,8 @@ struct Robot {
                      moveit::core::JointModelGroup const* jmg,
                      std::vector<size_t> tip_link_indices) -> Robot;
 
-    /** @brief Returns a random valid configuration. */
-    auto get_random_valid_configuration() const -> std::vector<double>;
+    /** @brief Sets a variable vector to a random valid configuration. */
+    auto set_random_valid_configuration(std::vector<double>& config) const -> void;
 
     /** @brief Check is a configuration is valid. */
     auto is_valid_configuration(std::vector<double> const& config) const -> bool;
