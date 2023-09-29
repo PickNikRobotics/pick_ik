@@ -14,7 +14,7 @@
 #include <moveit/robot_state/robot_state.h>
 
 namespace {
-constexpr double kUnboundedVariableSpan = 1.0;
+constexpr double kUnboundedVariableSpan = 2.0 * M_PI;
 constexpr double kUnboundedJointSampleSpread = M_PI;
 }  // namespace
 

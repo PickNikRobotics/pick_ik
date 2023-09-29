@@ -158,6 +158,10 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
                 // Clamp to valid joint values
                 if (joint.bounded) {
                     gene = std::clamp(gene, joint.min, joint.max);
+                } else {
+                    gene = std::clamp(gene,
+                                      original_gene - joint.span / 2.0,
+                                      original_gene + joint.span / 2.0);
                 }
 
                 // Approximate gradient
