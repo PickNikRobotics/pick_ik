@@ -25,7 +25,6 @@ auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn, double st
     auto const count = self.local.size();
 
     // compute gradient direction
-    self.working = self.local;
     for (size_t i = 0; i < count; ++i) {
         // test negative displacement
         self.working[i] = self.local[i] - step_size;
@@ -55,8 +54,6 @@ auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn, double st
                    [&](auto value) { return value * f; });
 
     // initialize line search
-    self.working = self.local;
-
     for (size_t i = 0; i < count; ++i) {
         self.working[i] = self.local[i] - self.gradient[i];
     }
