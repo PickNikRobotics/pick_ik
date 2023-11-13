@@ -119,10 +119,10 @@ auto make_avoid_joint_limits_cost_fn(Robot robot) -> CostFn {
 
             auto const position = active_positions[i];
             auto const weight = variable.minimal_displacement_factor;
-            auto const mid = (variable.min + variable.max) * 0.5;
-            auto const span = variable.span;
-            sum +=
-                std::pow(std::fmax(0.0, std::fabs(position - mid) * 2.0 - span * 0.5) * weight, 2);
+            sum += std::pow(
+                std::fmax(0.0, std::fabs(position - variable.mid) * 2.0 - variable.half_span) *
+                    weight,
+                2);
         }
         return sum;
     };

@@ -108,6 +108,10 @@ void MemeticIk::initPopulation(Robot const& robot,
         population_[i] = Individual{initial_guess, 0.0, 1.0, zero_grad};
     }
 
+    // Initialize fitnesses and extinctions
+    for (auto& individual : population_) {
+        individual.fitness = cost_fn(individual.genes);
+    }
     computeExtinctions();
     previous_fitness_.reset();
 }
@@ -152,17 +156,11 @@ void MemeticIk::reproduce(Robot const& robot, CostFn const& cost_fn) {
 
                 // Mutate
                 if (rsl::uniform_real(0.0, 1.0) < mutation_prob) {
-                    gene += extinction * joint.span * rsl::uniform_real(-0.5, 0.5);
+                    gene += extinction * joint.half_span * rsl::uniform_real(-1.0, 1.0);
                 }
 
                 // Clamp to valid joint values
-                if (joint.bounded) {
-                    gene = std::clamp(gene, joint.min, joint.max);
-                } else {
-                    gene = std::clamp(gene,
-                                      original_gene - joint.span / 2.0,
-                                      original_gene + joint.span / 2.0);
-                }
+                gene = robot.variables[j_idx].clamp_to_limits(gene);
 
                 // Approximate gradient
                 population_[i].gradient[j_idx] = gene - original_gene;
