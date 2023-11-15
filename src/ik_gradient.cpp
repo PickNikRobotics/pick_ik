@@ -25,7 +25,6 @@ auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn, double st
     auto const count = self.local.size();
 
     // compute gradient direction
-    self.working = self.local;
     for (size_t i = 0; i < count; ++i) {
         // test negative displacement
         self.working[i] = self.local[i] - step_size;
@@ -55,8 +54,6 @@ auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn, double st
                    [&](auto value) { return value * f; });
 
     // initialize line search
-    self.working = self.local;
-
     for (size_t i = 0; i < count; ++i) {
         self.working[i] = self.local[i] - self.gradient[i];
     }
@@ -78,9 +75,9 @@ auto step(GradientIk& self, Robot const& robot, CostFn const& cost_fn, double st
     // apply optimization step
     // (move along gradient direction by estimated step size)
     for (size_t i = 0; i < count; ++i) {
-        self.working[i] = std::clamp(self.local[i] - self.gradient[i] * joint_diff,
-                                     robot.variables[i].clip_min,
-                                     robot.variables[i].clip_max);
+        auto const& var = robot.variables[i];
+        auto updated_value = self.local[i] - self.gradient[i] * joint_diff;
+        self.working[i] = var.clamp_to_limits(updated_value);
     }
 
     // Always accept the solution and continue

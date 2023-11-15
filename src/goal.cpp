@@ -94,7 +94,7 @@ auto make_center_joints_cost_fn(Robot robot) -> CostFn {
         assert(robot.variables.size() == active_positions.size());
         for (size_t i = 0; i < active_positions.size(); ++i) {
             auto const& variable = robot.variables[i];
-            if (variable.clip_max == std::numeric_limits<double>::max()) {
+            if (!variable.bounded) {
                 continue;
             }
 
@@ -113,16 +113,16 @@ auto make_avoid_joint_limits_cost_fn(Robot robot) -> CostFn {
         assert(robot.variables.size() == active_positions.size());
         for (size_t i = 0; i < active_positions.size(); ++i) {
             auto const& variable = robot.variables[i];
-            if (variable.clip_max == std::numeric_limits<double>::max()) {
+            if (!variable.bounded) {
                 continue;
             }
 
             auto const position = active_positions[i];
             auto const weight = variable.minimal_displacement_factor;
-            auto const mid = (variable.min + variable.max) * 0.5;
-            auto const span = variable.span;
-            sum +=
-                std::pow(std::fmax(0.0, std::fabs(position - mid) * 2.0 - span * 0.5) * weight, 2);
+            sum += std::pow(
+                std::fmax(0.0, std::fabs(position - variable.mid) * 2.0 - variable.half_span) *
+                    weight,
+                2);
         }
         return sum;
     };
