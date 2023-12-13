@@ -2,6 +2,12 @@
 Changelog for package pick_ik
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.1.0 (2023-12-13)
+------------------
+* Support continuous (unbounded) joints properly (`#59 <https://github.com/PickNikRobotics/pick_ik/pull/59>`_)
+* Run elite gradient descent in separate threads (`#61 <https://github.com/PickNikRobotics/pick_ik/pull/61>`_)
+* Contributors: Sebastian Castro
+
 1.0.2 (2023-07-25)
 ------------------
 * New options to control solution quality and performance
