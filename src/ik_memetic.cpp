@@ -227,8 +227,15 @@ auto ik_memetic_impl(std::vector<double> const& initial_guess,
         std::chrono::system_clock::now() + std::chrono::duration<double>(params.max_time);
     while ((std::chrono::system_clock::now() < timeout_point) && (iter < params.max_generations)) {
         // Do gradient descent on elites.
+        std::vector<std::thread> gd_threads;
+        gd_threads.reserve(ik.eliteCount());
         for (size_t i = 0; i < ik.eliteCount(); ++i) {
-            ik.gradientDescent(i, robot, cost_fn, params.gd_params);
+            gd_threads.push_back(std::thread([&ik, i, &robot, cost_fn, &params] {
+                ik.gradientDescent(i, robot, cost_fn, params.gd_params);
+            }));
+        }
+        for (auto& t : gd_threads) {
+            t.join();
         }
 
         // Perform mutation and recombination
