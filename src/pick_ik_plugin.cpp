@@ -71,13 +71,6 @@ class PickIKPlugin : public kinematics::KinematicsBase {
             }
         }
 
-        // If jmg has tip frames, set tip_frames_ to jmg tip frames
-        // consider removing these lines as they might be unnecessary
-        // as tip_frames_ is set by the call to storeValues above
-        auto jmg_tips = std::vector<std::string>{};
-        jmg_->getEndEffectorTips(jmg_tips);
-        if (!jmg_tips.empty()) tip_frames_ = jmg_tips;
-
         // link_names are the same as tip frames
         // TODO: why do we need to set this
         link_names_ = tip_frames_;
