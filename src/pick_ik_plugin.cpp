@@ -310,7 +310,7 @@ class PickIKPlugin : public kinematics::KinematicsBase {
                 done_optimizing = true;
             } else {
                 robot_.set_random_valid_configuration(init_state);
-                remaining_timeout -= total_optim_time.count();
+                remaining_timeout = timeout - total_optim_time.count();
             }
         }
 
