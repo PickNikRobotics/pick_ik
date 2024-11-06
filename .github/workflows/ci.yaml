@@ -13,9 +13,9 @@ jobs:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Cache ccache
-        uses: pat-s/always-upload-cache@v3.0.1
+        uses: pat-s/always-upload-cache@v3.0.11
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ccache-${{ github.sha }}-${{ github.run_id }}
