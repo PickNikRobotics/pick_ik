@@ -2,8 +2,8 @@
 Changelog for package pick_ik
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.1 (2024-11-30)
+------------------
 * Initialize with the best seed instead of initial seed at population wipeout (`#77 <https://github.com/PickNikRobotics/pick_ik/issues/77>`_)
 * Fix timeout calculation if solution callback fails (`#73 <https://github.com/PickNikRobotics/pick_ik/issues/73>`_)
 * Remove incorrect override of tip_frames (`#68 <https://github.com/PickNikRobotics/pick_ik/issues/68>`_)
