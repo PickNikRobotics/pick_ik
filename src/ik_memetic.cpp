@@ -254,8 +254,9 @@ auto ik_memetic_impl(std::vector<double> const& initial_guess,
             return ik.best();
         }
         if (ik.checkWipeout()) {
+            // Ensure the first member of the new population is the best so far.
             if (print_debug) fmt::print("Population wipeout\n");
-            ik.initPopulation(robot, cost_fn, initial_guess);
+            ik.initPopulation(robot, cost_fn, ik.best().genes);
         }
 
         // Check termination condition from other threads finding a solution.
