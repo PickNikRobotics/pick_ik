@@ -78,7 +78,7 @@ RUN groupadd --gid $GID $USER \
 RUN python3 -m pip install -U \
     pre-commit
 
-# isntall development tooling
+# install development tooling
 RUN --mount=type=cache,target=/var/cache/apt,id=apt \
     apt-get update && apt-get upgrade -y \
     && apt-get install -q -y --no-install-recommends \
