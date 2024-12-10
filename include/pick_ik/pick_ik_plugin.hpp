@@ -1,5 +1,7 @@
 #pragma once
 
+#include <pick_ik/robot.hpp>
+
 #include <moveit/kinematics_base/kinematics_base.h>
 
 namespace pick_ik {
