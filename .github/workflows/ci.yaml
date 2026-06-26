@@ -26,6 +26,13 @@ jobs:
         run: |
           . /opt/ros/rolling/setup.sh
           echo "$(env)" >> $GITHUB_ENV
+      - name: Install dependencies from package.xml
+        run: |
+          # Refresh ROS GPG key (the one baked into the CI container has expired)
+          curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key | apt-key add -
+          rosdep update
+          apt-get update
+          rosdep install --from-paths . --ignore-src --rosdistro rolling -y
       - name: Configure
         run: cmake --preset relwithdebinfo
       - name: Build
