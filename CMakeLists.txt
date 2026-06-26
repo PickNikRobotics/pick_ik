@@ -17,7 +17,7 @@ find_package(rclcpp REQUIRED)
 find_package(rsl REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_kdl REQUIRED)
-find_package(tl_expected REQUIRED)
+find_package(tl-expected REQUIRED)
 
 generate_parameter_library(
   pick_ik_parameters
@@ -41,7 +41,7 @@ target_link_libraries(pick_ik_plugin
     moveit_core::moveit_robot_model
     tf2_geometry_msgs::tf2_geometry_msgs
     tf2_kdl::tf2_kdl
-    tl_expected::tl_expected
+    tl::expected
     rsl::rsl
   PRIVATE
     fmt::fmt
@@ -84,6 +84,6 @@ ament_export_dependencies(
   rsl
   tf2_geometry_msgs
   tf2_kdl
-  tl_expected
+  tl-expected
 )
 ament_package()
