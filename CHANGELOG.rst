@@ -2,6 +2,11 @@
 Changelog for package pick_ik
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Adds header file for pick_ik_plugin (`#79 <https://github.com/PickNikRobotics/pick_ik/issues/79>`_)
+* Contributors: Mark Johnson
+
 1.1.1 (2024-11-30)
 ------------------
 * Initialize with the best seed instead of initial seed at population wipeout (`#77 <https://github.com/PickNikRobotics/pick_ik/issues/77>`_)
