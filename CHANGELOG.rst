@@ -2,8 +2,8 @@
 Changelog for package pick_ik
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.1.2 (2026-06-26)
+------------------
 * Adds header file for pick_ik_plugin (`#79 <https://github.com/PickNikRobotics/pick_ik/issues/79>`_)
 * Contributors: Mark Johnson
 
