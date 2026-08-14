@@ -1,4 +1,5 @@
 #include <pick_ik/robot.hpp>
+#include <fmt/format.h>
 
 #include <rsl/random.hpp>
 #include <tf2_eigen/tf2_eigen.hpp>

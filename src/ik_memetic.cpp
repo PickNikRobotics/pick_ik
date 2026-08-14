@@ -1,4 +1,5 @@
 #include <pick_ik/goal.hpp>
+#include <fmt/format.h>
 #include <pick_ik/ik_gradient.hpp>
 #include <pick_ik/ik_memetic.hpp>
 #include <pick_ik/robot.hpp>
