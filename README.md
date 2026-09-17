@@ -2,6 +2,11 @@
 
 `pick_ik` is an inverse kinematics (IK) solver compatible with [MoveIt 2](https://github.com/ros-planning/moveit2).
 
+> [!IMPORTANT]
+> `pick_ik` is deprecated by PickNik. Its performance did not meet our requirements, so PickNik no longer uses the solver or plans further feature development. We will provide only basic maintenance for existing users.
+>
+> We are looking to transfer ownership to the open source community. If you are interested in owning and maintaining `pick_ik`, please [contact us by opening an issue](https://github.com/PickNikRobotics/pick_ik/issues/new).
+
 The solver is a reimplementation of [`bio_ik`](https://github.com/TAMS-Group/bio_ik), which combines:
 * A local optimizer which solves inverse kinematics via gradient descent
 * A global optimizer based on evolutionary algorithms
